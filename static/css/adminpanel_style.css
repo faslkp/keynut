@@ -1,0 +1,44 @@
+body {
+    background: #F7F9FB;
+}
+header {
+    max-height: 8em;
+}
+.adminlogin-logo-container {
+    width: 7em;
+}
+div.main {
+    height: calc(100vh - 8em);
+}
+div.main div.form-box{
+    min-width: 20em;
+    max-width: 90%;
+    max-height: max-content;
+    border-radius: 0.8em;
+    align-items: center;
+    justify-content: center;
+}
+div.main div.form-box div.top div.img-container {
+    max-width: 6em;
+}
+.forgot-password {
+    font-size: 0.9em;
+}
+.btn-login {
+    background-color: #6c7dff;
+    color: white;
+    border: none;
+    border-radius: 2em;
+}
+input:focus {
+    box-shadow: none !important;
+}
+.input-group:focus {
+    box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
+}
+input {
+    margin-left: 0 !important;
+}
+.input-icon {
+    margin-right: 1px !important;
+}
