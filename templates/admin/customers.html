@@ -1,0 +1,172 @@
+{% extends "admin/dashboard_base.html" %}
+{% block title %}Customers{% endblock title %}
+{% block page_head %}Customers{% endblock page_head %}
+{% block content %}
+<!-- Customer Page Content -->
+<div class="container-fluid py-4">
+    <!-- Page Header with Controls -->
+    <div class="row mb-4 align-items-center justify-content-between">
+        <div class="col-12 col-md-auto mb-3 mb-md-0">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" class="form-control border-start-0 bg-light" placeholder="Search" aria-label="Search">
+            </div>
+        </div>
+        
+        <div class="col-12 col-md-auto">
+            <div class="d-flex flex-column flex-md-row gap-3">
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span>Sort by</span>
+                        <i class="bi bi-chevron-down ms-2"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">Name (A-Z)</a></li>
+                        <li><a class="dropdown-item" href="#">Name (Z-A)</a></li>
+                        <li><a class="dropdown-item" href="#">Date (Newest)</a></li>
+                        <li><a class="dropdown-item" href="#">Date (Oldest)</a></li>
+                    </ul>
+                </div>
+                
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-funnel-fill me-1"></i>
+                        <span>Filter</span>
+                        <i class="bi bi-chevron-down ms-2"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">All Customers</a></li>
+                        <li><a class="dropdown-item" href="#">Active Only</a></li>
+                        <li><a class="dropdown-item" href="#">Blocked Only</a></li>
+                    </ul>
+                </div>
+                
+                <button class="btn btn-danger d-flex align-items-center" type="button">
+                    <span>Add New Customer</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Customers Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="py-3 px-3 border-0">First Name</th>
+                            <th class="py-3 px-3 border-0">Last Name</th>
+                            <th class="py-3 px-3 border-0">Email</th>
+                            <th class="py-3 px-3 border-0">Phone</th>
+                            <th class="py-3 px-3 border-0">Created on</th>
+                            <th class="py-3 px-3 border-0">Active/Blocked</th>
+                            <th class="py-3 px-3 border-0">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                        {% for customer in customers %}
+                        <tr>
+                            <td class="py-3 px-3">{{ customer.first_name }}</td>
+                            <td class="py-3 px-3">{{ customer.last_name }}</td>
+                            <td class="py-3 px-3">{{ customer.email }}</td>
+                            <td class="py-3 px-3">{{ customer.phone }}</td>
+                            <td class="py-3 px-3">{{ customer.date_joined }}</td>
+                            <td class="py-3 px-3" id="block-status-{{customer.id}}">{% if customer.is_blocked %}Blocked{% else %}Active{% endif %}</td>
+                            <td class="py-3 px-3">
+                                <div class="d-flex gap-2">
+                                    <a href="" class="btn btn-sm btn-link text-primary p-0" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a ref="" data-user-id="{{ customer.id }}" class="block-user btn btn-sm btn-link text-danger p-0" title="Block">
+                                        <i class="bi bi-x-circle"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted">
+            Showing <span class="fw-medium">1-4</span> of <span class="fw-medium">4</span> customers
+        </div>
+        <nav aria-label="Customers pagination">
+            <ul class="pagination mb-0">
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Previous">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".block-user").forEach(button => {
+            button.addEventListener("click", function (event) {
+                event.preventDefault();  // Prevent default anchor behavior
+
+                let userId = this.dataset.userId;  // Get the user ID from data attribute
+                let url = `/admin/customers/${userId}/blocking/`;  // Construct the URL
+
+                fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken")  // CSRF protection
+                    },
+                    body: JSON.stringify({ action: "block" })  // Send data if needed
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(`Customer has been updated successfully.`);  // Show alert
+                        // Change details in table
+                        let field = document.getElementById(`block-status-${userId}`);
+                        if (field.innerText == "Active"){
+                            field.innerText = "Blocked"
+                        } else {
+                            field.innerText = "Active"
+                        }
+                    } else {
+                        alert("Failed to block user.");
+                    }
+                })
+                .catch(error => console.error("Error:", error));
+            });
+        });
+    });
+
+    // Function to get CSRF token (needed for Django security)
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            document.cookie.split(';').forEach(cookie => {
+                let trimmed = cookie.trim();
+                if (trimmed.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(trimmed.substring(name.length + 1));
+                }
+            });
+        }
+        return cookieValue;
+    }
+
+</script>
+{% endblock content %}

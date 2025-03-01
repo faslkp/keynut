@@ -1,0 +1,178 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} | Keynut - One bite, that's enough!</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/adminpanel_style.css' %}">
+</head>
+<body>
+    <!-- Sidebar Backdrop (mobile only) -->
+    <div class="sidebar-backdrop"></div>
+    
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{% static 'images/keynut.png' %}" alt="Keynut">
+            <span>KEYNUT</span>
+        </div>
+        
+        <div class="mt-3">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a href="{% url 'dashboard' %}" class="nav-link">
+                        <i class="bi bi-grid"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'products' %}" class="nav-link">
+                        <i class="bi bi-box"></i>
+                        Products
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'customers' %}" class="nav-link">
+                        <i class="bi bi-people"></i>
+                        Customers
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'orders' %}" class="nav-link">
+                        <i class="bi bi-cart"></i>
+                        Orders
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'reports' %}" class="nav-link">
+                        <i class="bi bi-bar-chart"></i>
+                        Reports
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'coupons' %}" class="nav-link">
+                        <i class="bi bi-tag"></i>
+                        Coupons
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'settings' %}" class="nav-link">
+                        <i class="bi bi-gear"></i>
+                        Settings
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="mt-auto px-3 py-3">
+            <a href="{% url 'admin_logout' %}" class="btn btn-danger w-100">Logout</a>
+        </div>
+        
+        <div class="sidebar-footer">
+            © 2025 Keynut
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="topbar">
+            <div class="container-fluid">
+                <div class="row align-items-center" style="height: var(--topbar-height);">
+                    <div class="col">
+                        <div class="d-flex align-items-center h-100">
+                            <button class="sidebar-toggle me-2">
+                                <i class="bi bi-list"></i>
+                            </button>
+                            <div class="topbar-title">
+                                <i class="bi bi-grid me-2"></i>
+                                {% block page_head %}{% endblock %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="notification-icon">
+                            <i class="bi bi-bell"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+            
+        <!-- Placeholder for dashboard widgets -->
+        <div class="row px-1">
+            <!-- Your dashboard content will go here -->
+            {% block content %}{% endblock %}
+        </div>
+        
+    </div>
+    
+    <!-- Bootstrap 5 JS with Popper -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom Script for Sidebar Toggle -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Script for mark active sidebar link
+            const navLinks = document.querySelectorAll('.sidebar .nav-link')
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e){
+                    // Remove active class from all links
+                    navLinks.forEach(item => {
+                        item.classList.remove('active');
+                    })
+
+                    // Add active class to the clicked item
+                    this.classList.add('active');
+
+                    // Add to local storage to persist from other pages
+                    localStorage.setItem('activeNavLink', this.getAttribute('href'));
+                });
+            });
+
+            // Check if there's a stored active link and apply it on page load
+            const storedActiveLink = localStorage.getItem('activeNavLink');
+            if (storedActiveLink) {
+                navLinks.forEach(link => {
+                    if (link.getAttribute('href') === storedActiveLink) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+            
+            // If no stored link or the stored link wasn't found, keep the first one active
+            if (!document.querySelector('.sidebar .nav-link.active')) {
+                navLinks[0].classList.add('active');
+            }
+
+            // Script for Sidbar Toggle
+            const sidebarToggle = document.querySelector('.sidebar-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            const backdrop = document.querySelector('.sidebar-backdrop');
+            const body = document.body;
+            
+            function toggleSidebar() {
+                sidebar.classList.toggle('show');
+                body.classList.toggle('sidebar-open');
+            }
+            
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            backdrop.addEventListener('click', toggleSidebar);
+            
+            // Close sidebar when window resizes to large screen
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 992 && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                    body.classList.remove('sidebar-open');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

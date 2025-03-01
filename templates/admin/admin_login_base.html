@@ -27,7 +27,7 @@
             </div>
             <div class="messages">
                 {% for message in messages %}
-                <p class="text-center text-danger">{{message}}</p>
+                <p class="text-center {% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
                 {% endfor %}
             </div>
             {% block form %}{% endblock %}

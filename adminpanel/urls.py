@@ -1,11 +1,18 @@
 from django.urls import path
 
-from . views import dashboard, admin_login, admin_logout, admin_recover_password
+from . import views
 
 
 urlpatterns = [
-    path('login/', admin_login, name='admin_login'),
-    path('recover/', admin_recover_password, name='admin_recover_password'),
-    path('logout/', admin_logout, name='admin_logout'),
-    path('', dashboard, name='dashboard'),
+    path('login/', views.admin_login, name='admin_login'),
+    path('recover/', views.admin_recover_password, name='admin_recover_password'),
+    path('logout/', views.admin_logout, name='admin_logout'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('products/', views.customers, name='products'),
+    path('customers/', views.customers, name='customers'),
+    path('customers/<int:pk>/blocking/', views.cutomer_blocking, name='cutomer_blocking'),
+    path('orders/', views.customers, name='orders'),
+    path('reports/', views.customers, name='reports'),
+    path('coupons/', views.customers, name='coupons'),
+    path('settings/', views.customers, name='settings'),
 ]
