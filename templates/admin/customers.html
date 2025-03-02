@@ -1,4 +1,5 @@
 {% extends "admin/dashboard_base.html" %}
+{% load static %}
 {% block title %}Customers{% endblock title %}
 {% block page_head %}Customers{% endblock page_head %}
 {% block content %}
@@ -81,9 +82,15 @@
                                     <a href="" class="btn btn-sm btn-link text-primary p-0" title="Edit">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <a ref="" data-user-id="{{ customer.id }}" class="block-user btn btn-sm btn-link text-danger p-0" title="Block">
+                                    {% if customer.is_blocked %}
+                                    <a href="" data-user-id="{{customer.id}}" data-user-name="{{customer.first_name}}" data-is-blocked="{{customer.is_blocked}}" class="block-user btn btn-sm btn-link text-success p-0" title="Unblock" data-bs-toggle="modal" data-bs-target="#blockModal">
+                                        <i class="bi bi-check-circle"></i>
+                                    </a>
+                                    {% else %}
+                                    <a href="" data-user-id="{{customer.id}}" data-user-name="{{customer.first_name}}" data-is-blocked="{{customer.is_blocked}}" class="block-user btn btn-sm btn-link text-danger p-0" title="Block" data-bs-toggle="modal" data-bs-target="#blockModal">
                                         <i class="bi bi-x-circle"></i>
                                     </a>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -117,56 +124,52 @@
         </nav>
     </div>
 </div>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        document.querySelectorAll(".block-user").forEach(button => {
-            button.addEventListener("click", function (event) {
-                event.preventDefault();  // Prevent default anchor behavior
+  
+<!-- Block Confirmation Modal -->
+<div class="modal fade" id="blockModal" tabindex="-1" aria-labelledby="blockModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="blockModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="blockModalDesc"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="blockConfirmButton" class="btn btn-primary">Continue</button>
+                <a href="" id="modelCloseOnResponse" style="display: none;">Close</a>
+            </div>
+        </div>
+    </div>
+</div>
 
-                let userId = this.dataset.userId;  // Get the user ID from data attribute
-                let url = `/admin/customers/${userId}/blocking/`;  // Construct the URL
 
-                fetch(url, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": getCookie("csrftoken")  // CSRF protection
-                    },
-                    body: JSON.stringify({ action: "block" })  // Send data if needed
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(`Customer has been updated successfully.`);  // Show alert
-                        // Change details in table
-                        let field = document.getElementById(`block-status-${userId}`);
-                        if (field.innerText == "Active"){
-                            field.innerText = "Blocked"
-                        } else {
-                            field.innerText = "Active"
-                        }
-                    } else {
-                        alert("Failed to block user.");
-                    }
-                })
-                .catch(error => console.error("Error:", error));
-            });
-        });
-    });
+<!-- Hidden link to trigger the Block Feedback modal -->
+<a id="triggerFeedbackModal" href="#" data-bs-toggle="modal" data-bs-target="#blockFeedbackModal" style="display:none;"></a>
 
-    // Function to get CSRF token (needed for Django security)
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            document.cookie.split(';').forEach(cookie => {
-                let trimmed = cookie.trim();
-                if (trimmed.startsWith(name + '=')) {
-                    cookieValue = decodeURIComponent(trimmed.substring(name.length + 1));
-                }
-            });
-        }
-        return cookieValue;
-    }
+<!-- Block Feedback Modal -->
+<div class="modal fade" id="blockFeedbackModal" tabindex="-1" aria-labelledby="blockFeedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="blockFeedbackModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="blockFeedbackModalDesc"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-</script>
 {% endblock content %}
+
+{% block script %}
+<!-- Customers page specific JS file -->
+<script src="{% static 'js/adminpanel_customers.js' %}"></script>
+{% endblock script %}
