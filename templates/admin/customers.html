@@ -7,44 +7,49 @@
 <div class="container-fluid py-4">
     <!-- Page Header with Controls -->
     <div class="row mb-4 align-items-center justify-content-between">
-        <div class="col-12 col-md-auto mb-3 mb-md-0">
-            <div class="input-group">
-                <span class="input-group-text bg-light border-end-0">
-                    <i class="bi bi-search text-muted"></i>
-                </span>
-                <input type="text" class="form-control border-start-0 bg-light" placeholder="Search" aria-label="Search">
+        <div class="col-12 col-md-auto mb-3 mb-md-0 d-flex flex-column flex-md-row gap-3">
+            <div class="dropdown" style="min-width: fit-content;">
+                <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span>Sort by</span>
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?sortby=first_name">Name (A-Z)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=-first_name">Name (Z-A)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=date_joined">Date (Newest)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=-date_joined">Date (Oldest)</a></li>
+                </ul>
             </div>
+            
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-funnel-fill me-1"></i>
+                    <span>Filter</span>
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?filter=">All Customers</a></li>
+                    <li><a class="dropdown-item" href="?filter=active">Active Only</a></li>
+                    <li><a class="dropdown-item" href="?filter=blocked">Blocked Only</a></li>
+                </ul>
+            </div>
+
+            <form action="" class="d-flex flex-column flex-sm-row gap-2">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="q" class="form-control border-start-0 bg-light" placeholder="Search" aria-label="Search">
+                </div>
+                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'customers' %}" title="Clear">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </form>
         </div>
         
         <div class="col-12 col-md-auto">
-            <div class="d-flex flex-column flex-md-row gap-3">
-                <div class="dropdown">
-                    <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span>Sort by</span>
-                        <i class="bi bi-chevron-down ms-2"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#">Name (A-Z)</a></li>
-                        <li><a class="dropdown-item" href="#">Name (Z-A)</a></li>
-                        <li><a class="dropdown-item" href="#">Date (Newest)</a></li>
-                        <li><a class="dropdown-item" href="#">Date (Oldest)</a></li>
-                    </ul>
-                </div>
-                
-                <div class="dropdown">
-                    <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-funnel-fill me-1"></i>
-                        <span>Filter</span>
-                        <i class="bi bi-chevron-down ms-2"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#">All Customers</a></li>
-                        <li><a class="dropdown-item" href="#">Active Only</a></li>
-                        <li><a class="dropdown-item" href="#">Blocked Only</a></li>
-                    </ul>
-                </div>
-                
-                <button class="btn btn-danger d-flex align-items-center" type="button">
+            <div class="">
+                <button id="addCustomerButton" class="btn btn-danger d-flex align-items-center" type="button" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
                     <span>Add New Customer</span>
                 </button>
             </div>
@@ -79,7 +84,7 @@
                             <td class="py-3 px-3" id="block-status-{{customer.id}}">{% if customer.is_blocked %}Blocked{% else %}Active{% endif %}</td>
                             <td class="py-3 px-3">
                                 <div class="d-flex gap-2">
-                                    <a href="" class="btn btn-sm btn-link text-primary p-0" title="Edit">
+                                    <a href="" data-user-id="{{customer.id}}" class="edit-user btn btn-sm btn-link text-primary p-0" title="Edit" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     {% if customer.is_blocked %}
@@ -105,21 +110,37 @@
     <!-- Pagination -->
     <div class="d-flex justify-content-between align-items-center mt-4">
         <div class="text-muted">
-            Showing <span class="fw-medium">1-4</span> of <span class="fw-medium">4</span> customers
+            Page <span class="fw-medium">{{ customers.number }}</span> of <span class="fw-medium">{{ customers.paginator.num_pages }}</span> pages
         </div>
         <nav aria-label="Customers pagination">
             <ul class="pagination mb-0">
+                {% if customers.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ customers.previous_page_number }}" aria-label="Previous">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
                 <li class="page-item disabled">
                     <a class="page-link" href="#" aria-label="Previous">
                         <i class="bi bi-chevron-left"></i>
                     </a>
                 </li>
-                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                {% endif %}
+                <li class="page-item active"><a class="page-link" href="#">{{ customers.number }}</a></li>
+                {% if customers.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ customers.next_page_number }}" aria-label="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% else %}
                 <li class="page-item disabled">
                     <a class="page-link" href="#" aria-label="Next">
                         <i class="bi bi-chevron-right"></i>
                     </a>
                 </li>
+                {% endif %}
             </ul>
         </nav>
     </div>
@@ -137,9 +158,8 @@
                 <p id="blockModalDesc"></p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="blockCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="button" id="blockConfirmButton" class="btn btn-primary">Continue</button>
-                <a href="" id="modelCloseOnResponse" style="display: none;">Close</a>
             </div>
         </div>
     </div>
@@ -149,7 +169,7 @@
 <!-- Hidden link to trigger the Block Feedback modal -->
 <a id="triggerFeedbackModal" href="#" data-bs-toggle="modal" data-bs-target="#blockFeedbackModal" style="display:none;"></a>
 
-<!-- Block Feedback Modal -->
+<!-- Feedback Modal -->
 <div class="modal fade" id="blockFeedbackModal" tabindex="-1" aria-labelledby="blockFeedbackModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -161,8 +181,30 @@
                 <p id="blockFeedbackModalDesc"></p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="feedbackModalCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Customer Modal -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCustomerModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                        {{ form.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" id="addCustomerSubmitButton" class="btn btn-primary">Save</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

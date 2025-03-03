@@ -4,29 +4,138 @@ import json
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import get_user_model, authenticate, login as authlogin, logout as authlogout
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.http import JsonResponse
+from django.db.models import Q, F
+from django.db.models.functions import Lower
+from django.core.paginator import Paginator
+
+from . forms import AddCustomerForm
 
 User = get_user_model()
 
-
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
 def dashboard(request):
     context = {}
     return render(request, 'admin/dashboard.html', context=context)
 
 
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
 def products(request):
     context = {}
     return render(request, 'admin/customers.html', context=context)
 
 
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
 def customers(request):
     context = {}
-    customers = User.objects.all()
-    context.update({'customers': customers})
+    sortby = request.GET.get('sortby')
+    filter = request.GET.get('filter')
+    q = request.GET.get('q')
+    customers = User.objects.filter(is_staff=False).order_by("-date_joined")
+    
+    # Handle sort, filter and search
+    if sortby:
+        if sortby.startswith('-'):
+            field_name = sortby.lstrip('-')
+            customers = customers.order_by(Lower(field_name).desc())
+        else:
+            customers = customers.order_by(sortby)
+    if filter:
+        customers = customers.filter(is_blocked = False) if filter=="active" else customers.filter(is_blocked = True)
+    if q:
+        customers = customers.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(email__icontains=q))
+    
+    # Pagination
+    paginator = Paginator(customers, 10) #10 customers per page
+    page_number = request.GET.get('page')
+    customers = paginator.get_page(page_number)
+
+    form = AddCustomerForm()
+    context.update({'customers': customers, 'form': form})
     return render(request, 'admin/customers.html', context=context)
 
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+def add_customer(request):
+    if request.POST:
+        form = AddCustomerForm(request.POST)
+        print(form)
+        if form.is_valid:
+            user = form.save(commit=False)
+            user.username = request.POST['email']
+            user.set_password(request.POST['password'])
+            user.save()
+            return JsonResponse({
+                "success": True,
+                "message": f"Customer {request.POST["first_name"]} added successfully."
+            })
+        else:
+            return JsonResponse({
+                "error": True,
+                "message": "Invalid data! Please verify all details."
+            })
+    else:
+        return JsonResponse({
+            "error": True,
+            "message": "Invalid request!"
+        })
+    
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+def edit_customer(request, pk=None):
+    if request.method == "POST":
+        print("got post req..")
+        first_name = request.POST.get("first_name")
+        last_name = request.POST.get("last_name")
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+        phone = request.POST.get("phone")
+        user = User.objects.filter(pk=pk).first()
+        if user:
+            print("getting user..")
+            user.first_name = first_name
+            user.last_name = last_name
+            user.email = email
+            user.phone = phone
+            if password:
+                user.set_password(password)
+            user.save()
+            return JsonResponse({
+                "success": True,
+                "message": f"Customer {user.first_name} updated successfully."
+            })
+        else:
+            return JsonResponse({
+                "error": True,
+                "message": "User not found!"
+            })
+    else:
+        print("got get req..")
+        user = User.objects.filter(pk=pk).first()
+        if user:
+            return JsonResponse({
+                "first_name" : user.first_name,
+                "last_name" : user.last_name,
+                "email" : user.email,
+                "phone" : user.phone,
+            })
+        else:
+            return JsonResponse({
+                "error": True,
+                "message": "User not found!"
+            })
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
 def cutomer_blocking(request, pk):
     if request.method == "POST":
         try:
@@ -67,7 +176,7 @@ def admin_login(request):
         password = request.POST['password']
         print(email, password)
         user = authenticate(username=email, password=password)
-        if user:
+        if user and user.is_staff:
             authlogin(request, user)
             return redirect('dashboard')
         else:
@@ -89,7 +198,9 @@ def admin_recover_password(request):
         
         # Resend OTP
         if resend_otp and email:
-            if User.objects.filter(username=email).exists():
+            user = User.objects.filter(username=email).first()
+
+            if user and user.is_staff:
                 print("Resending OTP...")
                 otp = str(random.randint(1000, 9999))
                 request.session['generated_otp'] = otp
@@ -139,7 +250,7 @@ def admin_recover_password(request):
             if password1 == password2:
                 print("Reseting password...")
                 user = User.objects.filter(username=email).first()
-                if user:
+                if user and user.is_staff:
                     user.set_password(password1)
                     user.save()
                     del request.session['otp_verified']
@@ -153,7 +264,9 @@ def admin_recover_password(request):
         
         # Sendig OTP
         elif email:
-            if User.objects.filter(username=email):
+            user = User.objects.filter(username=email).first()
+
+            if user and user.is_staff:
                 print("Sending otp...")
                 otp = str(random.randint(1000, 9999))
                 request.session['generated_otp'] = otp

@@ -12,9 +12,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Add active class to the clicked item
             this.classList.add('active');
-
-            // Add to local storage to persist from other pages
-            // localStorage.setItem('activeNavLink', this.getAttribute('href'));
         });
     });
 
