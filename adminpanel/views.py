@@ -13,6 +13,7 @@ from django.db.models.functions import Lower
 from django.core.paginator import Paginator
 
 from . forms import AddCustomerForm
+from products.models import Product, Category
 
 User = get_user_model()
 
@@ -27,7 +28,32 @@ def dashboard(request):
 @user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
 def products(request):
     context = {}
-    return render(request, 'admin/customers.html', context=context)
+    sortby = request.GET.get('sortby')
+    filter = request.GET.get('filter')
+    q = request.GET.get('q')
+    products = Product.objects.filter(is_deleted=False).order_by("-created_at")
+    
+    # Handle sort, filter and search
+    if sortby:
+        if sortby.startswith('-'):
+            field_name = sortby.lstrip('-')
+            products = products.order_by(Lower(field_name).desc())
+        else:
+            products = products.order_by(sortby)
+    if filter:
+        products = products.filter(is_listed = True) if filter=="listed" else products.filter(is_listed = False)
+    if q:
+        products = products.filter(name__icontains=q)
+    
+    # Pagination
+    paginator = Paginator(products, 10) #10 products per page
+    page_number = request.GET.get('page')
+    products = paginator.get_page(page_number)
+
+    categories = Category.objects.all()
+
+    context.update({'products': products, 'categories': categories})
+    return render(request, 'admin/products.html', context=context)
 
 
 @login_required(login_url='admin_login')
