@@ -1,7 +1,18 @@
 {% extends "admin/dashboard_base.html" %}
 {% load static %}
 {% block title %}Products{% endblock title %}
+
+{% block script_top %}
+<!-- Cropper.js CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+
+<!-- Cropper.js JavaScript -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+{% endblock script_top %}
+
 {% block page_head %}Products{% endblock page_head %}
+
 {% block content %}
 <!-- Customer Page Content -->
 <div class="container-fluid py-4">
@@ -16,10 +27,10 @@
                 <ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="?sortby=name">Name (A-Z)</a></li>
                     <li><a class="dropdown-item" href="?sortby=-name">Name (Z-A)</a></li>
-                    <li><a class="dropdown-item" href="?sortby=created_at">Date (Newest)</a></li>
-                    <li><a class="dropdown-item" href="?sortby=-created_at">Date (Oldest)</a></li>
-                    <li><a class="dropdown-item" href="?sortby=price">Date (Price High-Low)</a></li>
-                    <li><a class="dropdown-item" href="?sortby=-price">Date (Price Low-High)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=created_at">Date (Oldest)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=-created_at">Date (Newest)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=price">Price (Low-High)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=-price">Price (High-Low)</a></li>
                 </ul>
             </div>
             
@@ -31,8 +42,8 @@
                 </button>
                 <ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="?filter=">All Products</a></li>
-                    <li><a class="dropdown-item" href="?filter=active">Listed Products Only</a></li>
-                    <li><a class="dropdown-item" href="?filter=blocked">Unlisted Products Only</a></li>
+                    <li><a class="dropdown-item" href="?filter=listed">Listed Products Only</a></li>
+                    <li><a class="dropdown-item" href="?filter=unlisted">Non Listed Products Only</a></li>
                 </ul>
             </div>
 
@@ -57,7 +68,7 @@
                     </span>
                     <input type="text" name="q" class="form-control border-start-0 bg-light" placeholder="Search" aria-label="Search">
                 </div>
-                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'customers' %}" title="Clear">
+                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'products' %}" title="Clear">
                     <i class="bi bi-x-circle"></i>
                 </a>
             </form>
@@ -65,7 +76,7 @@
         
         <div class="col-12 col-md-auto">
             <div class="">
-                <button id="addCustomerButton" class="btn btn-danger d-flex align-items-center" type="button" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                <button id="addProductButton" class="btn btn-danger d-flex align-items-center" type="button" data-bs-toggle="modal" data-bs-target="#addProductModal">
                     <span>Add New Product</span>
                 </button>
             </div>
@@ -94,10 +105,13 @@
                             <td class="py-3 px-3">{{ product.name }}</td>
                             <td class="py-3 px-3">{{ product.price }}</td>
                             <td class="py-3 px-3">{{ product.category.name }}</td>
-                            <td class="py-3 px-3">{{ product.stock }} {{product.stock}}</td>
-                            <td class="py-3 px-3" id="block-status-{{product.id}}">{% if product.is_listed %}Listed{% else %}Not Listed{% endif %}</td>
+                            <td class="py-3 px-3">{{ product.stock }} {{product.unit}}</td>
+                            <td class="py-3 px-3" id="listing-status-{{product.id}}">{% if product.is_listed %}Listed{% else %}Not Listed{% endif %}</td>
                             <td class="py-3 px-3">
                                 <div class="d-flex gap-2">
+                                    <a href="" data-product-id="{{product.id}}" data-product-name="{{product.name}}" class="add-stock btn btn-sm btn-link text-dark p-0" title="Add Stock" data-bs-toggle="modal" data-bs-target="#addStockModal">
+                                        <i class="bi bi-plus-square"></i>
+                                    </a>
                                     <a href="" data-product-id="{{product.id}}" class="edit-product btn btn-sm btn-link text-primary p-0" title="Edit" data-bs-toggle="modal" data-bs-target="#addProductModal">
                                         <i class="bi bi-pencil"></i>
                                     </a>
@@ -130,7 +144,7 @@
             <ul class="pagination mb-0">
                 {% if products.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ products.previous_page_number }}" aria-label="Previous">
+                    <a class="page-link pagination-link" data-page="{{ products.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
                         <i class="bi bi-chevron-left"></i>
                     </a>
                 </li>
@@ -141,10 +155,14 @@
                     </a>
                 </li>
                 {% endif %}
-                <li class="page-item active"><a class="page-link" href="#">{{ products.number }}</a></li>
+
+                <li class="page-item active">
+                    <a class="page-link">{{ products.number }}</a>
+                </li>
+
                 {% if products.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ products.next_page_number }}" aria-label="Next">
+                    <a class="page-link pagination-link" data-page="{{ products.next_page_number }}" aria-label="Next" style="cursor: pointer;">
                         <i class="bi bi-chevron-right"></i>
                     </a>
                 </li>
@@ -209,16 +227,91 @@
                 <h5 class="modal-title" id="addProductModalLabel"></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="" method="post">
+
+            <form action="" method="post" id="productForm" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-body">
-                        {{ form.as_p }}
+                    <!-- Render all fields except 'variants' -->
+                    {{ form.non_field_errors }}
+
+                    {% for field in form %}
+                        {% if field.name != "variants" %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                                {% endif %}
+                                {% for error in field.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+            
+                    <!-- Image preview -->
+                    <div style="max-width: 400px; margin-top: 10px;">
+                        <img id="image-preview" style="width: 100%; display: none;">
+                    </div>
+
+                    <!-- Hidden input to store cropped image data -->
+                    <input type="hidden" id="cropped_image_data" name="cropped_image_data">
+
+                    <button type="button" id="crop-button" style="display: none;" class="btn btn-primary mt-2">Crop Image</button>
+                    <button id="editImageButton" style="display: none;" class="btn btn-primary mt-2">Edit Image</button>
+                    <button id="removeImageButton" style="display: none;" class="btn btn-primary mt-2">Remove Image</button>
+
+                    <!-- Manually render 'variants' field -->
+                    <div class="form-group mt-4">
+                        <label class="form-label fw-bold">Select Variants:</label>
+                        <div id="variants-wrapper">
+                            <div class="row">
+                                {% for value, label in form.variants.field.choices %}
+                                    {% if forloop.first or forloop.counter0|divisibleby:5 %}
+                                        <div class="col-6 col-md-4">
+                                    {% endif %}
+                                            <div class="form-check">
+                                                <input type="checkbox" name="variants" value="{{ value }}" class="form-check-input me-2" id="variant_{{ value }}">
+                                                <label class="form-check-label" for="variant_{{ value }}">{{ label }}</label>
+                                            </div>
+                                    {% if forloop.counter|divisibleby:5 or forloop.last %}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="submit" id="addProductSubmitButton" class="btn btn-primary">Save</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Stock Modal -->
+<div class="modal fade" id="addStockModal" tabindex="-1" aria-labelledby="addStockModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addStockModalLabel">Add Stock</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="addStockModalDesc" class="fw-bold fs-5">Product: </p>
+                <form action="" method="post" id="add-stock-form">
+                    <div class="form-group">
+                        <label for="id-add-stock" class="form-label">Stock</label>
+                        <input type="text" name="add-stock" id="id-add-stock" class="form-control" placeholder="Enter the new stock quantity to add">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="addStockCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="addStockSubmitButton" class="btn btn-primary">Add Stock</button>
+            </div>
         </div>
     </div>
 </div>

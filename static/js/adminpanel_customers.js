@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
-    // Sort and Filter
+    
+    // Sort and Filter 
     document.querySelectorAll(".dropdown-item").forEach(item => {
         item.addEventListener("click", function (event) {
             event.preventDefault(); // Prevent default action
@@ -9,6 +10,7 @@ document.addEventListener("DOMContentLoaded", function () {
             let paramValue = new URL(this.href).searchParams.get(paramName);
     
             url.searchParams.set(paramName, paramValue); // Update the selected parameter
+            url.searchParams.delete("page"); // Reset to page 1 after filter change
     
             window.location.href = url.toString(); // Reload with updated URL
         });
@@ -21,8 +23,25 @@ document.addEventListener("DOMContentLoaded", function () {
     
             let url = new URL(window.location.href);
             url.searchParams.set("q", this.value.trim()); // Add search query
+            url.searchParams.delete("page"); // Reset to page 1 after search
     
-            window.location.href = url.toString(); // Reload with updated URL
+            window.location.href = url.toString();
+        }
+    });
+
+    // Handle pagination links dynamically
+    document.addEventListener("click", function (event) {
+        if (event.target.closest(".pagination-link")) {  // Check if clicked element or parent has .pagination-link
+            event.preventDefault();
+
+            let pageNumber = event.target.closest(".pagination-link").getAttribute("data-page");
+
+            if (pageNumber) {
+                let url = new URL(window.location.href);
+                url.searchParams.set("page", pageNumber); // Update page number
+
+                window.location.href = url.toString();
+            }
         }
     });
 

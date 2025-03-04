@@ -1,18 +1,16 @@
 import random
 import datetime
-import json
 
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, authenticate, login as authlogin, logout as authlogout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.core.mail import send_mail
-from django.http import JsonResponse
-from django.db.models import Q, F
+from django.db.models import Q
 from django.db.models.functions import Lower
 from django.core.paginator import Paginator
-
-from . forms import AddCustomerForm
+from customers.forms import CustomerForm
+from products.forms import ProductForm
 from products.models import Product, Category
 
 User = get_user_model()
@@ -30,10 +28,11 @@ def products(request):
     context = {}
     sortby = request.GET.get('sortby')
     filter = request.GET.get('filter')
+    category = request.GET.get('category')
     q = request.GET.get('q')
     products = Product.objects.filter(is_deleted=False).order_by("-created_at")
     
-    # Handle sort, filter and search
+    # Handle sort, filter, category and search
     if sortby:
         if sortby.startswith('-'):
             field_name = sortby.lstrip('-')
@@ -42,6 +41,8 @@ def products(request):
             products = products.order_by(sortby)
     if filter:
         products = products.filter(is_listed = True) if filter=="listed" else products.filter(is_listed = False)
+    if category:
+        products = products.filter(category__slug=category)
     if q:
         products = products.filter(name__icontains=q)
     
@@ -51,8 +52,9 @@ def products(request):
     products = paginator.get_page(page_number)
 
     categories = Category.objects.all()
+    form = ProductForm()
 
-    context.update({'products': products, 'categories': categories})
+    context.update({'products': products, 'categories': categories, 'form': form})
     return render(request, 'admin/products.html', context=context)
 
 
@@ -78,121 +80,13 @@ def customers(request):
         customers = customers.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(email__icontains=q))
     
     # Pagination
-    paginator = Paginator(customers, 10) #10 customers per page
+    paginator = Paginator(customers, 3) #10 customers per page
     page_number = request.GET.get('page')
     customers = paginator.get_page(page_number)
 
-    form = AddCustomerForm()
+    form = CustomerForm()
     context.update({'customers': customers, 'form': form})
     return render(request, 'admin/customers.html', context=context)
-
-
-@login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
-def add_customer(request):
-    if request.POST:
-        form = AddCustomerForm(request.POST)
-        print(form)
-        if form.is_valid:
-            user = form.save(commit=False)
-            user.username = request.POST['email']
-            user.set_password(request.POST['password'])
-            user.save()
-            return JsonResponse({
-                "success": True,
-                "message": f"Customer {request.POST["first_name"]} added successfully."
-            })
-        else:
-            return JsonResponse({
-                "error": True,
-                "message": "Invalid data! Please verify all details."
-            })
-    else:
-        return JsonResponse({
-            "error": True,
-            "message": "Invalid request!"
-        })
-    
-
-@login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
-def edit_customer(request, pk=None):
-    if request.method == "POST":
-        print("got post req..")
-        first_name = request.POST.get("first_name")
-        last_name = request.POST.get("last_name")
-        email = request.POST.get("email")
-        password = request.POST.get("password")
-        phone = request.POST.get("phone")
-        user = User.objects.filter(pk=pk).first()
-        if user:
-            print("getting user..")
-            user.first_name = first_name
-            user.last_name = last_name
-            user.email = email
-            user.phone = phone
-            if password:
-                user.set_password(password)
-            user.save()
-            return JsonResponse({
-                "success": True,
-                "message": f"Customer {user.first_name} updated successfully."
-            })
-        else:
-            return JsonResponse({
-                "error": True,
-                "message": "User not found!"
-            })
-    else:
-        print("got get req..")
-        user = User.objects.filter(pk=pk).first()
-        if user:
-            return JsonResponse({
-                "first_name" : user.first_name,
-                "last_name" : user.last_name,
-                "email" : user.email,
-                "phone" : user.phone,
-            })
-        else:
-            return JsonResponse({
-                "error": True,
-                "message": "User not found!"
-            })
-
-
-@login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
-def cutomer_blocking(request, pk):
-    if request.method == "POST":
-        try:
-            user = get_object_or_404(User, pk=pk)
-            print(user.first_name)
-            user.is_blocked = not user.is_blocked
-            user.save()
-            
-            # Send notification email to customer
-            try:
-                send_mail(
-                    subject=f"Your Keynut account has been {"blocked" if user.is_blocked else "unblocked"}.",
-                    message=f"Your Keynut account has been {"blocked" if user.is_blocked else "unblocked"} by administrator{" in regarding to the violation of terms and conditions. Please contact support@keynut.com for further assistance" if user.is_blocked else "."}",
-                    from_email="teamkepe@gmail.com",  # Your email address
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-            except:
-                return JsonResponse({
-                    "success" : True,
-                    "message" : f"Customer {user.first_name} has {"blocked" if user.is_blocked else "unblocked"} successfully. But, notification email was not sent to the customer due some technical issues."
-                })
-
-            return JsonResponse({
-                "success" : True,
-                "message" : f"Customer {user.first_name} has {"blocked" if user.is_blocked else "unblocked"} successfully."
-            })
-        except json.JSONDecodeError:
-            return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)
-        
-    return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)
 
 
 def admin_login(request):

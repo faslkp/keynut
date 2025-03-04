@@ -116,7 +116,7 @@
             <ul class="pagination mb-0">
                 {% if customers.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ customers.previous_page_number }}" aria-label="Previous">
+                    <a class="page-link pagination-link" data-page="{{ customers.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
                         <i class="bi bi-chevron-left"></i>
                     </a>
                 </li>
@@ -127,10 +127,14 @@
                     </a>
                 </li>
                 {% endif %}
-                <li class="page-item active"><a class="page-link" href="#">{{ customers.number }}</a></li>
+
+                <li class="page-item active">
+                    <a class="page-link">{{ customers.number }}</a>
+                </li>
+    
                 {% if customers.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ customers.next_page_number }}" aria-label="Next">
+                    <a class="page-link pagination-link" data-page="{{ customers.next_page_number }}" aria-label="Next" style="cursor: pointer;">
                         <i class="bi bi-chevron-right"></i>
                     </a>
                 </li>
@@ -143,7 +147,7 @@
                 {% endif %}
             </ul>
         </nav>
-    </div>
+    </div>    
 </div>
   
 <!-- Block Confirmation Modal -->

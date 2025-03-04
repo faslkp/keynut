@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
-class AddCustomerForm(forms.ModelForm):
+class CustomerForm(forms.ModelForm):
     first_name = forms.CharField(
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter first name'}),
         required=True
