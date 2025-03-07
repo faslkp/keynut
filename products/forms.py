@@ -19,6 +19,11 @@ class ProductForm(forms.ModelForm):
         required=True
     )
 
+    discount = forms.DecimalField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter discount percentage', 'step': '1.00'}),
+        required=True
+    )
+
     category = forms.ModelChoiceField(
         queryset=Category.objects.filter(is_deleted=False),
         widget=forms.Select(attrs={'class': 'form-control'}),
@@ -49,7 +54,7 @@ class ProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        fields = ['name', 'description', 'price', 'category', 'unit', 'stock', 'image']
+        fields = ['name', 'description', 'price', 'discount', 'category', 'unit', 'stock', 'image']
     
     def clean_image(self):
         image = self.cleaned_data.get("image")
@@ -58,3 +63,14 @@ class ProductForm(forms.ModelForm):
             raise forms.ValidationError("Please upload a valid image.")
 
         return image  # Return the already cropped image
+    
+
+class CategoryForm(forms.ModelForm):
+    name = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter category name'}),
+        required=True
+    )
+
+    class Meta:
+        model = Category
+        fields = ['name']

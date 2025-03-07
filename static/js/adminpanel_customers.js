@@ -229,7 +229,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 confirmButton.disabled = true;
                 confirmButton.innerText = "Please wait"
                 
-                let url = `/admin/customers/${userId}/blocking/`;  // Construct the URL
+                let url = `/admin/customers/${userId}/block/`;  // Construct the URL
 
                 fetch(url, {
                     method: "POST",
@@ -274,8 +274,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                         
                     } else {
-                        // Close confirim modal and Trigger error modal
-                        modelCloseOnResponse.click();
+                        // Close confirm modal and Trigger error modal
                         feedbackModalLabel.innerText = "Error";
                         feedbackModalDesc.innerText = data.message;
                         feedbackModalTrigger.click();
@@ -285,7 +284,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     confirmButton.removeEventListener('click', confirmAction);
                 })
                 .catch(error => {
-                    modelCloseOnResponse.click()
                     feedbackModalLabel.innerText = "Error";
                     feedbackModalDesc.innerText = error;
                     feedbackModalTrigger.click();

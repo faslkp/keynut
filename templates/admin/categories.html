@@ -1,9 +1,11 @@
 {% extends "admin/dashboard_base.html" %}
 {% load static %}
-{% block title %}Customers{% endblock title %}
-{% block page_head %}Customers{% endblock page_head %}
+{% block title %}Categories{% endblock title %}
+
+{% block page_head %}Categories{% endblock page_head %}
+
 {% block content %}
-<!-- Customer Page Content -->
+<!-- Categories Page Content -->
 <div class="container-fluid py-4">
     <!-- Page Header with Controls -->
     <div class="row mb-4 align-items-center justify-content-between">
@@ -14,10 +16,8 @@
                     <i class="bi bi-chevron-down ms-2"></i>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="?sortby=first_name">Name (A-Z)</a></li>
-                    <li><a class="dropdown-item" href="?sortby=-first_name">Name (Z-A)</a></li>
-                    <li><a class="dropdown-item" href="?sortby=date_joined">Date (Newest)</a></li>
-                    <li><a class="dropdown-item" href="?sortby=-date_joined">Date (Oldest)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=name">Name (A-Z)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=-name">Name (Z-A)</a></li>
                 </ul>
             </div>
             
@@ -28,9 +28,9 @@
                     <i class="bi bi-chevron-down ms-2"></i>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="?filter=">All Customers</a></li>
-                    <li><a class="dropdown-item" href="?filter=active">Active Only</a></li>
-                    <li><a class="dropdown-item" href="?filter=blocked">Blocked Only</a></li>
+                    <li><a class="dropdown-item" href="?filter=">All Categories</a></li>
+                    <li><a class="dropdown-item" href="?filter=active">Active Categories Only</a></li>
+                    <li><a class="dropdown-item" href="?filter=deleted">Deleted Categories Only</a></li>
                 </ul>
             </div>
 
@@ -41,7 +41,7 @@
                     </span>
                     <input type="text" name="q" class="form-control border-start-0 bg-light" placeholder="Search" aria-label="Search">
                 </div>
-                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'admin_customers' %}" title="Clear">
+                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'admin_categories' %}" title="Clear">
                     <i class="bi bi-x-circle"></i>
                 </a>
             </form>
@@ -49,51 +49,43 @@
         
         <div class="col-12 col-md-auto">
             <div class="">
-                <button id="addCustomerButton" class="btn btn-danger d-flex align-items-center" type="button" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
-                    <span>Add New Customer</span>
+                <button id="addCategoryButton" class="btn btn-danger d-flex align-items-center" type="button" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                    <span>Add New Category</span>
                 </button>
             </div>
         </div>
     </div>
     
-    <!-- Customers Table -->
+    <!-- Categories Table -->
     <div class="card">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="py-3 px-3 border-0">First Name</th>
-                            <th class="py-3 px-3 border-0">Last Name</th>
-                            <th class="py-3 px-3 border-0">Email</th>
-                            <th class="py-3 px-3 border-0">Phone</th>
-                            <th class="py-3 px-3 border-0">Created on</th>
-                            <th class="py-3 px-3 border-0">Active/Blocked</th>
+                            <th class="py-3 px-3 border-0 w-75">Name</th>
+                            <th class="py-3 px-3 border-0">Status</th>
                             <th class="py-3 px-3 border-0">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         
-                        {% for customer in customers %}
+                        {% for category in categories %}
                         <tr>
-                            <td class="py-3 px-3">{{ customer.first_name }}</td>
-                            <td class="py-3 px-3">{{ customer.last_name }}</td>
-                            <td class="py-3 px-3">{{ customer.email }}</td>
-                            <td class="py-3 px-3">{{ customer.phone }}</td>
-                            <td class="py-3 px-3">{{ customer.date_joined }}</td>
-                            <td class="py-3 px-3" id="block-status-{{customer.id}}">{% if customer.is_blocked %}Blocked{% else %}Active{% endif %}</td>
+                            <td class="py-3 px-3 w-75">{{ category.name }}</td>
+                            <td class="py-3 px-3" id="active-status-{{category.id}}">{% if category.is_deleted %}Deleted{% else %}Active{% endif %}</td>
                             <td class="py-3 px-3">
                                 <div class="d-flex gap-2">
-                                    <a href="" data-user-id="{{customer.id}}" class="edit-user btn btn-sm btn-link text-primary p-0" title="Edit" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+                                    <a href="" data-category-id="{{category.id}}" data-category-name="{{category.name}}" class="edit-category btn btn-sm btn-link text-primary p-0" title="Edit" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    {% if customer.is_blocked %}
-                                    <a href="" data-user-id="{{customer.id}}" data-user-name="{{customer.first_name}}" data-is-blocked="{{customer.is_blocked}}" class="block-user btn btn-sm btn-link text-success p-0" title="Unblock" data-bs-toggle="modal" data-bs-target="#blockModal">
-                                        <i class="bi bi-check-circle"></i>
+                                    {% if category.is_deleted %}
+                                    <a href="" data-category-id="{{category.id}}" data-category-name="{{category.name}}" data-is-deleted="{{category.is_deleted}}" class="delete-category btn btn-sm btn-link text-success p-0" title="Restore" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
                                     </a>
                                     {% else %}
-                                    <a href="" data-user-id="{{customer.id}}" data-user-name="{{customer.first_name}}" data-is-blocked="{{customer.is_blocked}}" class="block-user btn btn-sm btn-link text-danger p-0" title="Block" data-bs-toggle="modal" data-bs-target="#blockModal">
-                                        <i class="bi bi-x-circle"></i>
+                                    <a href="" data-category-id="{{category.id}}" data-category-name="{{category.name}}" data-is-deleted="{{category.is_deleted}}" class="delete-category btn btn-sm btn-link text-danger p-0" title="Delete" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                        <i class="bi bi-trash"></i>
                                     </a>
                                     {% endif %}
                                 </div>
@@ -110,13 +102,13 @@
     <!-- Pagination -->
     <div class="d-flex justify-content-between align-items-center mt-4">
         <div class="text-muted">
-            Page <span class="fw-medium">{{ customers.number }}</span> of <span class="fw-medium">{{ customers.paginator.num_pages }}</span> pages
+            Page <span class="fw-medium">{{ categories.number }}</span> of <span class="fw-medium">{{ categories.paginator.num_pages }}</span> pages
         </div>
-        <nav aria-label="Customers pagination">
+        <nav aria-label="categories pagination">
             <ul class="pagination mb-0">
-                {% if customers.has_previous %}
+                {% if categories.has_previous %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" data-page="{{ customers.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
+                    <a class="page-link pagination-link" data-page="{{ categories.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
                         <i class="bi bi-chevron-left"></i>
                     </a>
                 </li>
@@ -129,12 +121,12 @@
                 {% endif %}
 
                 <li class="page-item active">
-                    <a class="page-link">{{ customers.number }}</a>
+                    <a class="page-link">{{ categories.number }}</a>
                 </li>
-    
-                {% if customers.has_next %}
+
+                {% if categories.has_next %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" data-page="{{ customers.next_page_number }}" aria-label="Next" style="cursor: pointer;">
+                    <a class="page-link pagination-link" data-page="{{ categories.next_page_number }}" aria-label="Next" style="cursor: pointer;">
                         <i class="bi bi-chevron-right"></i>
                     </a>
                 </li>
@@ -147,42 +139,42 @@
                 {% endif %}
             </ul>
         </nav>
-    </div>    
+    </div>
 </div>
   
-<!-- Block Confirmation Modal -->
-<div class="modal fade" id="blockModal" tabindex="-1" aria-labelledby="blockModalLabel" aria-hidden="true">
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="blockModalLabel"></h5>
+                <h5 class="modal-title" id="deleteModalLabel"></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p id="blockModalDesc"></p>
+                <p id="deleteModalDesc"></p>
             </div>
             <div class="modal-footer">
-                <button type="button" id="blockCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" id="blockConfirmButton" class="btn btn-primary">Continue</button>
+                <button type="button" id="deleteCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="deleteConfirmButton" class="btn btn-primary">Confirm</button>
             </div>
         </div>
     </div>
 </div>
 
 
-<!-- Hidden link to trigger the Block Feedback modal -->
-<a id="triggerFeedbackModal" href="#" data-bs-toggle="modal" data-bs-target="#blockFeedbackModal" style="display:none;"></a>
+<!-- Hidden link to trigger the Feedback modal -->
+<a id="triggerFeedbackModal" href="#" data-bs-toggle="modal" data-bs-target="#feedbackModal" style="display:none;"></a>
 
 <!-- Feedback Modal -->
-<div class="modal fade" id="blockFeedbackModal" tabindex="-1" aria-labelledby="blockFeedbackModalLabel" aria-hidden="true">
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="blockFeedbackModalLabel"></h5>
+                <h5 class="modal-title" id="feedbackModalLabel"></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p id="blockFeedbackModalDesc"></p>
+                <p id="feedbackModalDesc"></p>
             </div>
             <div class="modal-footer">
                 <button type="button" id="feedbackModalCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -191,31 +183,48 @@
     </div>
 </div>
 
-<!-- Add Customer Modal -->
-<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addCustomerModalLabel"></h5>
+                <h5 class="modal-title" id="addCategoryModalLabel"></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="" method="post">
+
+            <form action="" method="post" id="categoryForm" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-body">
-                        {{ form.as_p }}
+                    
+                    {{ form.non_field_errors }}
+
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <small class="form-text text-muted">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+            
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" id="addCustomerSubmitButton" class="btn btn-primary">Save</button>
+                    <button type="submit" id="addCategorySubmitButton" class="btn btn-primary">Save</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+
 {% endblock content %}
 
 {% block script %}
-<!-- Customers page specific JS file -->
-<script src="{% static 'js/adminpanel_customers.js' %}"></script>
+<!-- Categories page specific JS file -->
+<script src="{% static 'js/adminpanel_categories.js' %}"></script>
 {% endblock script %}

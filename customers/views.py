@@ -68,7 +68,6 @@ def edit_customer(request, pk=None):
                 "message": "User not found!"
             })
     else:
-        print("got get req..")
         user = User.objects.filter(pk=pk).first()
         if user:
             return JsonResponse({

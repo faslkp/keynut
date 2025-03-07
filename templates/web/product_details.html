@@ -1,0 +1,206 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Products{% endblock title %}
+
+{% block stylesheet %}
+<link rel="stylesheet" href="{% static 'css/web_product_details_style.css' %}">
+{% endblock stylesheet %}
+
+{% block header-nav %}
+{% include "web/includes/header-nav.html" %}
+{% endblock%}
+
+{% block content %}
+
+<!-- Content Section -->
+<section class="container py-5">
+    <!-- Breadcrupb -->
+    <nav class="mb-4" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'products' %}?category={{product.category.slug}}">{{product.category.name}}</a></li>
+          <li class="breadcrumb-item active" aria-current="page">{{product.name|truncatewords:5}}</li>
+        </ol>
+    </nav>
+    
+    <!-- Product Details -->
+    <div class="row g-4">
+        <!-- Product Image -->
+        <div class="col-12 col-md-6">
+            <img src="{{product.image.url}}" class="img-fluid rounded w-100" alt="{{product.name}}">
+        </div>
+  
+        <!-- Product Info -->
+        <div class="col-12 col-md-6 py-4">
+            <h2 class="mb-2" style="font-size: 1.75rem;">{{product.name}}</h2>
+            <!-- <p class="badge bg-success text-white">In Stock</p> -->
+            <div class="mb-2">
+                <span class="text-warning">★★★★☆</span> <span class="text-muted">(50 Reviews)</span>
+            </div>
+            <div class="d-flex align-items-center mb-3">
+                <p class="fw-bold mb-0" style="font-size: 1.5rem;">₹{{product.discount_price}}</p>
+                {% if product.price != product.discount_price %}
+                <span class="text-muted text-decoration-line-through ms-4" style="font-size: 1.25rem;">₹{{product.price}}</span>
+                {% endif %}
+            </div>
+            <p class="mb-3" style="font-size: 1rem;">{{product.description}}</p>
+            <hr>
+    
+            <!-- Add to cart form -->
+            {% if is_in_stock %}
+            <form action="" method="post">
+                {% csrf_token %}
+                <div class="mb-3 d-flex gap-3">
+                    <label class="form-label" style="font-size: 1rem;">Quantity:</label>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="quantityDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            Select Quantity
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="quantityDropdown">
+                        {% for variant in product.variants.all %}
+                        {% if variant.quantity <= product.stock %}
+                            <li>
+                                <a class="dropdown-item" href="#" onclick="selectQuantity(event, '{{ variant.quantity }} {{ product.unit }}')">
+                                {{ variant.quantity }} {{ product.unit }}
+                                </a>
+                            </li>
+                        {% endif %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            
+                <script>
+                function selectQuantity(event, value) {
+                    event.preventDefault();
+                    const button = document.getElementById('quantityDropdown');
+                    button.textContent = value;
+                    button.classList.remove('btn-outline-secondary')
+                    button.classList.add('btn-danger')
+                
+                    // Remove active class from all dropdown items
+                    document.querySelectorAll('.dropdown-item').forEach(item => {
+                    item.classList.remove('active');
+                    });
+                
+                    // Add active class to the selected item
+                    event.target.classList.add('active');
+                }
+                </script>
+            
+
+                <!-- <div class="mb-3">
+                    <label class="form-label" style="font-size: 1rem;">Quantity:</label>
+                    <div class="" role="group">
+                        {% for variant in product.variants.all %}
+                        <button type="button" class="btn {% if variant.quantity == 1 %}btn-danger{% else %}btn-outline-secondary{% endif %}">{{variant.quantity}} {{product.unit}}</button>
+                        {% endfor %}
+                    </div>
+                </div> -->
+    
+                <!-- Quantity Selector -->
+                <!-- <div class="mb-3 d-flex align-items-center">
+                    <label class="form-label mb-0" style="font-size: 1rem;">Quantity:</label>
+                    <div class="input-group w-25 ms-3">
+                        <button class="btn btn-outline-secondary" type="button">-</button>
+                        <input type="text" class="form-control text-center" value="2" style="font-size: 1rem;">
+                        <button class="btn btn-outline-secondary" type="button">+</button>
+                    </div>
+                </div> -->
+    
+                <!-- Add to Cart Button -->
+                <div class="d-flex gap-4">
+                    <button type="submit" class="btn btn-danger w-100 mb-2" style="font-size: 1.25rem;">Add to Cart</button>
+                    <button id="wishlistProductButton" class="btn btn-outline-secondary mb-2 d-flex align-items-center justify-content-center" style="font-size: 1.25rem;">
+                        <i class="bi bi-heart wish-badge-icon"></i>
+                    </button>
+                </div>
+            </form>
+
+            {% else %}
+
+            <div class="mb-3">
+                <p class="fw-bold fs-5 text-danger">
+                    Product has sold out!
+                </p>
+                <p class="text-secondary">
+                    Please come back in a few days. We will restore stock as soon as possible.
+                </p>
+            </div>
+            <div class="d-flex gap-4">
+                <button class="btn btn-outline-secondary w-100 mb-2" style="font-size: 1.25rem;">Out of Stock</button>
+                <button id="wishlistProductButton" class="btn btn-outline-secondary mb-2 d-flex align-items-center justify-content-center" style="font-size: 1.25rem;">
+                    <i class="bi bi-heart wish-badge-icon"></i>
+                </button>
+            </div>
+            {% endif %}
+  
+            <!-- Delivery and Return Info -->
+            <div class="card mt-3 p-3" style="font-size: 0.875rem;">
+                <div class="d-flex gap-3 align-items-center">
+                    <p class="m-0" style="font-size: 2rem;">
+                        <i class="bi bi-truck text-muted me-2"></i>
+                    </p>
+                    <p class="m-0 d-flex flex-column">
+                        <span class="fw-bold">Free Delivery</span>
+                        <span>On orders above ₹500</span>
+                    </p>
+                </div>
+                <hr class="">
+                <div class="d-flex gap-3 align-items-center">
+                    <p class="m-0" style="font-size: 2rem;">
+                        <i class="bi bi-arrow-counterclockwise text-muted me-2"></i>
+                    </p>
+                    <p class="m-0 d-flex flex-column">
+                        <span class="fw-bold">Return Delivery</span>
+                        <span>Free 7 days delivery returns</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+  
+    <!-- Related Items -->
+    <h3 class="mt-5 mb-3" style="font-size: 1.5rem;">Related Items</h3>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+        <!-- Related Product 1 -->
+        {% for product in related_products %}
+        <div class="col">
+            <a href="{% url 'product_details' 1 %}">
+                <div class="card product-card h-100 shadow-sm position-relative">
+                    {% if product.discount > 0 %}
+                    <div class="badge bg-danger text-white position-absolute top-0 start-0 m-2">{{product.discount|floatformat:0}}% OFF</div>
+                    {% endif %}
+                    <a href="#" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
+                        <i class="bi bi-heart wish-badge-icon"></i>
+                    </a>
+                    <div class="image-wrapper">
+                        <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
+                        {% if product.stock > 0 %}
+                        <button class="btn add-to-cart">Add to Cart</button>
+                        {% else %}
+                        <button class="btn out-of-stock">Out of Stock</button>
+                        {% endif %}
+                    </div>
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{product.name}}</h5>
+                        <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
+                        <div class="star-rating">
+                            ★★★★☆ (12)
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+</section>
+{% endblock content %}
+
+{% block footer %}
+{% include "web/includes/footer.html" %}
+{% endblock %}
+
+{% block script %}
+
+{% endblock script %}

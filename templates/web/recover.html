@@ -1,0 +1,100 @@
+{% extends "web/base.html" %}
+
+{% block content %}
+
+<!-- Login Page Content -->
+<main class="container-fluid py-5" style="max-height: 100vh;">
+    <!-- Banner Section -->
+    <section class="row align-items-center mb-5 py-5">
+        <div class="col-md-6">
+            <img src="https://picsum.photos/seed/shopping-cart/600/400" alt="Shopping Cart" class="img-fluid rounded" style="max-height: 25rem;">
+        </div>
+        <div class="col-md-6 text-center text-md-start">
+            <div class="top">
+                <h2 class="fs-4 fw-bold mb-3">Reset Password</h2>
+                {% if stage == 'email' %}
+                <p class="mb-4">Enter your email</p>
+                {% elif stage == 'otp' %}
+                <p class="mb-4">Enter OTP received in your email</p>
+                {% endif %}
+            </div>
+            <div class="messages col-10 col-md-6">
+                {% for message in messages %}
+                <p class="{% if message.tags == "success" %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+                {% endfor %}
+            </div>
+            <!-- Login Form -->
+            <div class="row">
+                <div class="col-10 col-md-6">
+
+                    {% if stage == 'email' %}
+                    <form action="" method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <input type="email" name="email" class="form-control" id="email" placeholder="Email" style="padding: 0.75em;" required>
+                        </div>
+                        
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <button type="submit" class="btn btn-danger px-5 w-100" style="padding: 0.6em 1.5em; font-size: 1rem;">Continue</button>
+                        </div>
+                        
+                        <p class="text-center mt-4" style="font-size: 0.875rem;">
+                            <a href="{% url 'login' %}" class="text-decoration-none text-danger">Login with password</a>
+                        </p>
+                    </form>
+                    {% endif %}
+
+                    {% if stage == 'otp' %}
+                    <form action="" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="email" value="{{ email }}">
+                        <div class="mb-3">
+                            <input type="text" name="otp" class="form-control" id="otp" placeholder="Enter OTP" style="padding: 0.75em;" required>
+                        </div>
+                        
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <button type="submit" class="btn btn-danger px-5 w-100" style="padding: 0.6em 1.5em; font-size: 1rem;">Continue</button>
+                        </div>
+                    </form>
+
+                    <!-- Resent OTP -->
+                    <form action="" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="email" value="{{email}}">
+                        <input type="hidden" name="resend_otp" value="1">
+                        <div class="d-flex justify-content-center text-center my-4">
+                            <p class="text-center mt-3" style="font-size: 0.875rem;">
+                                <a href="#" class="text-decoration-none text-danger">Resend OTP</a>
+                                <span class="ms-3 text-secondary">0:03:55</span>
+                            </p>
+                        </div>
+                    </form>
+                    {% endif %}
+
+                    {% if stage == 'reset' %}
+                    <form action="" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="email" value="{{ email }}">
+                        <div class="mb-3">
+                            <input type="password" name="password1" class="form-control" id="password1" placeholder="Password" style="padding: 0.75em;" required>
+                        </div>
+                        <div class="mb-3">
+                            <input type="password" name="password2" class="form-control" id="password2" placeholder="Confirm assword" style="padding: 0.75em;" required>
+                        </div>
+                        
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <button type="submit" class="btn btn-danger px-5 w-100" style="padding: 0.6em 1.5em; font-size: 1rem;">Reset Password</button>
+                        </div>
+                    </form>
+                    {% endif %}
+                    
+                </div>
+            </div>
+        </div>
+    </section>
+
+    
+</main>
+
+{% endblock content %}
+

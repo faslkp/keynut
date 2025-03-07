@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 
-    // Edit product buttons event listeners
+    // Edit product buttons event listeners 
     document.querySelectorAll(".edit-product").forEach(button => {
         button.addEventListener("click", function (event) {
             // Setting up modal and Save button and disabling to wait for fetching product data
@@ -90,10 +90,34 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(data => {
                 if (!data) throw new Error("No data received from the server");
 
-                // document.getElementById('id_name').value = data.first_name
-                // document.getElementById('id_description').value = data.last_name
-                // document.getElementById('id_price').value = data.email
-                // document.getElementById('id_unit').value = data.phone
+                console.log(data);
+                
+                // Assigning existing values to form
+                document.getElementById('id_name').value = data.name
+                document.getElementById('id_description').value = data.description
+                document.getElementById('id_price').value = data.price
+                document.getElementById('id_discount').value = data.discount
+                document.getElementById('id_category').value = data.category
+                document.getElementById('id_unit').value = data.unit
+                document.getElementById('id_stock').value = data.stock
+                
+                // Assigning image to form
+                const imagePreview = document.getElementById('image-preview')
+                imagePreview.src = data.image
+                imagePreview.style.display = 'block';
+
+                // Assigning variants
+                const variantsInputs = document.querySelectorAll("input[name='variants']")
+                if (data.variants && Array.isArray(data.variants)) {
+                    variantsInputs.forEach(input => {
+                        data.variants.forEach(variant => {
+                            // Convert both values to the same type for comparison
+                            if (parseFloat(input.value) === parseFloat(variant.quantity)) {
+                                input.checked = true;
+                            }
+                        });
+                    });
+                }
 
                 // Re enable Save button
                 newButton.disabled = false;
@@ -116,43 +140,22 @@ document.addEventListener("DOMContentLoaded", function () {
                         location.reload();
                     }, { once: true });
 
-                    // Form Validation
-                    // let firstName = document.getElementById("id_first_name").value.trim();
-                    // let lastName = document.getElementById("id_last_name").value.trim();
-                    // let email = document.getElementById("id_email").value.trim();
-                    // let password = document.getElementById("id_password").value.trim();
-                    // let phone = document.getElementById("id_phone").value.trim();
-                    // let csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+                    // Get form data
+                    let form = document.getElementById("productForm");
+                    let formData = new FormData(form);
+                    let imageFile = formData.get("image");
 
                     // Validation checks
-                    // if (!firstName || !lastName || !email || !phone) {
-                    //     alert("All fields other than password are required!");
-                    //     return;
-                    // }
-
-                    // if (!validateEmail(email)) {
-                    //     alert("Enter a valid email address!");
-                    //     return;
-                    // }
-
-                    // if (!validatePhone(phone)) {
-                    //     alert("Enter a valid phone number!");
-                    //     return;
-                    // }
+                    let errors = validateFormData(formData);
+                    if (Object.keys(errors).length > 0) {
+                        event.preventDefault();
+                        displayErrors(errors);
+                        return;
+                    }
 
                     // Disable button to avoid duplicate requests
                     this.disabled = true;
                     this.innerText = "Please wait";
-
-                    // Prepare form data
-                    // let formData = new FormData();
-                    // formData.append("first_name", firstName);
-                    // formData.append("last_name", lastName);
-                    // formData.append("email", email);
-                    // formData.append("password", password);
-                    // formData.append("phone", phone);
-                    // formData.append("csrfmiddlewaretoken", csrfToken);
-
 
                     // Ajax request to edit product details
                     fetch(url, {
@@ -169,11 +172,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     .then(data => {
                         if (data.success) {
                             feedbackModalLabel.innerText = "Success";
-                            // feedbackModalDesc.innerText = data.message;
+                            feedbackModalDesc.innerText = data.message;
                             feedbackModalTrigger.click();
                         } else {
                             feedbackModalLabel.innerText = "Error";
-                            // feedbackModalDesc.innerText = data.message;
+                            feedbackModalDesc.innerText = data.message;
                             feedbackModalTrigger.click();
                         }
                     })
@@ -277,7 +280,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         
                     } else {
                         // Close confirim modal and Trigger error modal
-                        modelCloseOnResponse.click();
                         feedbackModalLabel.innerText = "Error";
                         feedbackModalDesc.innerText = data.message;
                         feedbackModalTrigger.click();
@@ -287,7 +289,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     confirmButton.removeEventListener('click', confirmAction);
                 })
                 .catch(error => {
-                    modelCloseOnResponse.click()
                     feedbackModalLabel.innerText = "Error";
                     feedbackModalDesc.innerText = error;
                     feedbackModalTrigger.click();
@@ -307,18 +308,25 @@ document.addEventListener("DOMContentLoaded", function () {
         button.addEventListener("click", function (event) {
             
             // Get product details
-            const productID = this.dataset.productID
+            const productID = this.dataset.productId
             const productName = this.dataset.productName
+
+            console.log("Adding stock to product ID:" + productID)
             
             // Setting modal with selected product name
             const modalDesc = document.getElementById("addStockModalDesc")
-            modalDesc.innerText += productName
+            modalDesc.innerText = `Product: ${productName}`
 
             // Construct URL
             const url = `/admin/products/${productID}/add-stock/`
 
+            // Removing any existing event listeners from Add Stock button
+            const addStockSubmitButton = document.getElementById('addStockSubmitButton');
+            const newStockSubmitButton = addStockSubmitButton.cloneNode(true);
+            addStockSubmitButton.parentNode.replaceChild(newStockSubmitButton, addStockSubmitButton);
+            
             // Add event listener to Add Stock button
-            addStockSubmitButton.addEventListener("click", function (event) {
+            newStockSubmitButton.addEventListener("click", function (event) {
                 event.preventDefault();
 
                 // Get the feedback modal elements
@@ -344,10 +352,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 this.disabled = true;
                 this.innerText = "Please wait"
 
+                // Prepare form data
+                let formData = new FormData();
+                formData.append("new-stock", stockQuantity);
+                console.log(formData)
+
                 // Ajax request
                 fetch(url, {
                     method: "POST",
-                    credentials: "include"
+                    headers: {
+                        "X-CSRFToken": getCookie("csrftoken")  // CSRF protection
+                    },
+                    credentials: "include",
+                    body: formData
                 })
                 .then(response => {
                     if (!response.ok) { // Checks for HTTP errors like 500
@@ -358,11 +375,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 .then(data => {
                     if (data.success) {
                         feedbackModalLabel.innerText = "Success";
-                        // feedbackModalDesc.innerText = data.message;
+                        feedbackModalDesc.innerText = data.message;
                         feedbackModalTrigger.click();
                     } else {
                         feedbackModalLabel.innerText = "Error";
-                        // feedbackModalDesc.innerText = data.message;
+                        feedbackModalDesc.innerText = data.message;
                         feedbackModalTrigger.click();
                     }
                 })
@@ -402,7 +419,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         let imageFile = formData.get("image");
-        console.log("Image File:", imageFile);
 
         // Validation checks
         let errors = validateFormData(formData);
@@ -597,27 +613,30 @@ function validateFormData(formData) {
         errors["stock"] = ["Stock must be a non-negative number."];
     }
 
-    // Validate image file (only if required)
+    // Check if form is in edit mode (by detecting existing image)
+    let existingImage = document.getElementById("image-preview"); // Assume this contains the image URL if editing
     let imageFile = formData.get("image");
 
-    // If no file is selected, show an error
-    if (!imageFile || imageFile.size === 0) {
-        errors["image"] = ["Please upload an image."];
-    } else {
-        // If a file is selected, check format and size
-        let allowedExtensions = ["jpg", "jpeg", "png", "webp"];
-        let fileName = imageFile.name.toLowerCase();
-        let fileExtension = fileName.split(".").pop();
+    // Image validation (Only required if adding a new product or replacing an existing image)
+    if (!existingImage || (imageFile && imageFile.size > 0)) {
+        if (!imageFile || imageFile.size === 0) {
+            errors["image"] = ["Please upload an image."];
+        } else {
+            // If a file is selected, check format and size
+            let allowedExtensions = ["jpg", "jpeg", "png", "webp"];
+            let fileName = imageFile.name.toLowerCase();
+            let fileExtension = fileName.split(".").pop();
 
-        if (!allowedExtensions.includes(fileExtension)) {
-            errors["image"] = ["Invalid image format. Allowed: jpg, jpeg, png, webp."];
-        }
-        if (imageFile.size > 5 * 1024 * 1024) { // 5MB limit
-            errors["image"] = ["Image size must be less than 5MB."];
+            if (!allowedExtensions.includes(fileExtension)) {
+                errors["image"] = ["Invalid image format. Allowed: jpg, jpeg, png, webp."];
+            }
+            if (imageFile.size > 5 * 1024 * 1024) { // 5MB limit
+                errors["image"] = ["Image size must be less than 5MB."];
+            }
         }
     }
 
-    // Validate cropped image
+    // Validate cropped image (only if a new image is uploaded)
     let croppedImage = document.getElementById("cropped_image_data").value;
 
     if (imageFile && imageFile.size > 0 && !croppedImage) {

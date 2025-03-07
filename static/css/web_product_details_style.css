@@ -1,0 +1,60 @@
+.img-fluid {
+    max-height: 400px;
+    object-fit: cover;
+}
+
+.wish-badge {
+    font-size: 1.5rem;
+    z-index: 100;
+    background: #fff;
+    border-radius: 50%;
+    aspect-ratio: 1;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.wish-badge-icon {
+    margin: 0;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #000;
+}
+
+.card-title,
+.card-text {
+    font-size: 1rem;
+}
+
+.btn-sm {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    .card-title {
+        font-size: 0.875rem;
+    }
+
+    .card-text {
+        font-size: 0.75rem;
+    }
+
+    .img-fluid {
+        max-height: 300px;
+    }
+}

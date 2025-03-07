@@ -1,0 +1,264 @@
+.top-bar {
+    background: #f8f9fa;
+    font-size: 0.875rem;
+}
+.navbar {
+    padding: 1rem 0;
+}
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+.nav-link {
+    font-size: 1rem;
+    margin-left: 1.5rem;
+    position: relative;
+}
+.nav-link-icon {
+    margin-left: 0.2rem;
+}
+.nav-link.active {
+    color: #dc3545;
+    font-weight: bold;
+}
+.nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #dc3545;
+}
+.search-box {
+    position: relative;
+    width: 15rem;
+    border-radius: 0.25rem;
+}
+.search-box input {
+    padding-left: 2.5rem;
+}
+.search-box .bi-search {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+}
+.main-banner {
+    background: url('https://picsum.photos/seed/dates/1200/400') no-repeat center/cover;
+    height: 20rem;
+    color: white;
+    display: flex;
+    align-items: center;
+}
+.main-banner .container {
+    text-align: center;
+}
+.main-banner h1 {
+    font-size: 2.5rem;
+}
+.product-card {
+    position: relative;
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+.image-wrapper {
+    position: relative;
+}
+.product-img {
+    object-fit: cover;
+    width: 100%;
+    height: 12rem;
+}
+.add-to-cart {
+    display: none;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2;
+    background-color: rgb(0, 123, 255, 0.3);
+    border-top: 3px solid #007bff;
+    border-left: 3px solid #007bff;
+    border-right: 3px solid #007bff;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+    color: #fff;
+    padding: 0.5rem 0;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+.add-to-cart:hover {
+    background: #007bff;
+    color: #fff;
+}
+.out-of-stock {
+    background-color: rgb(220, 53, 69, 0.3);
+    border-top: 3px solid #dc3545;
+    border-left: 3px solid #dc3545;
+    border-right: 3px solid #dc3545;
+    display: none;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+    color: #fff;
+    padding: 0.5rem 0;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+.out-of-stock:hover {
+    background: #dc3545;
+    color: #fff;
+}
+.product-card:hover .add-to-cart, .product-card:hover .out-of-stock {
+    display: block;
+}
+.section-title {
+    color: #dc3545;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+}
+.view-all-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.3rem;
+}
+.deal-of-day {
+    background: url('https://picsum.photos/seed/nuts/1200/300') no-repeat center/cover;
+    height: 15rem;
+    color: white;
+    display: flex;
+    align-items: center;
+}
+.flash-sales .section-title-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.countdown {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+.countdown .time-circle {
+    width: max-content;
+    height: 3rem;
+    border: 2px solid #dc3545;
+    border-radius: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    color: #dc3545;
+    font-weight: bold;
+    padding: 0 1rem;
+    font-size: 1.3rem;
+}
+.countdown .label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-align: center;
+    margin-left: 0.7rem;
+}
+.features-section {
+    background: #f8f9fa;
+    padding: 2rem 0;
+    text-align: center;
+}
+.features-section i {
+    font-size: 2rem;
+    color: #dc3545;
+}
+.footer {
+    background: #1a1a1a;
+    color: white;
+    padding: 2rem 0;
+}
+.footer a {
+    color: #ccc;
+}
+.email-input {
+    position: relative;
+}
+.email-input input {
+    padding-right: 2.5rem;
+}
+.email-input .bi-send {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #dc3545;
+    cursor: pointer;
+}
+.star-rating {
+    color: #ffc107;
+    font-size: 1rem;
+    margin-top: 0.5rem;
+}
+.badge {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+    z-index: 100;
+}
+.wish-badge {
+    font-size: 1.5rem; /* Base size for the badge */
+    z-index: 100;
+    background: #fff;
+    border-radius: 50%;
+    aspect-ratio: 1;
+    width: 2.5rem; /* Increased for better visibility, match image */
+    height: 2.5rem; /* Matches width for perfect circle */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    border: 1px solid #ccc; /* Optional: Adds a subtle border like the image */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.wish-badge-icon {
+    margin: 0;
+    font-size: 1.25rem; /* Adjusted to fit nicely within 2.5rem badge */
+    line-height: 1;
+    color: #000;
+}
+
+@media (max-width: 768px) {
+    .main-banner, .deal-of-day {
+        height: 15rem;
+    }
+    .main-banner h1 {
+        font-size: 2rem;
+    }
+    .search-box {
+        width: 100%;
+    }
+    .flash-sales .section-title-container {
+        flex-direction: column;
+        text-align: center;
+    }
+    .countdown {
+        justify-content: center;
+        margin-top: 0.5rem;
+    }
+    .countdown .time-circle {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+    .add-to-cart {
+        font-size: 0.75rem;
+        padding: 0.25rem 0;
+    }
+}

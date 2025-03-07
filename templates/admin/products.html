@@ -68,7 +68,7 @@
                     </span>
                     <input type="text" name="q" class="form-control border-start-0 bg-light" placeholder="Search" aria-label="Search">
                 </div>
-                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'products' %}" title="Clear">
+                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'admin_products' %}" title="Clear">
                     <i class="bi bi-x-circle"></i>
                 </a>
             </form>
@@ -92,9 +92,10 @@
                         <tr>
                             <th class="py-3 px-3 border-0">Name</th>
                             <th class="py-3 px-3 border-0">Price</th>
+                            <th class="py-3 px-3 border-0">Discount</th>
                             <th class="py-3 px-3 border-0">Category</th>
                             <th class="py-3 px-3 border-0">Stock</th>
-                            <th class="py-3 px-3 border-0">Listing Status</th>
+                            <th class="py-3 px-3 border-0">Listed?</th>
                             <th class="py-3 px-3 border-0">Actions</th>
                         </tr>
                     </thead>
@@ -104,6 +105,7 @@
                         <tr>
                             <td class="py-3 px-3">{{ product.name }}</td>
                             <td class="py-3 px-3">{{ product.price }}</td>
+                            <td class="py-3 px-3">{{ product.discount }}%</td>
                             <td class="py-3 px-3">{{ product.category.name }}</td>
                             <td class="py-3 px-3">{{ product.stock }} {{product.unit}}</td>
                             <td class="py-3 px-3" id="listing-status-{{product.id}}">{% if product.is_listed %}Listed{% else %}Not Listed{% endif %}</td>
@@ -299,19 +301,20 @@
                 <h5 class="modal-title" id="addStockModalLabel">Add Stock</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <p id="addStockModalDesc" class="fw-bold fs-5">Product: </p>
-                <form action="" method="post" id="add-stock-form">
-                    <div class="form-group">
-                        <label for="id-add-stock" class="form-label">Stock</label>
-                        <input type="text" name="add-stock" id="id-add-stock" class="form-control" placeholder="Enter the new stock quantity to add">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" id="addStockCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" id="addStockSubmitButton" class="btn btn-primary">Add Stock</button>
-            </div>
+            <form action="" method="post" id="add-stock-form">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p id="addStockModalDesc" class="fw-bold fs-5"></p>
+                        <div class="form-group">
+                            <label for="id-add-stock" class="form-label">Stock</label>
+                            <input type="number" name="add-stock" id="id-add-stock" class="form-control" placeholder="Enter the new stock quantity to add">
+                        </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="addStockCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" id="addStockSubmitButton" class="btn btn-primary">Add Stock</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

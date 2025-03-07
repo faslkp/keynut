@@ -1,0 +1,179 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Products{% endblock title %}
+
+{% block stylesheet %}
+<link rel="stylesheet" href="{% static 'css/web_products_style.css' %}">
+{% endblock stylesheet %}
+
+{% block header-nav %}
+{% include "web/includes/header-nav.html" %}
+{% endblock%}
+
+{% block content %}
+
+<!-- Content Section -->
+<section class="container-fluid py-5">
+    <div class="row">
+        <!-- Sidebar Filters -->
+        <div class="col-12 col-md-3 mb-4 mb-md-0">
+            <div class="filter-sidebar p-3 bg-light rounded">
+                <h4 class="mb-3" style="font-size: 1.5rem;">Sort by</h4>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="sortby" type="radio" name="sort" id="relevance" checked>
+                    <label class="form-check-label" for="relevance">Relevance</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="sortby" type="radio" name="sort" id="name-a-z">
+                    <label class="form-check-label" for="name-a-z">Name A-Z</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="sortby" type="radio" name="sort" id="name-z-a">
+                    <label class="form-check-label" for="name-z-a">Name Z-A</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="sortby" type="radio" name="sort" id="price-low-high">
+                    <label class="form-check-label" for="price-low-high">Price Low - High</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="sortby" type="radio" name="sort" id="price-high-low">
+                    <label class="form-check-label" for="price-high-low">Price High - Low</label>
+                </div>
+
+                <h4 class="mt-4 mb-3" style="font-size: 1.5rem;">Categories</h4>
+                {% for category in categories %}
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="category" type="checkbox" id="{{category.slug}}">
+                    <label class="form-check-label" for="{{category.slug}}">{{category.name}}</label>
+                </div>
+                {% endfor %}
+
+                <h4 class="mt-4 mb-3" style="font-size: 1.5rem;">Price Range</h4>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="price" type="checkbox" id="price-0-250">
+                    <label class="form-check-label" for="price-0-250">₹0 - ₹250</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="price" type="checkbox" id="price-251-500">
+                    <label class="form-check-label" for="price-251-500">₹251 - ₹500</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="price" type="checkbox" id="price-501-1000">
+                    <label class="form-check-label" for="price-501-1000">₹501 - ₹1000</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="price" type="checkbox" id="price-1001-2000">
+                    <label class="form-check-label" for="price-1001-1500">₹1001 - ₹2000</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="price" type="checkbox" id="price-above-2000">
+                    <label class="form-check-label" for="price-above-2000">Above ₹2000</label>
+                </div>
+
+                <h4 class="mt-4 mb-3" style="font-size: 1.5rem;">Rating</h4>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="rating" type="checkbox" id="rating-5">
+                    <label class="form-check-label" for="rating-5">★★★★★</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="rating" type="checkbox" id="rating-4">
+                    <label class="form-check-label" for="rating-4">★★★★☆</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" name="rating" type="checkbox" id="rating-3">
+                    <label class="form-check-label" for="rating-3">★★★☆☆</label>
+                </div>
+
+                <div class="buttons d-flex">
+                    <button id="apply-filters" class="btn btn-danger w-100 px-5 me-3" style="font-size: 1rem;">Apply</button>
+                    <a href="{% url 'products' %}" id="clear-filters" class="btn btn-secondary" style="font-size: 1rem;">Clear</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="col-12 col-md-9">
+            <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+                
+                {% for product in products %}
+                <div class="col">
+                    <div class="card product-card h-100 shadow-sm position-relative">
+                        {% if product.discount > 0 %}
+                        <div class="badge bg-danger text-white position-absolute top-0 start-0 m-2">{{product.discount|floatformat:0}}% OFF</div>
+                        {% endif %}
+                        <a href="#" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
+                            <i class="bi bi-heart wish-badge-icon"></i>
+                        </a>
+                        <div class="image-wrapper">
+                            <a href="{% url 'product_details' product.slug %}">
+                                <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
+                            </a>
+                            {% if product.stock > 0 %}
+                            <button class="btn add-to-cart">Add to Cart</button>
+                            {% else %}
+                            <button class="btn out-of-stock">Out of Stock</button>
+                            {% endif %}
+                        </div>
+                        <a class="text-decoration-none text-dark" href="{% url 'product_details' product.slug %}">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">{{product.name}}</h5>
+                            <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
+                            <div class="star-rating">
+                                ★★★★☆ (12)
+                            </div>
+                        </div>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+
+            </div>
+            <!-- Pagination -->
+            <nav aria-label="Page navigation" class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted">
+                    Page <span class="fw-medium">{{ products.number }}</span> of <span class="fw-medium">{{ products.paginator.num_pages }}</span> pages
+                </div>
+                <ul class="pagination justify-content-center align-items-center mb-0">
+                    {% if products.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link pagination-link" data-page="{{ products.previous_page_number }}" tabindex="-1" style="cursor: pointer;">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" tabindex="-1">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item active"><a class="page-link">{{ products.number }}</a></li>
+                    {% if products.has_next %}
+                    <li class="page-item">
+                        <a class="page-link pagination-link" data-page="{{ products.next_page_number }}" style="cursor: pointer;">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+</section>
+
+{% endblock content %}
+
+{% block footer %}
+{% include "web/includes/footer.html" %}
+{% endblock %}
+
+{% block script %}
+<script src="{% static 'js/products.js' %}"></script>
+{% endblock script %}

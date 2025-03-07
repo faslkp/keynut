@@ -1,0 +1,205 @@
+{% extends "web/base.html" %}
+
+{% block top-banner %}
+{% include "web/includes/top-banner.html" %}
+{% endblock%}
+
+{% block header-nav %}
+{% include "web/includes/header-nav.html" %}
+{% endblock%}
+
+{% block content %}
+
+<!-- Categories and Banner Section -->
+<section class="categories-banner py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Categories -->
+            <div class="col-md-3">
+                <h5 class="mb-3">Categories</h5>
+                <ul class="list-unstyled">
+                    <hr class="m-1">
+                    {% for category in categories %}
+                    <li class="">
+                        <a href="#" class="text-decoration-none text-dark ms-2">{{category.name}}</a>
+                        <hr class="m-1">
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <!-- Main Banner -->
+            <div class="col-md-9">
+                <div class="main-banner">
+                    <div class="container">
+                        <h1>Up to 10% off Voucher</h1>
+                        <p>Shop Now</p>
+                        <a href="#" class="btn btn-light btn-lg">Shop Now</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Flash Sales -->
+<section class="flash-sales py-5">
+    <div class="container">
+        <div class="section-title-container">
+            <h3 class="section-title">Today's Flash Sales</h3>
+            <div class="countdown">
+                <div class="time-circle">00 <span class="label">Hours</span></div><span class="">:</span>
+                <div class="time-circle">23 <span class="label">Minutes</span></div><span class="">:</span>
+                <div class="time-circle">19 <span class="label">Seconds</span></div>
+            </div>
+        </div>
+        <div class="row row-cols-1 row-cols-md-4 g-4">
+            
+            {% for product in flash_sales %}
+            <div class="col">
+                <div class="card product-card h-100 shadow-sm position-relative">
+                    {% if product.discount > 0 %}
+                    <div class="badge bg-danger text-white position-absolute top-0 start-0 m-2">{{product.discount|floatformat:0}}% OFF</div>
+                    {% endif %}
+                    <a href="#" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
+                        <i class="bi bi-heart wish-badge-icon"></i>
+                    </a>
+                    <div class="image-wrapper">
+                        <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
+                        {% if product.stock > 0 %}
+                        <button class="btn add-to-cart">Add to Cart</button>
+                        {% else %}
+                        <button class="btn out-of-stock">Out of Stock</button>
+                        {% endif %}
+                    </div>
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{product.name}}</h5>
+                        <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
+                        <div class="star-rating">
+                            ★★★★☆ (12)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+        </div>
+        <div class="text-center mt-3">
+            <button class="view-all-btn">View All Products</button>
+        </div>
+    </div>
+</section>
+
+<!-- Best Selling Products -->
+<section class="best-selling py-5">
+    <div class="container">
+        <h3 class="section-title">Best Selling Products</h3>
+        <div class="row row-cols-1 row-cols-md-4 g-4">
+            
+            {% for product in best_selling %}
+            <div class="col">
+                <div class="card product-card h-100 shadow-sm position-relative">
+                    {% if product.discount > 0 %}
+                    <div class="badge bg-danger text-white position-absolute top-0 start-0 m-2">{{product.discount|floatformat:0}}% OFF</div>
+                    {% endif %}
+                    <a href="#" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
+                        <i class="bi bi-heart wish-badge-icon"></i>
+                    </a>
+                    <div class="image-wrapper">
+                        <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
+                        {% if product.stock > 0 %}
+                        <button class="btn add-to-cart">Add to Cart</button>
+                        {% else %}
+                        <button class="btn out-of-stock">Out of Stock</button>
+                        {% endif %}
+                    </div>
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{product.name}}</h5>
+                        <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
+                        <div class="star-rating">
+                            ★★★★☆ (12)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+        </div>
+        <div class="text-center mt-3">
+            <button class="view-all-btn">View All</button>
+        </div>
+    </div>
+</section>
+
+<!-- Deal of the Day -->
+<section class="deal-of-day py-5">
+    <div class="container">
+        <h3 class="section-title">Deal of the Day</h3>
+        <h1>Enhance Your Bite Experience</h1>
+        <p>Buy Now</p>
+        <a href="#" class="btn btn-light btn-lg">Buy Now</a>
+    </div>
+</section>
+
+<!-- New Arrival -->
+<section class="new-arrival py-5">
+    <div class="container">
+        <h3 class="section-title">New Arrival</h3>
+        <div class="row row-cols-1 row-cols-md-4 g-4">
+            
+            {% for product in new_arrivals %}
+            <div class="col">
+                <div class="card product-card h-100 shadow-sm position-relative">
+                    {% if product.discount > 0 %}
+                    <div class="badge bg-danger text-white position-absolute top-0 start-0 m-2">{{product.discount|floatformat:0}}% OFF</div>
+                    {% endif %}
+                    <a href="#" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
+                        <i class="bi bi-heart wish-badge-icon"></i>
+                    </a>
+                    <div class="image-wrapper">
+                        <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
+                        {% if product.stock > 0 %}
+                        <button class="btn add-to-cart">Add to Cart</button>
+                        {% else %}
+                        <button class="btn out-of-stock">Out of Stock</button>
+                        {% endif %}
+                    </div>
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{product.name}}</h5>
+                        <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
+                        <div class="star-rating">
+                            ★★★★☆ (12)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-4">
+                <i class="bi bi-truck"></i>
+                <p>Free and Fast Delivery on all orders over ₹500</p>
+            </div>
+            <div class="col-md-4">
+                <i class="bi bi-headset"></i>
+                <p>24/7 Customer Service</p>
+            </div>
+            <div class="col-md-4">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                <p>Money Back Guarantee in 30 days</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock content %}
+
+{% block footer %}
+{% include "web/includes/footer.html" %}
+{% endblock %}

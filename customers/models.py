@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 
 class Customer(AbstractUser):
     phone = models.CharField(max_length=15)
+    is_verified = models.BooleanField(default=False)
     is_blocked = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
 

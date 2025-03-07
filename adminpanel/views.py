@@ -10,7 +10,7 @@ from django.db.models import Q
 from django.db.models.functions import Lower
 from django.core.paginator import Paginator
 from customers.forms import CustomerForm
-from products.forms import ProductForm
+from products.forms import ProductForm, CategoryForm
 from products.models import Product, Category
 
 User = get_user_model()
@@ -30,7 +30,7 @@ def products(request):
     filter = request.GET.get('filter')
     category = request.GET.get('category')
     q = request.GET.get('q')
-    products = Product.objects.filter(is_deleted=False).order_by("-created_at")
+    products = Product.objects.select_related('category').filter(is_deleted=False).order_by("-created_at")
     
     # Handle sort, filter, category and search
     if sortby:
@@ -56,6 +56,38 @@ def products(request):
 
     context.update({'products': products, 'categories': categories, 'form': form})
     return render(request, 'admin/products.html', context=context)
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+def categories(request):
+    context = {}
+    sortby = request.GET.get('sortby')
+    filter = request.GET.get('filter')
+    q = request.GET.get('q')
+    categories = Category.objects.all().order_by("-created_at")
+    
+    # Handle sort, filter, category and search
+    if sortby:
+        if sortby.startswith('-'):
+            field_name = sortby.lstrip('-')
+            categories = categories.order_by(Lower(field_name).desc())
+        else:
+            categories = categories.order_by(sortby)
+    if filter:
+        categories = categories.filter(is_deleted = False) if filter=="active" else categories.filter(is_deleted = True)
+    if q:
+        categories = categories.filter(name__icontains=q)
+    
+    # Pagination
+    paginator = Paginator(categories, 3) #10 categories per page
+    page_number = request.GET.get('page')
+    categories = paginator.get_page(page_number)
+
+    form = CategoryForm()
+
+    context.update({'categories': categories, 'form': form})
+    return render(request, 'admin/categories.html', context=context)
 
 
 @login_required(login_url='admin_login')
@@ -89,6 +121,7 @@ def customers(request):
     return render(request, 'admin/customers.html', context=context)
 
 
+@user_passes_test(lambda user: not user.is_authenticated, login_url='dashboard',redirect_field_name=None)
 def admin_login(request):
     context = {}
     if request.POST:
@@ -105,6 +138,7 @@ def admin_login(request):
     return render(request, 'admin/admin_login.html', context=context)
 
 
+@user_passes_test(lambda user: not user.is_authenticated, login_url='dashboard',redirect_field_name=None)
 def admin_recover_password(request):
     context = {
         'stage' : 'email'
