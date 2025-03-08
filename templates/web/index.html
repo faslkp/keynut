@@ -21,7 +21,7 @@
                     <hr class="m-1">
                     {% for category in categories %}
                     <li class="">
-                        <a href="#" class="text-decoration-none text-dark ms-2">{{category.name}}</a>
+                        <a href="{% url 'products' %}?category={{category.slug}}" class="text-decoration-none text-dark ms-2">{{category.name}}</a>
                         <hr class="m-1">
                     </li>
                     {% endfor %}
@@ -33,7 +33,7 @@
                     <div class="container">
                         <h1>Up to 10% off Voucher</h1>
                         <p>Shop Now</p>
-                        <a href="#" class="btn btn-light btn-lg">Shop Now</a>
+                        <a href="{% url 'products' %}?sort=relevance" class="btn btn-light btn-lg">Shop Now</a>
                     </div>
                 </div>
             </div>
@@ -64,13 +64,16 @@
                         <i class="bi bi-heart wish-badge-icon"></i>
                     </a>
                     <div class="image-wrapper">
-                        <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
+                        <a href="{% url 'product_details' product.slug %}">
+                            <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
+                        </a>
                         {% if product.stock > 0 %}
                         <button class="btn add-to-cart">Add to Cart</button>
                         {% else %}
                         <button class="btn out-of-stock">Out of Stock</button>
                         {% endif %}
                     </div>
+                    <a class="text-decoration-none text-dark" href="{% url 'product_details' product.slug %}">
                     <div class="card-body text-center">
                         <h5 class="card-title">{{product.name}}</h5>
                         <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
@@ -78,13 +81,14 @@
                             ★★★★☆ (12)
                         </div>
                     </div>
+                    </a>
                 </div>
             </div>
             {% endfor %}
             
         </div>
         <div class="text-center mt-3">
-            <button class="view-all-btn">View All Products</button>
+            <a href="{% url 'products' %}?sort=relevance" class="view-all-btn btn btn-danger">View All Products</a>
         </div>
     </div>
 </section>
@@ -105,13 +109,16 @@
                         <i class="bi bi-heart wish-badge-icon"></i>
                     </a>
                     <div class="image-wrapper">
-                        <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
+                        <a href="{% url 'product_details' product.slug %}">
+                            <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
+                        </a>
                         {% if product.stock > 0 %}
                         <button class="btn add-to-cart">Add to Cart</button>
                         {% else %}
                         <button class="btn out-of-stock">Out of Stock</button>
                         {% endif %}
                     </div>
+                    <a class="text-decoration-none text-dark" href="{% url 'product_details' product.slug %}">
                     <div class="card-body text-center">
                         <h5 class="card-title">{{product.name}}</h5>
                         <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
@@ -119,13 +126,14 @@
                             ★★★★☆ (12)
                         </div>
                     </div>
+                    </a>
                 </div>
             </div>
             {% endfor %}
 
         </div>
         <div class="text-center mt-3">
-            <button class="view-all-btn">View All</button>
+            <a href="{% url 'products' %}?sort=relevance" class="view-all-btn btn btn-danger">View All</a>
         </div>
     </div>
 </section>
@@ -136,7 +144,7 @@
         <h3 class="section-title">Deal of the Day</h3>
         <h1>Enhance Your Bite Experience</h1>
         <p>Buy Now</p>
-        <a href="#" class="btn btn-light btn-lg">Buy Now</a>
+        <a href="{% url 'products' %}?sort=relevance" class="btn btn-light btn-lg">Buy Now</a>
     </div>
 </section>
 
@@ -156,13 +164,16 @@
                         <i class="bi bi-heart wish-badge-icon"></i>
                     </a>
                     <div class="image-wrapper">
-                        <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
+                        <a href="{% url 'product_details' product.slug %}">
+                            <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
+                        </a>
                         {% if product.stock > 0 %}
                         <button class="btn add-to-cart">Add to Cart</button>
                         {% else %}
                         <button class="btn out-of-stock">Out of Stock</button>
                         {% endif %}
                     </div>
+                    <a class="text-decoration-none text-dark" href="{% url 'product_details' product.slug %}">
                     <div class="card-body text-center">
                         <h5 class="card-title">{{product.name}}</h5>
                         <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
@@ -170,6 +181,7 @@
                             ★★★★☆ (12)
                         </div>
                     </div>
+                    </a>
                 </div>
             </div>
             {% endfor %}

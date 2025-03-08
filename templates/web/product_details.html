@@ -5,6 +5,7 @@
 
 {% block stylesheet %}
 <link rel="stylesheet" href="{% static 'css/web_product_details_style.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/drift-zoom/dist/drift-basic.min.css">
 {% endblock stylesheet %}
 
 {% block header-nav %}
@@ -27,8 +28,8 @@
     <!-- Product Details -->
     <div class="row g-4">
         <!-- Product Image -->
-        <div class="col-12 col-md-6">
-            <img src="{{product.image.url}}" class="img-fluid rounded w-100" alt="{{product.name}}">
+        <div class="zoom-container col-12 col-md-6">
+            <img id="product-image" src="{{product.image.url}}" data-zoom="{{ product.image.url }}" class="img-fluid rounded w-100" alt="{{product.name}}" width="100%" style="cursor: zoom-in;">
         </div>
   
         <!-- Product Info -->
@@ -167,31 +168,33 @@
         <!-- Related Product 1 -->
         {% for product in related_products %}
         <div class="col">
-            <a href="{% url 'product_details' 1 %}">
-                <div class="card product-card h-100 shadow-sm position-relative">
-                    {% if product.discount > 0 %}
-                    <div class="badge bg-danger text-white position-absolute top-0 start-0 m-2">{{product.discount|floatformat:0}}% OFF</div>
-                    {% endif %}
-                    <a href="#" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
-                        <i class="bi bi-heart wish-badge-icon"></i>
-                    </a>
-                    <div class="image-wrapper">
+            <div class="card product-card h-100 shadow-sm position-relative">
+                {% if product.discount > 0 %}
+                <div class="badge bg-danger text-white position-absolute top-0 start-0 m-2">{{product.discount|floatformat:0}}% OFF</div>
+                {% endif %}
+                <a href="#" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
+                    <i class="bi bi-heart wish-badge-icon"></i>
+                </a>
+                <div class="image-wrapper">
+                    <a href="{% url 'product_details' product.slug %}">
                         <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
-                        {% if product.stock > 0 %}
-                        <button class="btn add-to-cart">Add to Cart</button>
-                        {% else %}
-                        <button class="btn out-of-stock">Out of Stock</button>
-                        {% endif %}
-                    </div>
-                    <div class="card-body text-center">
-                        <h5 class="card-title">{{product.name}}</h5>
-                        <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
-                        <div class="star-rating">
-                            ★★★★☆ (12)
-                        </div>
+                    </a>
+                    {% if product.stock > 0 %}
+                    <button class="btn add-to-cart">Add to Cart</button>
+                    {% else %}
+                    <button class="btn out-of-stock">Out of Stock</button>
+                    {% endif %}
+                </div>
+                <a class="text-decoration-none text-dark" href="{% url 'product_details' product.slug %}">
+                <div class="card-body text-center">
+                    <h5 class="card-title">{{product.name}}</h5>
+                    <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
+                    <div class="star-rating">
+                        ★★★★☆ (12)
                     </div>
                 </div>
-            </a>
+                </a>
+            </div>
         </div>
         {% endfor %}
 </section>
@@ -202,5 +205,20 @@
 {% endblock %}
 
 {% block script %}
+<script src="https://cdn.jsdelivr.net/npm/drift-zoom/dist/Drift.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const image = document.querySelector("#product-image");
 
+        if (image) {
+            new Drift(image, {
+                paneContainer: document.querySelector(".zoom-container"), // Zoom inside container
+                inlinePane: true, // Enable inline zoom
+                containInline: true, // Prevent zoom overflow
+                inlineOffsetY: 0, // Adjust position if needed
+                zoomFactor: 2, // Increase zoom level
+            });
+        }
+    });
+</script>
 {% endblock script %}

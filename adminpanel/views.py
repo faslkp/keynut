@@ -47,7 +47,7 @@ def products(request):
         products = products.filter(name__icontains=q)
     
     # Pagination
-    paginator = Paginator(products, 10) #10 products per page
+    paginator = Paginator(products, 3) #10 products per page
     page_number = request.GET.get('page')
     products = paginator.get_page(page_number)
 
