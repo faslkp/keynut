@@ -3,6 +3,7 @@ from django.urls import path
 from . import views
 from products.views import add_product, edit_product, add_stock, unlist_product, add_category, edit_category, delete_category
 from customers.views import add_customer, edit_customer, cutomer_blocking
+from orders.views import update_order_status
 
 urlpatterns = [
     path('login/', views.admin_login, name='admin_login'),
@@ -22,8 +23,11 @@ urlpatterns = [
     path('customers/add/', add_customer, name='add_customer'),
     path('customers/<int:pk>/edit/', edit_customer, name='edit_customer'),
     path('customers/<int:pk>/block/', cutomer_blocking, name='cutomer_blocking'),
-    path('orders/', views.dashboard, name='admin_orders'),
+    path('orders/', views.orders, name='admin_orders'),
+    path('orders/<str:order_id>/view/', views.view_order_details, name='admin_view_order_details'),
+    path('orders/update-status/', update_order_status, name='update_order_status'),
     path('reports/', views.dashboard, name='admin_reports'),
     path('coupons/', views.dashboard, name='admin_coupons'),
     path('settings/', views.dashboard, name='admin_settings'),
+    path('unavailable/', views.unavailable, name='unavailable'),
 ]

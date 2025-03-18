@@ -1,0 +1,285 @@
+{% extends "web/base.html" %}
+
+{% block title %}Home{% endblock title %}
+
+{% block stylesheet %}
+<style>
+    .cart-container {
+        padding: 2rem 1rem;
+    }
+    .breadcrumb {
+        font-size: 0.875rem;
+        margin-bottom: 1.5rem;
+    }
+    .cart-table th, .cart-table td {
+        vertical-align: middle;
+        font-size: 1rem;
+    }
+    .cart-table img {
+        width: 4rem;
+        height: auto;
+    }
+    .quantity-input {
+        width: 4rem;
+        text-align: center;
+        font-size: 0.875rem;
+    }
+    .cart-summary {
+        border: 1px solid #ced4da;
+        padding: 1.5rem;
+        border-radius: 0.25rem;
+    }
+    .cart-summary h5 {
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .cart-summary p {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    .coupon-section input {
+        font-size: 1rem;
+        padding: 0.5rem;
+    }
+    @media (max-width: 768px) {
+        .cart-table th, .cart-table td {
+            font-size: 0.875rem;
+        }
+        .cart-table img {
+            width: 3rem;
+        }
+        .quantity-input {
+            width: 3rem;
+        }
+        .btn-custom {
+            padding: 0.4rem 1rem;
+            font-size: 0.875rem;
+        }
+        .cart-summary {
+            margin-top: 1.5rem;
+        }
+    }
+</style>
+{% endblock stylesheet %}
+
+{% block header-nav %}
+{% include "web/includes/header-nav.html" %}
+{% endblock%}
+
+{% block content %}
+
+<!-- Messages -->
+<div class="messages container col-12 mt-5 mb-2 text-center">
+    {% for message in messages %}
+    <p class="{% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+    {% endfor %}
+</div>
+
+<!-- Content Section -->
+<section class="container pt-4 pb-5 mb-3">
+    <!-- Breadcrupb -->
+    <nav class="mb-5" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Cart</li>
+        </ol>
+    </nav>
+
+    {% if not cart_items %}
+
+    <div class="my-5 py-5">
+        <p class="text-center text-danger fs-3">Your cart is empty.</p>
+        <div class="text-center mt-5">
+            <a href="{% url 'products' %}" class="btn btn-danger me-3">Return to Shop</a>
+            <a href="{% url 'index' %}" class="btn btn-danger">Home</a>
+        </div>
+    </div>
+
+    {% else %}
+
+    <form action="" method="post">
+        {% csrf_token %}
+        <!-- Cart Table -->
+        <div class="table-responsive">
+            <table class="table cart-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Product</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cart_items %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'product_details' item.product.slug %}">
+                                <img class="rounded me-3" src="{{item.product.thumbnail.url}}" alt="{{item.product.name}}">
+                            </a>
+                            <span>{{item.product.name}} - {{item.variant.quantity}} {{item.product.unit}}</span>
+                        </td>
+                        <td>₹<span id="price-{{item.id}}">{{item.product.price}}</span></td>
+                        <td>
+                            {% if item.product.stock < item.variant.quantity %}
+                            <span class="text-danger">Out of stock<span>
+                            {% else %}
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary minusButton" type="button" data-item-id="{{item.id}}" data-item-variant="{{item.variant.quantity}}">-</button>
+                                <input type="text" name="{{item.id}}" class="form-control text-center border border-secondary productQuantity"
+                                    value="{{item.quantity}}" data-stock="{{item.product.stock}}" data-variant="{{item.variant.quantity}}" 
+                                    style="font-size: 1rem; max-width: 3rem;" readonly>
+                                <button class="btn btn-outline-secondary plusButton" type="button" data-item-id="{{item.id}}" data-item-variant="{{item.variant.quantity}}">+</button>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>₹<span id="total-{{item.id}}">{{item.total_price|floatformat:2}}</span></td>
+                        <td>
+                            <button class="remove-from-cart btn btn-link p-0" data-item-id="{{item.id}}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex justify-content-between mb-4">
+            <a href="{% url 'products' %}" class="btn btn-outline-danger">Return to Shop</a>
+            <button type="submit" class="btn btn-danger">Update Cart</button>
+        </div>
+    </form>
+
+    <!-- Coupon and Cart Summary -->
+    <div class="row pt-5 justify-content-between">
+        <!-- Coupon Section -->
+        <div class="col-12 col-md-5 coupon-section">
+            <div class="d-flex gap-2">
+                <input type="text" class="form-control border border-secondary" placeholder="Coupon Code">
+                <button class="btn btn-danger w-auto text-nowrap">Apply Coupon</button>
+            </div>
+        </div>
+
+        <!-- Cart Summary -->
+        <div class="col-12 col-md-4">
+            <div class="cart-summary">
+                <h5 class="fw-bold">Cart Total</h5>
+                <p class="d-flex justify-content-between"><span>Subtotal:</span> <span>₹{{cart.total_price|floatformat:2}}</span></p>
+                <hr class="my-1">
+                <p class="d-flex justify-content-between"><span>Shipping:</span> <span>₹0</span></p>
+                <hr class="my-1">
+                <p class="d-flex justify-content-between"><span>Promotion/Discount:</span> <span>-₹0</span></p>
+                <hr class="my-1 mb-2">
+                <p class="d-flex justify-content-between fw-bold"><span>Total:</span> <span>₹{{cart.total_price|floatformat:2}}</span></p>
+                <a href="{% url 'checkout' %}" class="btn btn-danger py-2 px-3 mt-4 d-block mx-auto">Proceed to Checkout</a>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+
+
+    
+</section>
+
+{% endblock content %}
+
+{% block footer %}
+{% include "web/includes/footer.html" %}
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Select all quantity controls
+        document.querySelectorAll(".input-group").forEach(function (group) {
+            const minusButton = group.querySelector(".minusButton");
+            const plusButton = group.querySelector(".plusButton");
+            const quantityInput = group.querySelector(".productQuantity");
+            const maxStock = parseFloat(quantityInput.dataset.stock, 10); // Get max stock
+            
+            plusButton.addEventListener("click", function () {
+                let quantity = parseInt(quantityInput.value, 10);
+                const selectedVariant = parseFloat(quantityInput.dataset.variant);
+                const itemId = this.dataset.itemId
+                const variantWeight = this.dataset.itemVariant
+                const price = parseFloat(document.getElementById(`price-${itemId}`).innerText)
+                const totalAmount = document.getElementById(`total-${itemId}`)
+                
+                if (!selectedVariant || selectedVariant <= 0) return; // Prevent issues when no variant is selected
+
+                if ((quantity < 10) && ((quantity + 1) * selectedVariant <= maxStock)) {
+                    quantityInput.value = quantity + 1;
+                    let updated_price = (quantity + 1) * variantWeight * price
+                    totalAmount.innerText = updated_price.toFixed(2)
+                }
+            });
+
+            minusButton.addEventListener("click", function () {
+                let quantity = parseInt(quantityInput.value, 10);
+                const itemId = this.dataset.itemId
+                const variantWeight = this.dataset.itemVariant
+                const price = parseFloat(document.getElementById(`price-${itemId}`).innerText)
+                const totalAmount = document.getElementById(`total-${itemId}`)
+                
+                if (quantity > 1) {
+                    quantityInput.value = quantity - 1;
+                    let updated_price = (quantity - 1) * variantWeight * price
+                    totalAmount.innerText = updated_price.toFixed(2)
+                }
+            });
+        });
+
+        // Remove from cart Buttons
+        document.querySelectorAll(".remove-from-cart").forEach(button => {
+            button.addEventListener("click", function (event) {
+                event.preventDefault();
+
+                let itemId = this.getAttribute("data-item-id");
+                let url = `/cart/${itemId}/remove/`;
+    
+                fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFToken(), // Include CSRF token if needed
+                        "Content-Type": "application/json"
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errData => {
+                            throw new Error(`Server error: ${response.status} ${response.statusText} - ${JSON.stringify(errData)}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data) throw new Error("No data received from the server");
+
+                    location.reload()
+                })
+                .catch(error => console.error("Error:", error));
+            });
+        });
+    });
+
+    // Function to get CSRF token from cookies (for Django)
+    function getCSRFToken() {
+        let name = "csrftoken";
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+            let cookies = document.cookie.split(";");
+            cookies.forEach(cookie => {
+                let trimmedCookie = cookie.trim();
+                if (trimmedCookie.startsWith(name + "=")) {
+                    cookieValue = decodeURIComponent(trimmedCookie.substring(name.length + 1));
+                }
+            });
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock script %}

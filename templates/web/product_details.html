@@ -14,8 +14,15 @@
 
 {% block content %}
 
+<!-- Messages -->
+<div class="messages container col-12 mt-5 mb-2 text-center">
+    {% for message in messages %}
+    <p class="{% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+    {% endfor %}
+</div>
+
 <!-- Content Section -->
-<section class="container py-5">
+<section class="container pt-3 pb-5">
     <!-- Breadcrupb -->
     <nav class="mb-4" aria-label="breadcrumb">
         <ol class="breadcrumb">
@@ -50,65 +57,138 @@
     
             <!-- Add to cart form -->
             {% if is_in_stock %}
-            <form action="" method="post">
+            <form action="{% url 'add_to_cart' %}" method="post">
                 {% csrf_token %}
-                <div class="mb-3 d-flex gap-3">
-                    <label class="form-label" style="font-size: 1rem;">Quantity:</label>
-                    <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="quantityDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            Select Quantity
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="quantityDropdown">
-                        {% for variant in product.variants.all %}
-                        {% if variant.quantity <= product.stock %}
-                            <li>
-                                <a class="dropdown-item" href="#" onclick="selectQuantity(event, '{{ variant.quantity }} {{ product.unit }}')">
-                                {{ variant.quantity }} {{ product.unit }}
-                                </a>
-                            </li>
-                        {% endif %}
-                        {% endfor %}
-                        </ul>
+                <div class="d-flex gap-5">
+                    <div class="mb-3 d-flex gap-3 align-items-center">
+                        <label class="form-label mb-0" style="font-size: 1rem;">Variant:</label>
+                        <div class="dropdown">
+                            <button class="btn dropdown-toggle btn-danger d-flex justify-content-between align-items-center" type="button" id="quantityDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 5rem;">
+                                Select Quantity
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="quantityDropdown" id="quantityList">
+                                {% for variant in product_variants %}
+                                {% if variant.quantity <= product.stock %}
+                                    <li>
+                                        <a class="dropdown-item variant-item" href="#" 
+                                            onclick="selectQuantity(event, '{{ variant.id }}', '{{ variant.quantity }}', '{{ variant.formatted_quantity }}')"
+                                            data-id="{{ variant.id }}" data-quantity="{{ variant.quantity }}" data-unit="{{ variant.formatted_quantity }}">
+                                            {{ variant.formatted_quantity }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                {% endfor %}
+                            </ul>
+                        </div>
                     </div>
-                </div>
-            
-                <script>
-                function selectQuantity(event, value) {
-                    event.preventDefault();
-                    const button = document.getElementById('quantityDropdown');
-                    button.textContent = value;
-                    button.classList.remove('btn-outline-secondary')
-                    button.classList.add('btn-danger')
-                
-                    // Remove active class from all dropdown items
-                    document.querySelectorAll('.dropdown-item').forEach(item => {
-                    item.classList.remove('active');
-                    });
-                
-                    // Add active class to the selected item
-                    event.target.classList.add('active');
-                }
-                </script>
-            
 
-                <!-- <div class="mb-3">
-                    <label class="form-label" style="font-size: 1rem;">Quantity:</label>
-                    <div class="" role="group">
-                        {% for variant in product.variants.all %}
-                        <button type="button" class="btn {% if variant.quantity == 1 %}btn-danger{% else %}btn-outline-secondary{% endif %}">{{variant.quantity}} {{product.unit}}</button>
-                        {% endfor %}
+                    <!-- Quantity Selector -->
+                    <div class="mb-3 d-flex align-items-center">
+                        <label class="form-label mb-0" style="font-size: 1rem;">Quantity:</label>
+                        <div class="input-group ms-3">
+                            <button id="minusButton" class="btn btn-outline-secondary" type="button">-</button>
+                            <input id="productQuantity" type="text" name="quantity" class="form-control text-center border border-secondary" 
+                                   value="1" data-stock="{{product.stock}}" style="font-size: 1rem; max-width: 4rem;" readonly>
+                            <button id="plusButton" class="btn btn-outline-secondary" type="button">+</button>
+                        </div>
                     </div>
-                </div> -->
-    
-                <!-- Quantity Selector -->
-                <!-- <div class="mb-3 d-flex align-items-center">
-                    <label class="form-label mb-0" style="font-size: 1rem;">Quantity:</label>
-                    <div class="input-group w-25 ms-3">
-                        <button class="btn btn-outline-secondary" type="button">-</button>
-                        <input type="text" class="form-control text-center" value="2" style="font-size: 1rem;">
-                        <button class="btn btn-outline-secondary" type="button">+</button>
-                    </div>
-                </div> -->
+                
+                    <!-- Hidden input for form submission -->
+                    <input type="hidden" name="product_id" value="{{product.id}}">
+                    <input type="hidden" name="selected_variant" id="selectedVariantInput" value="">
+                    <input type="hidden" id="selectedVariantQuantityInput" value="">
+                
+                    <script>
+                        document.addEventListener("DOMContentLoaded", function () {
+                            const dropdownItems = document.querySelectorAll(".variant-item");
+                            const button = document.getElementById("quantityDropdown");
+                            const hiddenInput = document.getElementById("selectedVariantInput");
+                            let defaultItem = null;
+                        
+                            // Check if quantity 1.00 exists
+                            dropdownItems.forEach(item => {
+                                if (item.dataset.quantity === "1.00") {
+                                    defaultItem = item;
+                                }
+                            });
+                        
+                            // If 1.00 is not available, select the first available one
+                            if (!defaultItem && dropdownItems.length > 0) {
+                                defaultItem = dropdownItems[0];
+                            }
+                        
+                            // Select the default item if found
+                            if (defaultItem) {
+                                selectQuantity({ preventDefault: () => {}, target: defaultItem }, 
+                                               defaultItem.dataset.id, 
+                                               defaultItem.dataset.quantity, 
+                                               defaultItem.dataset.unit);
+                            }
+
+
+                            // Handle quantity increment and decrement
+                            const minusButton = document.getElementById("minusButton");
+                            const plusButton = document.getElementById("plusButton");
+                            const quantityInput = document.getElementById("productQuantity");
+                            const maxStock = parseFloat(quantityInput.dataset.stock, 10); // Get max stock from data-stock attribute
+
+                            plusButton.addEventListener("click", function () {
+                                let quantity = parseInt(quantityInput.value, 10);
+                                const selectedVariantQuantity = parseFloat(document.getElementById("selectedVariantQuantityInput").value); 
+                                
+                                if (!selectedVariantQuantity || selectedVariantQuantity <= 0) return; // Prevent issues when no variant is selected
+
+                                if ((quantity + 1) * selectedVariantQuantity <= maxStock) {
+                                    quantityInput.value = quantity + 1;
+                                }
+                            });
+
+                            minusButton.addEventListener("click", function () {
+                                let quantity = parseInt(quantityInput.value, 10);
+                                if (quantity > 1) {
+                                    quantityInput.value = quantity - 1;
+                                }
+                            });
+                        });
+                        
+                        function selectQuantity(event, variantId, quantity, formatted_quantity) {
+                            event.preventDefault();
+                            const button = document.getElementById('quantityDropdown');
+                            const hiddenInput = document.getElementById('selectedVariantInput'); // Stores Variant ID
+                            const quantityInput = document.getElementById("productQuantity");
+                            const quantityHiddenInput = document.getElementById("selectedVariantQuantityInput"); // Stores Variant Quantity
+                            const maxStock = parseFloat(quantityInput.dataset.stock);
+                        
+                            // Update button text
+                            button.textContent = formatted_quantity;
+                            button.classList.remove('btn-outline-secondary');
+                            button.classList.add('btn-danger');
+                        
+                            // Store selected variant ID
+                            hiddenInput.value = variantId;
+                        
+                            // Store the quantity per variant
+                            quantityHiddenInput.value = parseFloat(quantity); // Ensure numeric value
+                        
+                            // Remove active class from all dropdown items
+                            document.querySelectorAll('.dropdown-item').forEach(item => {
+                                item.classList.remove('active');
+                            });
+                        
+                            // Add active class to selected item
+                            event.target.classList.add('active');
+                        
+                            // Reset quantity input if needed
+                            let currentQuantity = parseInt(quantityInput.value, 10);
+                            const maxPossible = Math.floor(maxStock / quantity); // Max possible quantity for selected variant
+                            
+                            if (currentQuantity > maxPossible) {
+                                quantityInput.value = maxPossible; // Adjust to max possible
+                            }
+                        }                                               
+
+                    </script>
+                </div>
     
                 <!-- Add to Cart Button -->
                 <div class="d-flex gap-4">
@@ -161,7 +241,7 @@
             </div>
         </div>
     </div>
-  
+    
     <!-- Related Items -->
     <h3 class="mt-5 mb-3" style="font-size: 1.5rem;">Related Items</h3>
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
@@ -197,6 +277,7 @@
             </div>
         </div>
         {% endfor %}
+    </div>
 </section>
 {% endblock content %}
 

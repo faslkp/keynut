@@ -1,0 +1,128 @@
+{% extends "web/user_base.html" %}
+
+{% block profile_content_head %}
+Update Profile
+{% endblock profile_content_head %}
+
+{% block profile_content %}
+<form id="profileForm" method="post" action="" class="mb-5">
+    {% csrf_token %}
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="firstName" class="form-label">First Name</label>
+            <input type="text" name="first_name" class="form-control" id="firstName" value="{{request.user.first_name}}" placeholder="Enter first name" required>
+            <small class="error-message text-danger"></small>
+        </div>
+        <div class="col-md-6">
+            <label for="lastName" class="form-label">Last Name</label>
+            <input type="text" name="last_name" class="form-control" id="lastName" value="{{request.user.last_name}}" placeholder="Enter last name" required>
+            <small class="error-message text-danger"></small>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-danger">Save Changes</button>
+</form>
+<form id="emailForm" action="" method="post" class="mb-5">
+    {% csrf_token %}
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" id="email" value="{{request.user.email}}" placeholder="Enter your email" required>
+            <small class="error-message text-danger"></small>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-danger">Update Email</button>
+</form>
+<form id="phoneForm" action="" method="post">
+    {% csrf_token %}
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="phone" class="form-label">Phone Number</label>
+            <input type="tel" name="phone" class="form-control" id="phone" value="{{request.user.phone}}" placeholder="Enter your phone" required>
+            <small class="error-message text-danger"></small>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-danger">Update Phone</button>
+</form>
+<script>
+    // Form validation - Profile
+    document.getElementById("profileForm").addEventListener("submit", function (event) {
+        event.preventDefault(); // Prevent form submission if validation fails
+
+        const firstNameInput = document.getElementById("firstName");
+        const lastNameInput = document.getElementById("lastName");
+        const nameRegex = /^[A-Za-z. ]+$/; // Allows letters, spaces, and dots
+
+        const firstNameError = firstNameInput.nextElementSibling;
+        const lastNameError = lastNameInput.nextElementSibling;
+
+        let isValid = true;
+
+        // Validate First Name
+        if (!nameRegex.test(firstNameInput.value.trim())) {
+            firstNameError.textContent = "First name can only contain letters, spaces, and dots.";
+            isValid = false;
+        } else {
+            firstNameError.textContent = "";
+        }
+
+        // Validate Last Name
+        if (!nameRegex.test(lastNameInput.value.trim())) {
+            lastNameError.textContent = "Last name can only contain letters, spaces, and dots.";
+            isValid = false;
+        } else {
+            lastNameError.textContent = "";
+        }
+
+        if (isValid) {
+            this.submit(); // Submit form if valid
+        }
+    });
+
+    // Validation - Email
+    document.getElementById("emailForm").addEventListener("submit", function (event) {
+        event.preventDefault(); // Prevent form submission if validation fails
+
+        const emailInput = document.getElementById("email");
+        const emailError = emailInput.nextElementSibling;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Standard email format
+
+        let isValid = true;
+
+        // Validate Email
+        if (!emailRegex.test(emailInput.value.trim())) {
+            emailError.textContent = "Please enter a valid email address.";
+            isValid = false;
+        } else {
+            emailError.textContent = "";
+        }
+
+        if (isValid) {
+            this.submit(); // Submit form if valid
+        }
+    });
+    
+
+    // Validation - Phone
+    document.getElementById("phoneForm").addEventListener("submit", function (event) {
+        event.preventDefault(); // Prevent form submission if validation fails
+
+        const phoneInput = document.getElementById("phone");
+        const phoneError = phoneInput.nextElementSibling;
+        const phoneRegex = /^[+0-9]([0-9]+(\s[0-9]+)*){6,14}$/; // Accepts digits, +, spaces, (), -
+
+        let isValid = true;
+
+        // Validate Phone Number
+        if (!phoneRegex.test(phoneInput.value.trim())) {
+            phoneError.textContent = "Please enter a valid phone number.";
+            isValid = false;
+        } else {
+            phoneError.textContent = "";
+        }
+
+        if (isValid) {
+            this.submit(); // Submit form if valid
+        }
+    });
+</script>
+{% endblock profile_content %}

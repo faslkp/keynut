@@ -1,0 +1,262 @@
+{% extends "admin/dashboard_base.html" %}
+{% load static %}
+{% block title %}Orders{% endblock title %}
+
+{% block script_top %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock script_top %}
+
+{% block page_head %}Orders{% endblock page_head %}
+
+{% block content %}
+<!-- Customer Page Content -->
+<div class="container-fluid py-4">
+    <!-- Page Header with Controls -->
+    <div class="row mb-4 align-items-center justify-content-between">
+        <div class="col-12 col-md-auto mb-3 mb-md-0 d-flex flex-column flex-md-row gap-3">
+            <div class="dropdown" style="min-width: fit-content;">
+                <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span>Sort by</span>
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?sortby=-order_date">Date (Newest)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=order_date">Date (Oldest)</a></li>
+                </ul>
+            </div>
+            
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-funnel-fill me-1"></i>
+                    <span>Filter</span>
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?filter=">All Orders</a></li>
+                    {% for choice in order_status %}
+                    <li><a class="dropdown-item" href="?filter={{choice.0}}">{{choice.1}} Orders</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <form action="" class="d-flex flex-column flex-sm-row gap-2">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="q" class="form-control border-start-0 bg-light" placeholder="Search" aria-label="Search">
+                </div>
+                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'admin_orders' %}" title="Clear">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </form>
+        </div>
+        
+    </div>
+    
+    <!-- Orders Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="py-3 px-3 border-0">Order ID</th>
+                            <th class="py-3 px-3 border-0">User</th>
+                            <th class="py-3 px-3 border-0">Order Date</th>
+                            <th class="py-3 px-3 border-0">Total Amount</th>
+                            <th class="py-3 px-3 border-0">Status</th>
+                            <th class="py-3 px-3 border-0">Update Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                        {% for order in orders %}
+                        <tr>
+                            <td class="py-3 px-3">
+                                <a class="btn-view-order text-decoration-none text-primary" href="#" 
+                                    data-order-id="{{order.order_id}}"
+                                    data-bs-toggle="modal" data-bs-target="#orderDetailsModal">
+                                    {{ order.order_id }}
+                                </a>
+                            </td>
+                            <td class="py-3 px-3">{{ order.user.first_name }} {{ order.user.last_name }}</td>
+                            <td class="py-3 px-3">{{ order.order_date }}</td>
+                            <td class="py-3 px-3">₹{{ order.total_amount|floatformat:2 }}</td>
+                            <td class="py-3 px-3">
+                                <select class="form-select status-dropdown" id="status-{{ order.id }}">
+                                    <option value="" selected disabled>{{ order.status }}</option>
+                                    {% for status in status_choices %}
+                                    {% if status.0 != order.status %}
+                                        <option value="{{ status.0 }}">
+                                            {{ status.1 }}
+                                        </option>
+                                    {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="py-3 px-3">
+                                <button class="update-status-btn btn btn-outline-danger p-1" data-order-id="{{ order.id }}">
+                                    Update
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted">
+            Page <span class="fw-medium">{{ orders.number }}</span> of <span class="fw-medium">{{ orders.paginator.num_pages }}</span> pages
+        </div>
+        <nav aria-label="orders pagination">
+            <ul class="pagination mb-0">
+                {% if orders.has_previous %}
+                <li class="page-item">
+                    <a class="page-link pagination-link" data-page="{{ orders.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Previous">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <a class="page-link">{{ orders.number }}</a>
+                </li>
+
+                {% if orders.has_next %}
+                <li class="page-item">
+                    <a class="page-link pagination-link" data-page="{{ orders.next_page_number }}" aria-label="Next" style="cursor: pointer;">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+
+
+<!-- Hidden link to trigger the Feedback modal -->
+<a id="triggerFeedbackModal" href="#" data-bs-toggle="modal" data-bs-target="#feedbackModal" style="display:none;"></a>
+
+<!-- Feedback Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feedbackModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="feedbackModalDesc"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="feedbackModalCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orderDetailsModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-12 col-md-6">
+                        <div class="mb-3">
+                            <p class="m-0 text-secondary">Order ID:</p>
+                            <p class="order-id m-0 fw-bold"></p>
+                        </div>
+                        <dvi class="mb-3">
+                            <p class="mb-2 text-secondary">Order Date: <span class="order-date text-dark"></span></p>
+                            <p class="m-0 text-secondary">Payment method:</p>
+                            <p class="payment-method mb-2"></p>
+                            <p class="m-0 text-secondary">Delivery address:</p>
+                            <p class="delivery-address"></p>
+                        </dvi>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="mb-3">
+                            <p class="m-0 fw-bold text-secondary">Order Status:</p>
+                            <select class="form-select order-status-dropdown mb-2" id="order-status-dropdown">
+                                <option value="" selected disabled><span class="order-status"></span></option>
+                            </select>
+                            <button href="#" id="updateStatusButton" class="btn btn-danger p-1">Update Status</button>
+                        </div>
+                        <div class="payment-summary border border-secondary px-2 py-1">
+                            <p class="m-0">Payment Summary:</p>
+                            <p class="d-flex justify-content-between mb-0">
+                                <span>Subtotal:</span><span class="subtotal">₹0</span>
+                            </p>
+                            <hr class="my-0">
+                            <p class="d-flex justify-content-between mb-0">
+                                <span>Shipping:</span><span class="shipping-charge">₹0</span>
+                            </p>
+                            <hr class="my-0">
+                            <p class="d-flex justify-content-between mb-0">
+                                <span>Promotion/Discoutn:</span><span class="discount">-₹0</span>
+                            </p>
+                            <hr class="my-0">
+                            <p class="d-flex justify-content-between mb-0 fw-bold">
+                                <span>Total:</span><span class="order-total">₹0</span>
+                            </p>
+                            <hr class="my-0">
+                        </div>
+                    </div>
+                </div>
+                <div class="order-items">
+                    <p class="small mb-1">Order Items:</p>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="py-2 px-3 border-0">Product</th>
+                                    <th class="py-2 px-3 border-0">Price</th>
+                                    <th class="py-2 px-3 border-0">Qty.</th>
+                                    <th class="py-2 px-3 border-0">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody class="order-items-table">
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <!-- <button type="submit" id="orderDetailsSubmitButton" class="btn btn-primary">Save</button> -->
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock content %}
+
+{% block script %}
+<!-- Products page specific JS file -->
+<script src="{% static 'js/adminpanel_orders.js' %}"></script>
+{% endblock script %}

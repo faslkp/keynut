@@ -1,6 +1,18 @@
 from django import forms
 
-from .models import Product, Category, VARIANT_CHOICES
+from .models import Product, Category, ProductVariant
+
+
+UNIT_CHOICES = [
+    ('', 'Select a unit'),
+    ('kg', 'Kilogram'),
+    ('g', 'Gram'),
+    ('pc', 'Piece'),
+    ('l', 'Litre'),
+    ('ml', 'Millilitre'),
+    ('m', 'Meter'),
+    ('cm', 'Centimeter'),
+]
 
 
 class ProductForm(forms.ModelForm):
@@ -31,20 +43,27 @@ class ProductForm(forms.ModelForm):
         required=True
     )
 
-    unit = forms.CharField(
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter unit (e.g., kg, pcs)'}),
+    unit = forms.ChoiceField(
+        choices=UNIT_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'}),
         required=True
     )
 
-    stock = forms.IntegerField(
+    stock = forms.DecimalField(
         widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter stock quantity'}),
         required=True
     )
 
-    variants = forms.MultipleChoiceField(
-        choices=VARIANT_CHOICES,
+    # variants = forms.MultipleChoiceField(
+    #     choices=ProductVariant.objects.all().order_by('quantity'),
+    #     widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+    #     required=False
+    # )
+
+    variants = forms.ModelMultipleChoiceField(
+        queryset=ProductVariant.objects.all().order_by('quantity'),
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
-        required=True
+        required=False
     )
 
     image = forms.ImageField(
@@ -55,7 +74,7 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = ['name', 'description', 'price', 'discount', 'category', 'unit', 'stock', 'image']
-    
+        
     def clean_image(self):
         image = self.cleaned_data.get("image")
 

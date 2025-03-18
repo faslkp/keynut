@@ -1,5 +1,10 @@
 {% extends "web/base.html" %}
 
+{% load static %}
+{% load socialaccount %}
+
+{% block title %}Login{% endblock title %}
+
 {% block content %}
 
 <!-- Login Page Content -->
@@ -16,7 +21,7 @@
             </div>
             <div class="messages col-10 col-md-6">
                 {% for message in messages %}
-                <p class="{% if message.tags == "success" %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+                <p class="{% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
                 {% endfor %}
             </div>
             <!-- Login Form -->
@@ -37,6 +42,11 @@
                             <button type="submit" class="btn btn-danger me-5 px-5" style="padding: 0.75em 1.5em; font-size: 1rem;">Log in</button>
                             <a href="{% url 'recover' %}" class="text-decoration-none text-muted text-center" style="font-size: 0.875rem;">Forgot Password?</a>
                         </div>
+
+                        <a class="w-100 my-3 btn btn-outline-secondary text-black" href="{% provider_login_url 'google' process='login' %}">
+                            <img class="img-fluid me-3" src="{% static 'images/google-logo.png' %}" alt="Google Logo" style="width:2rem;">
+                             <span>Sign in with Google</span>
+                         </a>
                         
                         <p class="text-center mb-3" style="font-size: 0.875rem;">Not yet registered? <a href="{% url 'register' %}" class="text-decoration-none text-danger">Register</a></p>
                     </form>

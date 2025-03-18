@@ -1,5 +1,10 @@
 {% extends "web/base.html" %}
 
+{% load static %}
+{% load socialaccount %}
+
+{% block title %}Register{% endblock title %}
+
 {% block content %}
 
 <!-- Login Page Content -->
@@ -28,36 +33,44 @@
                 <div class="col-10 col-md-6">
 
                     {% if stage == 'primary' %}
-                    <form action="" method="post">
+                    <form action="" method="post" id="registerForm">
                         {% csrf_token %}
                         <div class="mb-2">
-                            <input type="text" name="first_name" class="form-control" id="first_name" placeholder="First name" style="padding: 0.75em;" required>
+                            <input type="text" name="first_name" value="{{first_name}}" class="form-control" id="first_name" placeholder="First name" style="padding: 0.65em;" required>
+                            <small class="error-message text-danger"></small>
                         </div>
                         <div class="mb-2">
-                            <input type="text" name="last_name" class="form-control" id="last_name" placeholder="Last name" style="padding: 0.75em;" required>
+                            <input type="text" name="last_name" value="{{last_name}}" class="form-control" id="last_name" placeholder="Last name" style="padding: 0.65em;" required>
+                            <small class="error-message text-danger"></small>
                         </div>
                         <div class="mb-2">
-                            <input type="email" name="email" class="form-control" id="email" placeholder="Email" style="padding: 0.75em;" required>
+                            <input type="email" name="email" value="{{email}}" class="form-control" id="email" placeholder="Email" style="padding: 0.65em;" required>
+                            <small class="error-message text-danger"></small>
                         </div>
                         <div class="mb-2">
-                            <input type="tel" name="phone" class="form-control" id="phone" placeholder="Phone" style="padding: 0.75em;" required>
+                            <input type="password" name="password1" class="form-control" id="password1" placeholder="Password" style="padding: 0.65em;" required>
+                            <small class="error-message text-danger"></small>
                         </div>
                         <div class="mb-2">
-                            <input type="password" name="password1" class="form-control" id="password1" placeholder="Password" style="padding: 0.75em;" required>
-                        </div>
-                        <div class="mb-2">
-                            <input type="password" name="password2" class="form-control" id="password2" placeholder="Confirm assword" style="padding: 0.75em;" required>
+                            <input type="password" name="password2" class="form-control" id="password2" placeholder="Confirm assword" style="padding: 0.65em;" required>
+                            <small class="error-message text-danger"></small>
                         </div>
                         
                         <div class="d-flex align-items-center justify-content-between mb-3">
                             <button type="submit" class="btn btn-danger px-5 w-100" style="padding: 0.6em 1.5em; font-size: 1rem;">Continue</button>
                         </div>
+
+                        <a class="w-100 my-3 btn btn-outline-secondary text-black" href="{% provider_login_url 'google' process='login' %}">
+                            <img class="img-fluid me-3" src="{% static 'images/google-logo.png' %}" alt="Google Logo" style="width:2rem;">
+                             <span>Sign up with Google</span>
+                         </a>
                         
-                        <p class="text-center mt-4" style="font-size: 0.875rem;">
+                        <p class="text-center" style="font-size: 0.875rem;">
                             Already have an account?
                             <a href="{% url 'login' %}" class="text-decoration-none text-danger ms-1">Login</a>
                         </p>
                     </form>
+
                     {% endif %}
 
                     {% if stage == 'otp' %}
@@ -80,8 +93,8 @@
                         <input type="hidden" name="resend_otp" value="1">
                         <div class="d-flex justify-content-center text-center my-4">
                             <p class="text-center mt-3" style="font-size: 0.875rem;">
-                                <a href="#" class="text-decoration-none text-danger">Resend OTP</a>
-                                <span class="ms-3 text-secondary">0:03:55</span>
+                                <input type="submit" id="resendBtn" value="Resend OTP" class="btn btn-link p-0 border-0 bg-transparent text-decoration-none text-danger" disabled>
+                                <span id="timer" class="ms-3 text-secondary">5:00</span>
                             </p>
                         </div>
                     </form>
@@ -97,3 +110,29 @@
 
 {% endblock content %}
 
+{% block script %}
+    <script src="{% static 'js/register.js' %}"></script>
+    <script>
+        // Resend OTP timer
+        let timerElement = document.getElementById("timer");
+        let resendBtn = document.getElementById("resendBtn");
+        
+        let timeLeft = 5 * 60; // 5 minutes in seconds
+
+        function updateTimer() {
+            let minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+            timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
+            if (timeLeft > 0) {
+                timeLeft--;
+                setTimeout(updateTimer, 1000);
+            } else {
+                resendBtn.removeAttribute("disabled"); // Enable button
+                timerElement.textContent = "00:00";
+            }
+        }
+
+        updateTimer(); // Start the timer
+    </script>
+{% endblock script %}

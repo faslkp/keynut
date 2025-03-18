@@ -4,7 +4,11 @@ from . models import Product, ProductVariant, Category
 
 
 admin.site.register(Product)
-admin.site.register(ProductVariant)
+
+class ProductVariantAdmin(admin.ModelAdmin):
+    ordering = ['quantity']
+
+admin.site.register(ProductVariant, ProductVariantAdmin)
 
 
 class CategoryAdmin(admin.ModelAdmin):

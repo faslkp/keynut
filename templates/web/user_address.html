@@ -1,0 +1,481 @@
+{% extends "web/user_base.html" %}
+
+{% block profile_content_head %}
+Address Book
+{% endblock profile_content_head %}
+
+{% block action_button %}
+<button id="addAddressButton" class="btn btn-danger align-self-end" data-bs-toggle="modal" data-bs-target="#addAddressModal">Add New Address</button>
+{% endblock action_button %}
+
+{% block profile_content %}
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th scope="col">Address</th>
+            <th scope="col">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for address in addresses %}
+    <tr>
+        <td class="p-3">
+        <p class="fw-bold mb-1">
+            {{address.name}}
+            {% if address.is_default %}
+            <a class="ms-3 text-success text-decoration-none title="Default address"><i class="bi bi-check-circle-fill"></i> <small class="ms-1">Default</small></a>
+            {% else %}
+            <a href="{% url 'user_set_address_default' address.id %}" class="ms-3 text-secondary" title="Mark as default"><i class="bi bi-check-circle"></i></a>
+            {% endif %}
+        </p>
+        <p class="mb-1">{{address.address_line_1}}, {{address.address_line_2}}, {{address.city}}, {{address.state}}, {{address.pin}}</p>
+        <p class="m-0">{{address.phone}}</p>
+        </td>
+        <td class="p-3 align-middle">
+            <a class="edit-address text-dark text-decoration-none me-2" href="#" title="Edit" data-bs-toggle="modal" data-bs-target="#addAddressModal" data-address-id="{{address.id}}">
+                <i class="bi bi-pencil"></i>
+            </a>
+            <a class="delete-address text-danger text-decoration-none" href="#" title="Delete" data-bs-toggle="modal" data-bs-target="#deleteModal" data-address-id="{{address.id}}">
+                <i class="bi bi-trash"></i>
+            </a>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<!-- Add Address Modal -->
+<div class="modal fade" id="addAddressModal" tabindex="-1" aria-labelledby="addAddressModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addAddressModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form action="" method="post" id="addressForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% for field in form %}
+                    <div class="mb-2">
+                        <!-- <label class="form-label fw-bold">{{ field.label }}</label> -->
+                        {{ field }}
+                        {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" id="addAddressSubmitButton" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="deleteModalDesc"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="deleteCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="deleteConfirmButton" class="btn btn-primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden link to trigger the Feedback modal -->
+<a id="triggerFeedbackModal" href="#" data-bs-toggle="modal" data-bs-target="#feedbackModal" style="display:none;"></a>
+
+<!-- Feedback Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feedbackModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="feedbackModalDesc"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="feedbackModalCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    // Update add address modal on Add button click
+    document.getElementById('addAddressButton').addEventListener('click', () => {
+        document.getElementById('addAddressModalLabel').innerText = "Add New Address"
+    })
+
+    // Add address ajax request
+    document.getElementById('addAddressSubmitButton').addEventListener('click', function (event) {
+        event.preventDefault();
+
+        // Get the feedback modal elements
+        const feedbackModalTrigger = document.getElementById('triggerFeedbackModal');
+        let feedbackModalLabel = document.getElementById('feedbackModalLabel');
+        let feedbackModalDesc = document.getElementById('feedbackModalDesc');
+        feedbackModalLabel.innerText = "";
+        feedbackModalDesc.innerText = "";
+
+        // Add reload event to the modal close button
+        document.getElementById("feedbackModalCloseButton").addEventListener("click", function () {
+            location.reload();
+        }, { once: true });
+
+        // Get form data
+        let form = document.getElementById("addressForm");
+        let formData = new FormData(form); // Collect form data
+
+        // Validation checks
+        let errors = validateFormData(formData);
+        if (Object.keys(errors).length > 0) {
+            event.preventDefault();
+            displayErrors(errors);
+            return;
+        }
+
+        // Disable button to avoid duplicate requests
+        this.disabled = true;
+        this.innerText = "Please wait";
+
+        // AJAX request
+        fetch("/profile/address/add/", {
+            method: "POST",
+            body: formData,
+            credentials: "include" // Ensure session data is included
+        })
+        .then(response => {
+            if (!response.ok) { // Checks for HTTP errors like 500
+                throw new Error(`Server error: ${response.status}`); // Manually trigger error
+            }
+            return response.json()
+        })
+        .then(data => {
+            if (data.success) {
+                feedbackModalLabel.innerText = "Success";
+                feedbackModalDesc.innerText = data.message;
+                feedbackModalTrigger.click();
+            } else {
+                feedbackModalLabel.innerText = "Error";
+                feedbackModalDesc.innerText = data.message;
+                feedbackModalTrigger.click();
+            }
+        })
+        .catch(error => {
+            feedbackModalLabel.innerText = "Error";
+            feedbackModalDesc.innerText = "Something went wrong! Please try again.";
+            feedbackModalTrigger.click();
+        });
+    })
+
+    // Function to validate form data before submitting
+    function validateFormData(formData) {
+        let errors = {};
+
+        // Validate name: Allow only letters and periods (.)
+        let namePattern = /^[A-Za-z. ]+$/;
+        let name = formData.get("name").trim();
+        if (!name) {
+            errors["name"] = ["Name is required."];
+        } else if (!namePattern.test(name)) {
+            errors["name"] = ["Name can only contain letters and '.'"];
+        }
+
+        // Validate phone: Allow international numbers, not starting with '-'
+        let phonePattern = /^[+]?[0-9]+$/;
+        let phone = formData.get("phone").trim();
+        if (!phone) {
+            errors["phone"] = ["Phone number is required."];
+        } else if (!phonePattern.test(phone) || phone.startsWith("-")) {
+            errors["phone"] = ["Enter a valid phone number."];
+        }
+
+        // Validate address line 1
+        let address_line_1 = formData.get("address_line_1").trim();
+        if (!address_line_1) {
+            errors["address_line_1"] = ["House No., Building name, Street is required."];
+        }
+
+        // Validate pin: Allow only Indian PIN codes (6-digit numeric)
+        let pinPattern = /^[1-9][0-9]{5}$/;
+        let pin = formData.get("pin").trim();
+        if (!pin) {
+            errors["pin"] = ["Pincode is required."];
+        } else if (!pinPattern.test(pin)) {
+            errors["pin"] = ["Enter a valid 6-digit Indian Pincode."];
+        }
+
+        // City validation
+        let city = formData.get("city").trim();
+        if (!city) {
+            errors["city"] = ["City is required."];
+        }
+
+        // City validation
+        let state = formData.get("state").trim();
+        if (!state) {
+            errors["state"] = ["State is required."];
+        }
+
+        return errors;
+    }
+
+    // Function to display validation errors
+    function displayErrors(errors) {
+        console.log("Displaying errors:", errors);
+
+        // Clear previous errors
+        document.querySelectorAll(".invalid-feedback").forEach(el => el.remove());
+        document.querySelectorAll(".is-invalid").forEach(el => el.classList.remove("is-invalid"));
+
+        // Show new errors
+        Object.keys(errors).forEach(field => {
+            let inputField = document.querySelector(`[name="${field}"]`);
+
+            if (inputField) {
+                inputField.classList.add("is-invalid"); // Highlight field
+
+                let existingError = inputField.parentNode.querySelector(".invalid-feedback");
+                if (!existingError) {
+                    let errorContainer = document.createElement("div");
+                    errorContainer.classList.add("invalid-feedback");
+                    errorContainer.innerHTML = errors[field].join("<br>");
+                    inputField.parentNode.appendChild(errorContainer);
+                }
+            }
+        });
+    }
+
+    // Edit address buttons event listeners 
+    document.querySelectorAll(".edit-address").forEach(button => {
+        button.addEventListener("click", function (event) {
+            // Setting up modal and Save button and disabling to wait for fetching product data
+            const modalSaveButton = document.getElementById('addAddressSubmitButton');
+            const newButton = modalSaveButton.cloneNode(true); // Clone the button (without event listeners)
+            modalSaveButton.parentNode.replaceChild(newButton, modalSaveButton); // Replace old button
+            newButton.disabled = true;
+            newButton.innerText = "Please wait"
+            document.getElementById('addAddressModalLabel').innerText = "Edit Address"
+
+            // Get userID
+            const addressId = this.dataset.addressId
+
+            // Construct URL
+            const url = `/profile/address/${addressId}/edit/`
+
+            // Fetch existing address data
+            fetch(url, {
+                method: "GET",
+                credentials: 'include',
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errData => {
+                        throw new Error(`Server error: ${response.status} ${response.statusText} - ${JSON.stringify(errData)}`);
+                    });
+                }
+                return response.json(); // Convert response to JSON if OK
+            })
+            .then(data => {
+                if (!data) throw new Error("No data received from the server");
+
+                console.log(data);
+                
+                // Assigning existing values to form
+                document.getElementById('id_name').value = data.name
+                document.getElementById('id_phone').value = data.phone
+                document.getElementById('id_address_line_1').value = data.address_line_1
+                document.getElementById('id_address_line_2').value = data.address_line_2
+                document.getElementById('id_landmark').value = data.landmark
+                document.getElementById('id_pin').value = data.pin
+                document.getElementById('id_city').value = data.city
+                document.getElementById('id_state').value = data.state
+                
+                // Re enable Save button
+                newButton.disabled = false;
+                newButton.innerText = "Save"
+
+                // Attaching new event listener to the Save button
+                newButton.addEventListener('click', function (event) {
+                    event.preventDefault();
+
+                    // Get the feedback modal elements
+                    const feedbackModalTrigger = document.getElementById('triggerFeedbackModal');
+                    let feedbackModalLabel = document.getElementById('feedbackModalLabel');
+                    let feedbackModalDesc = document.getElementById('feedbackModalDesc');
+                    feedbackModalLabel.innerText = "";
+                    feedbackModalDesc.innerText = "";
+
+                    // Add reload event to the modal close button
+                    document.getElementById("feedbackModalCloseButton").addEventListener("click", function () {
+                        location.reload();
+                    }, { once: true });
+
+                    // Get form data
+                    let form = document.getElementById("addressForm");
+                    let formData = new FormData(form);
+
+                    // Validation checks
+                    let errors = validateFormData(formData);
+                    if (Object.keys(errors).length > 0) {
+                        event.preventDefault();
+                        displayErrors(errors);
+                        return;
+                    }
+
+                    // Disable button to avoid duplicate requests
+                    this.disabled = true;
+                    this.innerText = "Please wait";
+
+                    // Ajax request to edit product details
+                    fetch(url, {
+                        method: "POST",
+                        body: formData,
+                        credentials: "include" // Ensure session data is included
+                    })
+                    .then(response => {
+                        if (!response.ok) { // Checks for HTTP errors like 500
+                            throw new Error(`Server error: ${response.status}`); // Manually trigger error
+                        }
+                        return response.json()
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            feedbackModalLabel.innerText = "Success";
+                            feedbackModalDesc.innerText = data.message;
+                            feedbackModalTrigger.click();
+                        } else {
+                            feedbackModalLabel.innerText = "Error";
+                            feedbackModalDesc.innerText = data.message;
+                            feedbackModalTrigger.click();
+                        }
+                    })
+                    .catch(error => {
+                        feedbackModalLabel.innerText = "Error";
+                        feedbackModalDesc.innerText = "Something went wrong! Please reload the page and try again.";
+                        feedbackModalTrigger.click();
+                    });
+                });
+            })
+            .catch(error => {
+                console.log("Error occured.")
+                alert("Something went wrong! Please reload the page.")
+            });
+        });
+    });
+
+    // Delete address
+    document.querySelectorAll(".delete-address").forEach(button => {
+        button.addEventListener("click", function (event) {
+            event.preventDefault(); // Prevent default anchor behavior
+
+            let addressId = this.dataset.addressId; // Get the address ID from data attribute
+            
+            // Set confirmation modal details
+            let modalLabel = document.getElementById('deleteModalLabel');
+            let modalDesc = document.getElementById('deleteModalDesc');
+            modalLabel.innerText = "Confirm deletion";
+            modalDesc.innerText = "Are you sure you want to delete this address? This cannot be undone.";
+
+            // Get the feedback modal elements
+            const feedbackModalTrigger = document.getElementById('triggerFeedbackModal');
+            let feedbackModalLabel = document.getElementById('feedbackModalLabel');
+            let feedbackModalDesc = document.getElementById('feedbackModalDesc');
+            feedbackModalLabel.innerText = "";
+            feedbackModalDesc.innerText = "";
+
+            // Select the confirm button in the modal
+            let confirmButton = document.getElementById('deleteConfirmButton');
+            confirmButton.innerText = "Confirm";
+            confirmButton.disabled = false;
+
+            // Remove any previously attached event listener before adding a new one
+            confirmButton.replaceWith(confirmButton.cloneNode(true)); // Clone and replace to remove all previous listeners
+            confirmButton = document.getElementById('deleteConfirmButton'); // Get the new button reference
+
+            // Attach a new event listener
+            confirmButton.addEventListener('click', function confirmAction() {
+                console.log('Deleting address with ID:', addressId);
+
+                // Disabling confirm button to avoid duplicate actions
+                confirmButton.disabled = true;
+                confirmButton.innerText = "Please wait";
+
+                // Add reload event to the feedback modal close button
+                document.getElementById("feedbackModalCloseButton").addEventListener("click", function () {
+                    location.reload();
+                }, { once: true });
+
+                let url = `/profile/address/${addressId}/delete/`; // Construct the URL
+
+                fetch(url, {
+                    method: "POST",
+                    credentials: 'include',
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken") // CSRF protection
+                    },
+                    body: JSON.stringify({ action: "delete" }) // Send data if needed
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Trigger acknowledgment modal
+                        feedbackModalLabel.innerText = "Success";
+                        feedbackModalDesc.innerText = data.message;
+                        feedbackModalTrigger.click();
+                    } else {
+                        // Close confirm modal and trigger error modal
+                        feedbackModalLabel.innerText = "Error";
+                        feedbackModalDesc.innerText = data.message;
+                        feedbackModalTrigger.click();
+                    }
+                })
+                .catch(error => {
+                    feedbackModalLabel.innerText = "Error";
+                    feedbackModalDesc.innerText = error;
+                    feedbackModalTrigger.click();
+                });
+            });
+        });
+    });
+
+
+    // Function to get CSRF token (needed for Django security)
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            document.cookie.split(';').forEach(cookie => {
+                let trimmed = cookie.trim();
+                if (trimmed.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(trimmed.substring(name.length + 1));
+                }
+            });
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock profile_content %}

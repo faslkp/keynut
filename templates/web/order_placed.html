@@ -1,0 +1,178 @@
+{% extends "web/base.html" %}
+
+{% block title %}Home{% endblock title %}
+
+{% block stylesheet %}
+<style>
+    .breadcrumb {
+        font-size: 0.875rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock stylesheet %}
+
+{% block header-nav %}
+{% include "web/includes/header-nav.html" %}
+{% endblock%}
+
+{% block content %}
+
+<!-- Messages -->
+<div class="messages col-12 my-3 text-center">
+    {% for message in messages %}
+    <p class="{% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+    {% endfor %}
+</div>
+
+<!-- Content Section -->
+<section class="container pt-4 pb-5 mb-3">
+
+    <div class="container d-flex flex-column align-items-center justify-content-center">
+        <div class="card shadow-lg p-4 text-center" style="max-width: 500px;">
+            <div class="mb-3">
+                <div class="text-center text-success" style="font-size: 5rem;">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+            </div>
+            <h2 class="text-success">Order Placed Successfully!</h2>
+            <p class="text-muted">Thank you for your purchase. Your order has been received and will be processed soon.</p>
+            
+            <div class="d-grid gap-2 mt-3">
+                <a href="{% url 'products' %}" class="btn btn-success">Continue Shopping</a>
+                <a href="{% url 'user_orders' %}" class="btn btn-outline-success">View Orders</a>
+            </div>
+        </div>
+    </div>
+
+    
+</section>
+
+{% endblock content %}
+
+{% block footer %}
+{% include "web/includes/footer.html" %}
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const newAddressRadio = document.getElementById("new-address");
+        const upiRadio = document.getElementById("upi");
+        const cardRadio = document.getElementById("card");
+        const upiInput = document.getElementById("upi-id");
+        const checkoutForm = document.getElementById("checkoutForm");
+        const newAddressForm = document.querySelector(".new-address-form"); // New address fields container
+
+        const cardInputs = [
+            { id: "cardNumber", regex: /^[0-9]{13,19}$/, error: "Enter a valid card number (13-19 digits)" },
+            { id: "cardExpiry", regex: /^(0[1-9]|1[0-2])\/\d{2}$/, error: "Enter a valid expiry (MM/YY)" },
+            { id: "cvv", regex: /^[0-9]{3,4}$/, error: "Enter a valid CVV (3-4 digits)" },
+            { id: "nameOnCard", regex: /^[A-Za-z\s]+$/, error: "Enter a valid name" }
+        ];
+
+        checkoutForm.addEventListener("submit", function (event) {
+            let isValid = true;
+
+            // Clear previous errors
+            document.querySelectorAll(".error-text").forEach(el => el.textContent = "");
+
+            // Validate address only if "New Address" is selected
+            if (newAddressRadio.checked) {
+                const requiredFields = [
+                    { id: "name", regex: /^[A-Za-z.\s]+$/, error: "Enter a valid name (letters and '.' only)" },
+                    { id: "phone", regex: /^[+]?[0-9]{7,15}$/, error: "Enter a valid phone number" },
+                    { id: "address_line_1", regex: /.+/, error: "House No., Building name, Street is required" },
+                    { id: "pin", regex: /^[1-9][0-9]{5}$/, error: "Enter a valid 6-digit Indian pincode" },
+                    { id: "city", regex: /.+/, error: "City is required" },
+                    { id: "state", regex: /.+/, error: "State is required" }
+                ];
+                requiredFields.forEach(field => {
+                    let input = document.getElementById(field.id);
+                    if (!field.regex.test(input.value.trim())) {
+                        input.nextElementSibling.textContent = field.error;
+                        isValid = false;
+                    }
+                });
+            }
+
+            // Validate Payment Method
+            if (upiRadio.checked) {
+                const upiRegex = /^[a-zA-Z0-9.\-_]+@[a-zA-Z]+$/; // UPI format: user@bank
+                if (!upiRegex.test(upiInput.value.trim())) {
+                    upiInput.nextElementSibling.textContent = "Enter a valid UPI ID (e.g., user@upi)";
+                    isValid = false;
+                }
+            }
+
+            if (cardRadio.checked) {
+                cardInputs.forEach(field => {
+                    let input = document.getElementById(field.id);
+                    if (!input || !field.regex.test(input.value.trim())) {
+                        input.nextElementSibling.textContent = field.error;
+                        isValid = false;
+                    }
+                });
+            }
+
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+
+        // Manage address selection
+        document.querySelectorAll('.address-selector').forEach(radio => {
+            radio.addEventListener('change', () => {
+                let isNewAddress = newAddressRadio.checked;
+                newAddressForm.style.display = isNewAddress ? "block" : "none"; // Show/hide new address fields
+                ["name", "phone", "address_line_1", "pin", "city", "state"].forEach(id => {
+                    let input = document.getElementById(id);
+                    if (isNewAddress) {
+                        input.setAttribute("required", "true");
+                    } else {
+                        input.removeAttribute("required");
+                    }
+                });
+            });
+        });
+
+        // Toggle required fields based on payment method selection
+        document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
+            radio.addEventListener("change", function () {
+                const upiRadio = document.getElementById("upi");
+                const cardRadio = document.getElementById("card");
+                const upiInput = document.getElementById("upi-id");
+                const cardInputs = [
+                    document.getElementById("cardNumber"),
+                    document.getElementById("cardExpiry"),
+                    document.getElementById("cvv"),
+                    document.getElementById("nameOnCard")
+                ];
+
+                // Show/hide UPI details
+                document.querySelector(".upi-details").style.display = upiRadio.checked ? "block" : "none";
+                // Show/hide Card details
+                document.querySelector(".card-details").style.display = cardRadio.checked ? "block" : "none";
+
+                // Toggle required attribute for UPI ID
+                if (upiRadio.checked) {
+                    upiInput.setAttribute("required", "true");
+                } else {
+                    upiInput.removeAttribute("required");
+                }
+
+                // Toggle required attributes for Card details
+                cardInputs.forEach(input => {
+                    if (cardRadio.checked) {
+                        input.setAttribute("required", "true");
+                    } else {
+                        input.removeAttribute("required");
+                    }
+                });
+            });
+        });
+
+    });
+
+</script>
+{% endblock script %}
+

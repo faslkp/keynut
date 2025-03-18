@@ -31,11 +31,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',  # Required for allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google', # For Google authentication
     'imagekit',
     'customers',
     'products',
     'adminpanel',
     'web',
+    'orders',
 ]
 
 MIDDLEWARE = [
@@ -46,6 +52,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Required for django-allauth
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'keynut.urls'
@@ -82,6 +90,48 @@ DATABASES = {
 
 # Default User Model
 AUTH_USER_MODEL = 'customers.Customer'
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  
+    'allauth.account.auth_backends.AuthenticationBackend',  # Allauth backend
+]
+
+# Site ID (Required for django-allauth)
+SITE_ID = 1
+
+# Redirect users after login/logout
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': os.environ.get('GOOGLE_CLIENT_ID'),  # Replace with your Client ID
+            'secret': os.environ.get('GOOGLE_SECRET'),  # Replace with your Client Secret
+            'key': ''  # Leave blank for Google
+        },
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
+    }
+}
+
+# Allauth settings
+ACCOUNT_USERNAME_REQUIRED = False  # Username is not required for signup
+ACCOUNT_LOGIN_METHODS = {'email'}  # Authenticate using email
+ACCOUNT_EMAIL_REQUIRED = True  # Email is required
+ACCOUNT_UNIQUE_EMAIL = True  # Ensure emails are unique
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+
+
+# ACCOUNT_ADAPTER = 'web.adapters.CustomAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'web.adapters.CustomSocialAccountAdapter'
 
 
 # Password validation
@@ -133,8 +183,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Email sending
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.getenv('EMAIL_HOST')
-EMAIL_PORT = os.getenv('EMAIL_PORT')
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS')
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_PORT = os.environ.get('EMAIL_PORT')
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+
+

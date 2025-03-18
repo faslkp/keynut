@@ -9,8 +9,16 @@ from django.db.models import F, Q, ExpressionWrapper, DecimalField
 from django.core.mail import send_mail
 from django.views.decorators.cache import never_cache
 from django.core.paginator import Paginator
+from django.http import JsonResponse
+
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+from allauth.socialaccount.providers.oauth2.views import OAuth2LoginView
+from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
 from products.models import Product, Category
+from customers.models import Address
+from customers.forms import AddressForm
+from orders.models import Order, OrderItem
 
 User = get_user_model()
 
@@ -109,7 +117,7 @@ def products(request):
         products = products.order_by(sort_options[sortby])
 
     # Pagination
-    paginator = Paginator(products, 3)
+    paginator = Paginator(products, 24)
     page_number = request.GET.get('page')
     products = paginator.get_page(page_number)
 
@@ -130,9 +138,20 @@ def product_details(request, slug):
         )
     ).first()
     if product and product.is_listed and not product.is_deleted and not product.category.is_deleted:
-        context.update({'product': product})
+        product_variants = []
+        for variant in product.variants.all().order_by('quantity'):
+            formatted_quantity = variant.get_display_quantity(product.unit)  # Call the method
+            product_variants.append({
+                'id': variant.id,
+                'quantity': variant.quantity,
+                'formatted_quantity': formatted_quantity  # Store formatted quantity
+            })
+        context.update({
+            'product': product,
+            'product_variants': product_variants,
+        })
     else:
-        return redirect('products')
+        return redirect('404')
     
     # Check stock status
     lowest_variant = product.variants.order_by('quantity').first()
@@ -149,6 +168,196 @@ def product_details(request, slug):
         'related_products': related_products,
     })
     return render(request, 'web/product_details.html', context=context)
+
+
+def user_profile(request):
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        phone = request.POST.get('phone')
+
+        # Update name
+        if first_name and last_name:
+            request.user.first_name = first_name
+            request.user.last_name = last_name
+            request.user.save()
+            messages.success(request, "Profile updated successfully.")
+        elif email:
+            request.user.email = email
+            request.user.username = email
+            request.user.is_verified = False
+            request.user.save()
+            messages.success(request, "Email updated successfully.")
+        elif phone:
+            request.user.phone = phone
+            request.user.save()
+            messages.success(request, "Phone number updated successfully.")
+        else:
+            messages.error(request, "All fields are required!")
+    return render(request, 'web/user_profile.html')
+
+
+def user_change_password(request):
+    if request.method == 'POST':
+        current_password = request.POST.get('current-password')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+        if current_password and password1 and password2:
+            if password1 == password2:
+                if request.user.check_password(password1):
+                    request.user.set_password(password1)
+                    request.user.save()
+                    messages.success(request, "Password updated successfully.")
+                else:
+                    messages.error(request, "The current password you entered is incorrect.")
+            else:
+                messages.error(request, "New password and confirm password do not match.")
+        else:
+            messages.error(request, "All fields are required!")
+    return render(request, 'web/user_change_password.html')
+
+
+def user_address(request):
+    addresses = Address.objects.filter(user=request.user, is_deleted=False)
+    form = AddressForm()
+    context = {
+        'addresses': addresses,
+        'form': form
+    }
+    return render(request, 'web/user_address.html', context=context)
+
+
+def user_add_address(request):
+    if request.method == 'POST':
+        form = AddressForm(request.POST)
+        if form.is_valid():
+            new_address = form.save(commit=False)
+            new_address.user = request.user
+
+            # Check if the user has any existing addresses
+            if not Address.objects.filter(user=request.user).exists():
+                new_address.is_default = True  # Set first address as default
+
+            new_address.save()
+            return JsonResponse({
+                'success': True,
+                'message': 'New address added successfully.'
+            })
+        else:
+            JsonResponse({
+                'error': True,
+                'message': "Address details are invalid. Please verify details"
+            })
+    return JsonResponse({
+        'error': True,
+        'message': "Invalid request!"
+    })
+
+
+def user_edit_address(request, pk):
+    if request.method == 'POST':
+        address = Address.objects.filter(pk=pk).first()
+        form = AddressForm(request.POST, instance=address)
+        if form.is_valid():
+            updated_address = form.save(commit=False)
+            updated_address.user = request.user
+            updated_address.save()
+            return JsonResponse({
+                'success': True,
+                'message': "Address updated successfully."
+            })
+        else:
+            return JsonResponse({
+                'error': True,
+                'message': "Address details are invalid. Please verify details."
+            })
+    
+    # if request is GET, fetch existing details.
+    address = Address.objects.filter(pk=pk, user=request.user).first()
+    if address:
+        return JsonResponse({
+            'success': True,
+            'name': address.name,
+            'phone': address.phone,
+            'address_line_1': address.address_line_1,
+            'address_line_2': address.address_line_2,
+            'landmark': address.landmark,
+            'pin': address.pin,
+            'city': address.city,
+            'state': address.state,
+        })
+    else:
+        return JsonResponse({
+            'error': True,
+            'message': "Address not found or access denied!"
+        })
+
+
+def user_set_address_default(request, pk):
+    selected_address = Address.objects.filter(pk=pk).first()
+    if not selected_address:
+        return redirect('404')
+    
+    # Remove default from current default address
+    current_default_address = Address.objects.filter(user=request.user, is_default=True).first()
+    current_default_address.is_default = False
+    current_default_address.save()
+    
+    # Add default to selected address
+    selected_address.is_default = True
+    selected_address.save()
+    return redirect('user_address')
+
+
+def user_delete_address(request, pk):
+    if request.method == 'POST':
+        address = Address.objects.filter(pk=pk, user=request.user).first()
+        if address:
+            address.delete()
+            return JsonResponse({
+                'success': True,
+                'message': "Address deleted successfully."
+            })
+        else:
+            return JsonResponse({
+                'error': True,
+                'message': "Address not found or access denied."
+            })
+    return JsonResponse({
+                'success': True,
+                'message': "Invalid request."
+            })
+
+
+def user_orders(request):
+    order_items = OrderItem.objects.filter(order__user=request.user).order_by('-order__order_date')
+
+    # Pagination
+    paginator = Paginator(order_items, 3) # 10 Order items per page
+    page_number = request.GET.get('page')
+    order_items = paginator.get_page(page_number)
+
+    context = {
+        'order_items': order_items,
+    }
+    return render(request, 'web/user_orders.html', context=context)
+
+
+def user_view_order(request, order_id):
+    order = Order.objects.prefetch_related('order_items').filter(order_id=order_id, user=request.user).first()
+
+    if not order:
+        return redirect('404')
+
+    context = {
+        'order': order,
+    }
+    return render(request, 'web/user_order_details.html', context=context)
+
+
+def user_ratings(request):
+    return render(request, 'web/user_ratings.html')
 
 
 @never_cache
@@ -254,8 +463,8 @@ def login(request):
                     if user:
                         user.is_verified = True
                         user.save()
-                        authlogin(request, user)
-                        return redirect('index')
+                        messages.success(request, "Your email verified successfully. Please login again.")
+                        return redirect('login')
                 else:
                     context.update({'stage': 'otp', 'email': email})
                     messages.error(request, "Entered OTP is invalid or expired!")
@@ -289,31 +498,37 @@ def recover(request):
         # Resend OTP
         if resend_otp and email:
             user = User.objects.filter(username=email).first()
-
-            if user:
-                if not user.is_blocked:
-                    print("Resending OTP...")
-                    otp = str(random.randint(1000, 9999))
-                    request.session['generated_otp'] = otp
-                    request.session['otp_timestamp'] = str(datetime.datetime.now())
+            generated_timestamp = request.session.get('otp_timestamp')
+            if generated_timestamp:
+                generated_timestamp = datetime.datetime.fromisoformat(generated_timestamp)
+                if (datetime.datetime.now() - generated_timestamp).seconds < 300:
+                    messages.error(request, "Please wait while the OTP reaches your inbox. If not received within 5 minutes, click 'Resend OTP'.")
                     context.update({'stage': 'otp', 'email': email})
-                    print(otp)
-                    try:
-                        send_mail(
-                            subject="Your Keynut OTP Code",
-                            message=f"Your OTP is {otp}. It expires in 5 minutes.",
-                            from_email="teamkepe@gmail.com",  # Your email address
-                            recipient_list=[email],
-                            fail_silently=False,
-                        )
-                        messages.success(request, "A new OTP has been sent to your email.")
-                    except:
-                        messages.error(request, "Something went wrong while resending OTP. Please try again.")
                 else:
-                    messages.error(request, "Your account has been blocked by administrator. Please contact support@keynut.com for further assistance.")
-            else:
-                messages.error(request, "Entered email is not registered with us!")
-                return redirect('admin_recover_password')
+                    if user:
+                        if not user.is_blocked:
+                            print("Resending OTP...")
+                            otp = str(random.randint(1000, 9999))
+                            request.session['generated_otp'] = otp
+                            request.session['otp_timestamp'] = str(datetime.datetime.now())
+                            context.update({'stage': 'otp', 'email': email})
+                            print(otp)
+                            try:
+                                send_mail(
+                                    subject="Your Keynut OTP Code",
+                                    message=f"Your OTP is {otp}. It expires in 5 minutes.",
+                                    from_email="teamkepe@gmail.com",  # Your email address
+                                    recipient_list=[email],
+                                    fail_silently=False,
+                                )
+                                messages.success(request, "A new OTP has been sent to your email.")
+                            except:
+                                messages.error(request, "Something went wrong while resending OTP. Please try again.")
+                        else:
+                            messages.error(request, "Your account has been blocked by administrator. Please contact support@keynut.com for further assistance.")
+                    else:
+                        messages.error(request, "Entered email is not registered with us!")
+                        return redirect('admin_recover_password')
         
         # Validate OTP
         elif user_entered_otp and email:
@@ -376,6 +591,7 @@ def recover(request):
                         messages.success(request, "OTP has been sent to your email.")
                     except:
                         messages.error(request, "Something went wrong while sending OTP. Please try again.")
+                        context.update({'stage': 'email', 'email': email})
                 else:
                     messages.error(request, "Your account has been blocked by administrator. Please contact support@keynut.com for further assistance.")
             else:
@@ -392,14 +608,13 @@ def register(request):
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
         email = request.POST.get('email')
-        phone = request.POST.get('phone')
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
         resend_otp = request.POST.get('resend_otp')
         user_entered_otp = request.POST.get('otp')
 
         # Validating fields
-        if first_name and last_name and email and phone and password1 and password2:
+        if first_name and last_name and email and password1 and password2:
             if not User.objects.filter(username=email):
                 if password1 == password2:
 
@@ -408,8 +623,7 @@ def register(request):
                         username = email,
                         first_name = first_name,
                         last_name = last_name,
-                        email = email,
-                        phone = phone
+                        email = email
                     )
                     user.set_password(password1)
                     user.save()
@@ -441,42 +655,59 @@ def register(request):
                         messages.error(request, "Something went wrong while sending OTP. Please click Resend OTP to send again.")
                 else:
                     messages.error(request, "Passwords does not match!")
+                    context.update({
+                        'first_name': first_name,
+                        'last_name': last_name,
+                        'email': email,
+                    })
             else:
-                messages.error(request, "This email is already registered with us! Please login.")
-                return redirect('login')
+                messages.error(request, "This email is already registered with us! Please verify email.")
+                context.update({
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'email': email,
+                })
         
         # Handling Resend OTP
         elif email and resend_otp:
-            # Validating email
-            if email == request.session['email']:
-                # Generate OTP
-                otp = str(random.randint(1000, 9999))
-                request.session['generated_otp'] = otp
-                request.session['otp_timestamp'] = str(datetime.datetime.now())
-                print(otp)
+            # Validating expiry time
+            generated_timestamp = request.session.get('otp_timestamp')
+            if generated_timestamp:
+                generated_timestamp = datetime.datetime.fromisoformat(generated_timestamp)
+                if (datetime.datetime.now() - generated_timestamp).seconds < 300:
+                    messages.error(request, "Please wait while the OTP reaches your inbox. If not received within 5 minutes, click 'Resend OTP'.")
+                    context.update({'stage': 'otp', 'email': email})
+                else:
+                    # Validating email
+                    if email == request.session['email']:
+                        # Generate OTP
+                        otp = str(random.randint(1000, 9999))
+                        request.session['generated_otp'] = otp
+                        request.session['otp_timestamp'] = str(datetime.datetime.now())
+                        print(otp)
 
-                # Update context to next stage
-                context.update({
-                    'stage': "otp",
-                    'email': email
-                })
-                
-                # Send OTP to email
-                try:
-                    send_mail(
-                        subject="Your Keynut OTP Code",
-                        message=f"Your OTP is {otp}. It expires in 5 minutes.",
-                        from_email="teamkepe@gmail.com",  # Your email address
-                        recipient_list=[email],
-                        fail_silently=False,
-                    )
-                    messages.success(request, "OTP has been sent to your email.")
-                except:
-                    messages.error(request, "Something went wrong while sending OTP. Please click Resend OTP to send again.")
-            else:
-                messages.error(request, "Something went wrong! Please try again.")
-                del request.session['email']
-                return redirect('login')
+                        # Update context to next stage
+                        context.update({
+                            'stage': "otp",
+                            'email': email
+                        })
+                        
+                        # Send OTP to email
+                        try:
+                            send_mail(
+                                subject="Your Keynut OTP Code",
+                                message=f"Your OTP is {otp}. It expires in 5 minutes.",
+                                from_email="teamkepe@gmail.com",  # Your email address
+                                recipient_list=[email],
+                                fail_silently=False,
+                            )
+                            messages.success(request, "OTP has been sent to your email.")
+                        except:
+                            messages.error(request, "Something went wrong while sending OTP. Please click Resend OTP to send again.")
+                    else:
+                        messages.error(request, "Something went wrong! Please try again.")
+                        del request.session['email']
+                        return redirect('login')
 
         # Validating OTP
         elif email and user_entered_otp:
@@ -509,4 +740,22 @@ def register(request):
                 return redirect('login')
         else:
             messages.error(request, "All fields are required!")
+            context.update({
+                'first_name': first_name,
+                'last_name': last_name,
+                'email': email,
+            })
     return render(request, 'web/register.html', context=context)
+
+
+class CustomGoogleLoginView(OAuth2LoginView):
+    adapter_class = GoogleOAuth2Adapter
+    client_class = OAuth2Client
+
+    def get(self, request, *args, **kwargs):
+        # Immediately redirect to Google without rendering a confirmation page
+        return self.get_login_redirect()
+
+
+def four_not_four(request):
+    return render(request, 'web/404.html')

@@ -19,7 +19,7 @@ def add_product(request):
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)
 
-        if form.is_valid:
+        if form.is_valid():
             product = form.save(commit=False)
 
             # Get the cropped image from hidden input (Base64 format)
@@ -39,15 +39,20 @@ def add_product(request):
             product.save()  # Save product after updating image & thumbnail
 
             selected_variants = request.POST.getlist('variants')
-            for variant in selected_variants:
-                ProductVariant.objects.get_or_create(
-                    product = product,
-                    quantity = variant
-                )
+            for variant_id in selected_variants:
+                variant = ProductVariant.objects.filter(id=variant_id).first()
+                if variant:
+                    product.variants.add(variant)
 
             return JsonResponse({
                 "success": True,
                 "message": f"Product {product.name} added successfully."
+            })
+        else:
+            return JsonResponse({
+                "error": True,
+                "message": "Form validation failed!",
+                "errors": form.errors
             })
     else:
         return JsonResponse({
@@ -64,18 +69,15 @@ def edit_product(request, pk):
             product = Product.objects.filter(pk=pk).first()
             if not product:
                 return JsonResponse({"error": True, "message": "Product not found!"}, status=404)
-
             form = ProductForm(request.POST, request.FILES, instance=product)
             if not form.is_valid():
                 return JsonResponse({
                     "error": True,
                     "message": "Form validation failed!",
                     "errors": json.loads(form.errors.as_json())  # Returns detailed form errors
-                }, status=400)
-
+                })
             updated_product = form.save(commit=False)
             cropped_image_data = request.POST.get('cropped_image_data')
-
             try:
                 if cropped_image_data:
                     # Decode the Base64 image
@@ -89,25 +91,19 @@ def edit_product(request, pk):
                     updated_product.image = image_file
             except Exception as e:
                 return JsonResponse({"error": True, "message": f"Error processing image: {str(e)}"}, status=400)
-
             updated_product.save()
-
             # Handling variants safely
             selected_variants = request.POST.getlist('variants')
 
             try:
-                existing_variants = set(ProductVariant.objects.filter(product=product).values_list('quantity', flat=True))
-                new_variants = set(map(float, selected_variants))
+                selected_variant_ids = list(map(int, request.POST.getlist('variants')))  # Convert to integers
 
-                # Delete removed variants
-                variants_to_delete = existing_variants - new_variants
-                ProductVariant.objects.filter(product=product, quantity__in=variants_to_delete).delete()
+                # Get the corresponding ProductVariant objects
+                selected_variants = ProductVariant.objects.filter(id__in=selected_variant_ids)
 
-                # Add new variants
-                variants_to_add = new_variants - existing_variants
-                ProductVariant.objects.bulk_create(
-                    [ProductVariant(product=product, quantity=variant) for variant in variants_to_add]
-                )
+                # Update product variants (removes old ones and adds only selected ones)
+                product.variants.set(selected_variants)
+
             except Exception as e:
                 return JsonResponse({"error": True, "message": f"Error updating variants: {str(e)}"}, status=400)
 
@@ -127,7 +123,7 @@ def edit_product(request, pk):
             }, status=500)
 
     product = Product.objects.filter(pk=pk).first()
-    variants = product.variants.all().values('quantity')
+    variants = product.variants.all().values('id', 'quantity')
     if product:
         return JsonResponse({
             "success": True,

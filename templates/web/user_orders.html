@@ -1,0 +1,83 @@
+{% extends "web/user_base.html" %}
+
+{% block profile_content_head %}
+My Orders
+{% endblock profile_content_head %}
+
+{% block profile_content %}
+
+<div class="wrapper">
+    
+    {% for order_item in order_items %}
+    <div class="order row p-3 d-flex gap-3 mb-3" style="box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;">
+        <div class="image col-12 col-md-2 rounded d-flex align-items-center px-0" style="width: 5rem; height: 5rem;">
+            <a class="d-block w-100" href="{% url 'product_details' order_item.product.slug %}">
+                <img class="img-fluid rounded" src="{{order_item.product.thumbnail.url}}" alt="{{order_item.product.name}}">
+            </a>
+        </div>
+        <div class="details col-12 col-md-6">
+            <h5 class="fw-bold display-9">{{order_item.product.name}} <small class="text-secondary">({{order_item.variant}} {{order_item.product.unit}})</small></h5>
+            <p class="text-secondary m-0" style="font-size: 0.95rem;">Quantity: {{order_item.quantity}}</p>
+            <p class="text-secondary m-0" style="font-size: 0.95rem;">Order placed on: {{order_item.order.order_date}}</p>
+        </div>
+        <div class="status col-12 col-md-4">
+            <p class="m-0 text-dark" style="font-size: 0.95rem;">Order ID: <span class="fw-bold">{{order_item.order.order_id}}</span></p>
+            <p class="m-0 text-secondary" style="font-size: 0.95rem;">
+                Order Status: 
+                <span class=" fw-bold
+                    {% if order_item.order.status == 'Pending' %}text-secondary{% endif %}
+                    {% if order_item.order.status == 'Confirmed' %}text-dark{% endif %}
+                    {% if order_item.order.status == 'Processing' %}text-warning{% endif %}
+                    {% if order_item.order.status == 'Shipped' %}text-primary{% endif %}
+                    {% if order_item.order.status == 'Delivered' %}text-success{% endif %}
+                    {% if order_item.order.status == 'Returned' %}text-warning{% endif %}
+                    {% if order_item.order.status == 'Refunded' %}text-danger{% endif %}
+                    {% if order_item.order.status == 'Cancelled' %}text-danger{% endif %}
+                ">
+                    {{order_item.order.status}}
+                </span>
+            </p>
+            <a href="{% url 'user_view_order' order_item.order.order_id %}" class="btn btn-outline-danger py-1 mt-2">Order Details</a>
+        </div>
+    </div>
+    {% endfor %}
+    
+</div>
+
+<!-- Pagination -->
+<nav aria-label="Page navigation" class="d-flex justify-content-between align-items-center mt-4">
+    <div class="text-muted">
+        Page <span class="fw-medium">{{ order_items.number }}</span> of <span class="fw-medium">{{ order_items.paginator.num_pages }}</span> pages
+    </div>
+    <ul class="pagination justify-content-center align-items-center mb-0">
+        {% if order_items.has_previous %}
+        <li class="page-item">
+            <a class="page-link pagination-link" href="?page={{ order_items.previous_page_number }}" tabindex="-1" style="cursor: pointer;">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link" tabindex="-1">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+        <li class="page-item active"><a class="page-link">{{ order_items.number }}</a></li>
+        {% if order_items.has_next %}
+        <li class="page-item">
+            <a class="page-link pagination-link" href="?page={{ order_items.next_page_number }}" style="cursor: pointer;">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+
+{% endblock profile_content %}

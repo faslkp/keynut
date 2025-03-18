@@ -112,7 +112,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     variantsInputs.forEach(input => {
                         data.variants.forEach(variant => {
                             // Convert both values to the same type for comparison
-                            if (parseFloat(input.value) === parseFloat(variant.quantity)) {
+                            if (parseInt(input.value) === parseInt(variant.id)) {
                                 input.checked = true;
                             }
                         });

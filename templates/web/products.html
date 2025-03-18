@@ -13,6 +13,13 @@
 
 {% block content %}
 
+<!-- Messages -->
+<div class="messages container col-12 mt-5 mb-2 text-center">
+    {% for message in messages %}
+    <p class="{% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+    {% endfor %}
+</div>
+
 <!-- Content Section -->
 <section class="container-fluid py-5">
     <div class="row">

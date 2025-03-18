@@ -1,0 +1,93 @@
+{% extends "web/user_base.html" %}
+
+{% block profile_content_head %}
+Order Details
+{% endblock profile_content_head %}
+
+{% block profile_content %}
+
+<div class="wrapper">
+
+    <div class="order-details-page p-3 mb-5" style="box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;">
+        <p class="">Order ID: {{order.order_id}}</p>
+        <p class="">Order Date: {{order.order_date}}</p>
+        <p class="">Order Total: ₹{{order.total_amount|floatformat:2}}</p>
+        <p class="mb-0">Order Status: <span class="fw-bold">{{order.status}}</span></p>
+    </div>
+    <div class="">
+        <p class="text-dark fw-bold">Order Items:</p>
+    </div>
+
+    <div class="table-responsive mb-5">
+        <table class="table table-hover table-striped mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="py-3 px-3 border-0">Product</th>
+                    <th class="py-3 px-3 border-0">Price</th>
+                    <th class="py-3 px-3 border-0">Variant</th>
+                    <th class="py-3 px-3 border-0">Quantity</th>
+                    <th class="py-3 px-3 border-0">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+                {% for order_item in order.order_items.all %}
+                <tr class="align-middle">
+                    <td class="py-3 px-3 row align-items-center">
+                        <div class="image col-12 col-md-4 rounded d-flex align-items-center px-0" style="width: 5rem; height: 5rem;">
+                            <a class="d-block w-100" href="{% url 'product_details' order_item.product.slug %}">
+                                <img class="img-fluid rounded" src="{{order_item.product.thumbnail.url}}" alt="{{order_item.product.name}}">
+                            </a>
+                        </div>
+                        <span class="col-md-8 fw-bold">{{ order_item.product.name }}</span>
+                    </td>
+                    <td class="py-3 px-3">₹{{ order_item.product.price }}</td>
+                    <td class="py-3 px-3">{{ order_item.variant }} {{order_item.product.unit}}</td>
+                    <td class="py-3 px-3">{{ order_item.quantity }}</td>
+                    <td class="py-3 px-3">₹{{ order_item.total_amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row">
+        <div class="delivery-address col-12 col-md-6">
+            <p class="fw-bold">Delivery Address:</p>
+            <p>
+                {{order.delivery_address.name}}, {{order.delivery_address.address_line_1}}, 
+                {% if order.delivery_address.address_line_2 %}{{order.delivery_address.address_line_2}}, {% endif %}
+                {{order.delivery_address.city}}, {{order.delivery_address.state}}, 
+                {{order.delivery_address.pin}}, Ph: {{order.delivery_address.phone}}
+            </p>
+        </div>
+        <div class="delivery-address col-12 col-md-6">
+            <div class="border border-dark border-1 rounded p-3">
+                <p class="fw-bold">Order Summary</p>
+                <p class="d-flex justify-content-between m-0">
+                    <span>Subtotal</span>
+                    <span>₹{{order.total_amount|floatformat:2}}</span>
+                </p>
+                <hr class="my-2">
+                <p class="d-flex justify-content-between m-0">
+                    <span>Shipping</span>
+                    <span>₹0</span>
+                </p>
+                <hr class="my-2">
+                <p class="d-flex justify-content-between m-0">
+                    <span>Discount/Promotion</span>
+                    <span>-₹0</span>
+                </p>
+                <hr class="my-2">
+                <p class="d-flex justify-content-between m-0 fw-bold">
+                    <span>Total</span>
+                    <span>₹{{order.total_amount|floatformat:2}}</span>
+                </p>
+                <hr class="my-2">
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+{% endblock profile_content %}

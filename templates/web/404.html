@@ -1,0 +1,36 @@
+{% extends "web/base.html" %}
+
+{% block title %}Home{% endblock title %}
+
+{% block stylesheet %}
+
+{% endblock stylesheet %}
+
+{% block header-nav %}
+{% include "web/includes/header-nav.html" %}
+{% endblock%}
+
+{% block content %}
+
+<!-- Messages -->
+<div class="messages container col-12 mt-5 mb-2 text-center">
+    {% for message in messages %}
+    <p class="{% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+    {% endfor %}
+</div>
+
+<!-- Content Section -->
+<section class="container py-5 my-5">
+    <p class="display-1 text-center">404</p>
+    <p class="fs-4 text-center">Uh-oh! Either this page doesn’t exist, or you don’t have the right permissions to view it. Double-check the link, or visit our homepage. Need help? Contact our support team!</p>
+</section>
+
+{% endblock content %}
+
+{% block footer %}
+{% include "web/includes/footer.html" %}
+{% endblock %}
+
+{% block script %}
+
+{% endblock script %}

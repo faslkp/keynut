@@ -73,7 +73,7 @@
                         {% for category in categories %}
                         <tr>
                             <td class="py-3 px-3 w-75">{{ category.name }}</td>
-                            <td class="py-3 px-3" id="active-status-{{category.id}}">{% if category.is_deleted %}Deleted{% else %}Active{% endif %}</td>
+                            <td class="py-3 px-3" id="active-status-{{category.id}}">{% if category.is_deleted %}Disabled{% else %}Active{% endif %}</td>
                             <td class="py-3 px-3">
                                 <div class="d-flex gap-2">
                                     <a href="" data-category-id="{{category.id}}" data-category-name="{{category.name}}" class="edit-category btn btn-sm btn-link text-primary p-0" title="Edit" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
@@ -84,8 +84,8 @@
                                         <i class="bi bi-arrow-counterclockwise"></i>
                                     </a>
                                     {% else %}
-                                    <a href="" data-category-id="{{category.id}}" data-category-name="{{category.name}}" data-is-deleted="{{category.is_deleted}}" class="delete-category btn btn-sm btn-link text-danger p-0" title="Delete" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                                        <i class="bi bi-trash"></i>
+                                    <a href="" data-category-id="{{category.id}}" data-category-name="{{category.name}}" data-is-deleted="{{category.is_deleted}}" class="delete-category btn btn-sm btn-link text-danger p-0" title="Disable" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                        <i class="bi bi-slash-circle"></i>
                                     </a>
                                     {% endif %}
                                 </div>

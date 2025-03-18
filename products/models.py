@@ -5,6 +5,7 @@ from django.db import models
 from django.utils.text import slugify
 from django.core.files.base import ContentFile
 
+from decimal import Decimal
 from PIL import Image
 from io import BytesIO
 
@@ -14,6 +15,7 @@ class Category(models.Model):
     slug = models.SlugField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
+    is_disabled = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
@@ -29,7 +31,30 @@ class Category(models.Model):
     
     class Meta:
         verbose_name_plural = "Categories"
+
+
+class ProductVariant(models.Model):
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, unique=True)
+
+    def __str__(self):
+        return f"{self.quantity}"
     
+    def get_display_quantity(self, unit):
+        unit_conversion = {
+            'kg': ('g', 1000),
+            'm': ('cm', 100),
+            'l': ('ml', 1000),
+        }
+        
+        if unit in unit_conversion and self.quantity < 1:
+            smaller_unit, factor = unit_conversion[unit]
+            converted_quantity = self.quantity * factor
+            return f"{converted_quantity.quantize(Decimal('1')) if converted_quantity == converted_quantity.to_integral() else converted_quantity.normalize()} {smaller_unit}"
+
+
+        return f"{self.quantity.quantize(Decimal('1')) if self.quantity == self.quantity.to_integral() else self.quantity.normalize()} {unit}"
+
+
 
 class Product(models.Model):
     name = models.CharField(max_length=50)
@@ -37,12 +62,13 @@ class Product(models.Model):
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='products', related_query_name='variant')
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='products', related_query_name='product')
     image = models.ImageField(upload_to='products/cropped/')
     # Stored thumbnail (auto generated when saving)
     thumbnail = models.ImageField(upload_to='products/thumbnails/', blank=True, null=True)
     unit = models.CharField(max_length=15)
     stock = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    variants = models.ManyToManyField(ProductVariant)
     relevance = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
@@ -103,25 +129,4 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
-
-VARIANT_CHOICES = [
-    (0.1, "0.1 unit"),
-    (0.2, "0.2 unit"),
-    (0.25, "0.25 unit"),
-    (0.5, "0.5 unit"),
-    (0.75, "0.75 unit"),
-    (1, "1 unit"),
-    (1.5, "1.5 unit"),
-    (2, "2 unit"),
-    (3, "3 unit"),
-    (5, "5 unit"),
-]
-
-
-class ProductVariant(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants', related_query_name='variant')
-    quantity = models.DecimalField(max_digits=10, decimal_places=2, choices=VARIANT_CHOICES)
-
-    def __str__(self):
-        return f"{self.quantity} {self.product.unit} of {self.product.name}"
 

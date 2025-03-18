@@ -1,0 +1,95 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Manage Account{% endblock title %}
+
+{% block stylesheet %}
+<link rel="stylesheet" href="{% static 'css/user_profile.css' %}">
+{% endblock stylesheet %}
+
+{% block header-nav %}
+{% include "web/includes/header-nav.html" %}
+{% endblock %}
+
+{% block content %}
+
+<!-- Messages -->
+<div class="messages container col-12 mt-5 mb-2 text-center">
+    {% for message in messages %}
+    <p class="{% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+    {% endfor %}
+</div>
+
+<!-- Breadcrupb -->
+<nav class="container mt-4 mb-5" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">My Account</li>
+    </ol>
+</nav>
+
+<!-- Messages -->
+<div class="messages col-12 my-0 text-center">
+    {% for message in messages %}
+    <p class="m-0 {% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+    {% endfor %}
+</div>
+
+<div class="container">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <nav class="side-bar">
+                <a class="sidebar-link" href="{% url 'user_profile' %}">My Profile</a>
+                <a class="sidebar-link" href="{% url 'user_change_password' %}">Change Password</a>
+                <a class="sidebar-link" href="{% url 'user_address' %}">Address Book</a>
+                <a class="sidebar-link" href="{% url 'user_orders' %}">My Orders</a>
+                <a class="sidebar-link" href="{% url 'user_ratings' %}">My Ratings</a>
+                <a class="sidebar-link" href="{% url 'wishlist' %}">My Wishlist</a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <div class="d-flex justify-content-between mb-4">
+                <h2 class="text-danger fw-bold fs-4">
+                    {% block profile_content_head %}{% endblock profile_content_head %}
+                </h2>
+                {% block action_button %}{% endblock action_button %}
+            </div>
+            {% block profile_content %}{% endblock profile_content %}
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block footer %}
+{% include "web/includes/footer.html" %}
+{% endblock %}
+
+{% block script %}
+<script>
+    // Script for mark active sidebar link
+    const navLinks = document.querySelectorAll('.sidebar-link')
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e){
+            // Remove active class from all links
+            navLinks.forEach(item => {
+                item.classList.remove('active');
+            })
+
+            // Add active class to the clicked item
+            this.classList.add('active');
+        });
+    });
+
+    // Check the active link and apply it on page load
+    const currentUrl = window.location.pathname
+    navLinks.forEach(link => {
+        if (link.getAttribute('href') === currentUrl) {
+            link.classList.add('active');
+        }
+    });
+</script>
+{% endblock script %}

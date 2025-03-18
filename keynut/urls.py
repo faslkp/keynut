@@ -7,6 +7,7 @@ urlpatterns = [
     path('superadmin/', admin.site.urls),
     path('admin/', include('adminpanel.urls')),
     path('', include('web.urls')),
+    path('accounts/', include('allauth.urls')),
 ]
 
 if settings.DEBUG:

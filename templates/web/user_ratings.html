@@ -1,0 +1,27 @@
+{% extends "web/user_base.html" %}
+
+{% block profile_content_head %}
+My Ratings
+{% endblock profile_content_head %}
+
+{% block profile_content %}
+
+<div class="wrapper">
+    <div class="row p-3 d-flex align-items-center gap-3 mb-3" style="box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;">
+        <div class="col-3 col-md-1">
+            <a href="">
+                <img src="" alt="">
+            </a>
+        </div>
+        <div class="col-9 col-md-8">
+            <h5 class="fw-bold m-0">Snickers</h5>
+        </div>
+        <div class="col-12 col-md-2">
+            <div class="star-rating fs-4 m-0">
+                ★★★★☆
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock profile_content %}

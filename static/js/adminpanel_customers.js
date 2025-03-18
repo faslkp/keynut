@@ -66,7 +66,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Construct URL
             const url = `/admin/customers/${userId}/edit/`
-
+            
             // Fetch user data
             fetch(url, {
                 method: "GET",
@@ -89,11 +89,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 document.getElementById('id_first_name').value = data.first_name
                 document.getElementById('id_last_name').value = data.last_name
                 document.getElementById('id_email').value = data.email
-                document.getElementById('id_phone').value = data.phone
 
                 // Re enable Save button
                 newButton.disabled = false;
                 newButton.innerText = "Save"
+                
 
                 // Attaching new event listener to the Save button
                 newButton.addEventListener('click', function (event) {
@@ -117,22 +117,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     let lastName = document.getElementById("id_last_name").value.trim();
                     let email = document.getElementById("id_email").value.trim();
                     let password = document.getElementById("id_password").value.trim();
-                    let phone = document.getElementById("id_phone").value.trim();
                     let csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
 
                     // Validation checks
-                    if (!firstName || !lastName || !email || !phone) {
+                    if (!firstName || !lastName || !email) {
                         alert("All fields other than password are required!");
                         return;
                     }
 
                     if (!validateEmail(email)) {
                         alert("Enter a valid email address!");
-                        return;
-                    }
-
-                    if (!validatePhone(phone)) {
-                        alert("Enter a valid phone number!");
                         return;
                     }
 
@@ -146,10 +140,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     formData.append("last_name", lastName);
                     formData.append("email", email);
                     formData.append("password", password);
-                    formData.append("phone", phone);
                     formData.append("csrfmiddlewaretoken", csrfToken);
 
-
+                    console.log("eror after 145");
+                    
                     // Ajax request to edit customer details
                     fetch(url, {
                         method: "POST",
@@ -324,22 +318,16 @@ document.addEventListener("DOMContentLoaded", function () {
         let lastName = document.getElementById("id_last_name").value.trim();
         let email = document.getElementById("id_email").value.trim();
         let password = document.getElementById("id_password").value.trim();
-        let phone = document.getElementById("id_phone").value.trim();
         let csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
 
         // Validation checks
-        if (!firstName || !lastName || !email || !password || !phone) {
+        if (!firstName || !lastName || !email || !password) {
             alert("All fields are required!");
             return;
         }
 
         if (!validateEmail(email)) {
             alert("Enter a valid email address!");
-            return;
-        }
-
-        if (!validatePhone(phone)) {
-            alert("Enter a valid phone number!");
             return;
         }
 
@@ -353,7 +341,6 @@ document.addEventListener("DOMContentLoaded", function () {
         formData.append("last_name", lastName);
         formData.append("email", email);
         formData.append("password", password);
-        formData.append("phone", phone);
         formData.append("csrfmiddlewaretoken", csrfToken);
 
         // AJAX request
@@ -405,11 +392,5 @@ function getCookie(name) {
 function validateEmail(email) {
     let re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
-}
-
-// Phone validation function (only numbers and 10-15 characters)
-function validatePhone(phone) {
-    let re = /^[0-9]{10,15}$/;
-    return re.test(phone);
 }
 
