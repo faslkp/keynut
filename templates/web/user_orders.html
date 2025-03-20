@@ -9,7 +9,7 @@ My Orders
 <div class="wrapper">
     
     {% for order_item in order_items %}
-    <div class="order row p-3 d-flex gap-3 mb-3" style="box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;">
+    <div class="order row p-3 d-flex gap-3 mb-3{% if order_item.retry_payment %} border border-danger{% endif %}" style="box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;">
         <div class="image col-12 col-md-2 rounded d-flex align-items-center px-0" style="width: 5rem; height: 5rem;">
             <a class="d-block w-100" href="{% url 'product_details' order_item.product.slug %}">
                 <img class="img-fluid rounded" src="{{order_item.product.thumbnail.url}}" alt="{{order_item.product.name}}">
@@ -37,7 +37,16 @@ My Orders
                     {{order_item.order.status}}
                 </span>
             </p>
-            <a href="{% url 'user_view_order' order_item.order.order_id %}" class="btn btn-outline-danger py-1 mt-2">Order Details</a>
+            <div class="d-flex gap-2 mt-2">
+                {% if order_item.retry_payment %}
+                <form action="{% url 'checkout_retry' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="order_id" value="{{order_item.order.order_id}}">
+                    <button type="submit" class="btn btn-danger">Retry Payment</button>
+                </form>
+                {% endif %}
+                <a href="{% url 'user_view_order' order_item.order.order_id %}" class="btn btn-outline-danger py-1">Order Details</a>
+            </div>
         </div>
     </div>
     {% endfor %}

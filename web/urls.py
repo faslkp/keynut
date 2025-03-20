@@ -2,7 +2,7 @@ from django.urls import path
 
 from . import views
 from customers.views import cart, add_to_cart, remove_from_cart, wishlist
-from orders.views import checkout
+from orders.views import checkout, cancel_order, razorpay_callback, checkout_retry
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -14,6 +14,12 @@ urlpatterns = [
     path('cart/add/', add_to_cart, name='add_to_cart'),
     path('cart/<int:pk>/remove/', remove_from_cart, name='remove_from_cart'),
     path('checkout/', checkout, name='checkout'),
+    path('orders/', views.user_orders, name='user_orders'),
+    path('orders/<str:order_id>/view/', views.user_view_order, name='user_view_order'),
+    path('orders/<str:order_id>/invoice/', views.user_order_invoice, name='user_order_invoice'),
+    path('orders/<str:order_id>/cancel/', cancel_order, name='user_cancel_order'),
+    path('razorpay/callback/', razorpay_callback, name='razorpay_callback'),
+    path('checkout/retry/', checkout_retry, name='checkout_retry'),
     path('login/', views.login, name='login'),
     path('google-login/', views.CustomGoogleLoginView.as_view(), name='gl_login'),
     path('logout/', views.logout, name='logout'),
@@ -26,8 +32,6 @@ urlpatterns = [
     path('profile/address/<int:pk>/edit/', views.user_edit_address, name='user_edit_address'),
     path('profile/address/<int:pk>/set-default/', views.user_set_address_default, name='user_set_address_default'),
     path('profile/address/<int:pk>/delete/', views.user_delete_address, name='user_delete_address'),
-    path('profile/orders/', views.user_orders, name='user_orders'),
-    path('profile/orders/<str:order_id>/view/', views.user_view_order, name='user_view_order'),
     path('profile/ratings/', views.user_ratings, name='user_ratings'),
     path('404/', views.four_not_four, name='404'),
 ]

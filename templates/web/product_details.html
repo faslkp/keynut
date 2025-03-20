@@ -47,16 +47,16 @@
                 <span class="text-warning">★★★★☆</span> <span class="text-muted">(50 Reviews)</span>
             </div>
             <div class="d-flex align-items-center mb-3">
-                <p class="fw-bold mb-0" style="font-size: 1.5rem;">₹{{product.discount_price}}</p>
+                <p class="fw-bold mb-0" style="font-size: 1.5rem;">₹{{product.discount_price|floatformat:2}}</p>
                 {% if product.price != product.discount_price %}
-                <span class="text-muted text-decoration-line-through ms-4" style="font-size: 1.25rem;">₹{{product.price}}</span>
+                <span class="text-muted text-decoration-line-through ms-4" style="font-size: 1.25rem;">₹{{product.price|floatformat:2}}</span>
                 {% endif %}
             </div>
             <p class="mb-3" style="font-size: 1rem;">{{product.description}}</p>
             <hr>
     
             <!-- Add to cart form -->
-            {% if is_in_stock %}
+            {% if product.is_in_stock %}
             <form action="{% url 'add_to_cart' %}" method="post">
                 {% csrf_token %}
                 <div class="d-flex gap-5">
@@ -247,35 +247,7 @@
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
         <!-- Related Product 1 -->
         {% for product in related_products %}
-        <div class="col">
-            <div class="card product-card h-100 shadow-sm position-relative">
-                {% if product.discount > 0 %}
-                <div class="badge bg-danger text-white position-absolute top-0 start-0 m-2">{{product.discount|floatformat:0}}% OFF</div>
-                {% endif %}
-                <a href="#" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
-                    <i class="bi bi-heart wish-badge-icon"></i>
-                </a>
-                <div class="image-wrapper">
-                    <a href="{% url 'product_details' product.slug %}">
-                        <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
-                    </a>
-                    {% if product.stock > 0 %}
-                    <button class="btn add-to-cart">Add to Cart</button>
-                    {% else %}
-                    <button class="btn out-of-stock">Out of Stock</button>
-                    {% endif %}
-                </div>
-                <a class="text-decoration-none text-dark" href="{% url 'product_details' product.slug %}">
-                <div class="card-body text-center">
-                    <h5 class="card-title">{{product.name}}</h5>
-                    <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
-                    <div class="star-rating">
-                        ★★★★☆ (12)
-                    </div>
-                </div>
-                </a>
-            </div>
-        </div>
+            {% include 'web/includes/product_card.html' %}
         {% endfor %}
     </div>
 </section>

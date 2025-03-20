@@ -1,0 +1,60 @@
+{% extends 'web/base.html' %}
+{% load static %}
+{% block content %}
+<form method="POST">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+    var options = {
+        key: "{{razorpay_key}}",
+        amount: "{{order.total_amount}}",
+        currency: "INR",
+        name: "Keynut",
+        description: "Test Transaction",
+        image: "{% static 'images/keynut.png' %}",
+        order_id: "{{provider_id}}",
+        callback_url: "{{callback_url}}",
+        redirect: true,
+        prefill: {
+            "name": "{{request.user.first_name}} {{request.user.last_name}}",
+            "email": "{{request.user.email}}",
+            "contact": "{{request.user.phone}}"
+        },
+        notes: {
+            "address": "Razorpay Corporate Office"
+        },
+        theme: {
+            "color": "#dc3545"
+        },
+        modal: {
+            ondismiss: function () {
+                console.log("User closed Razorpay popup.");
+                window.location.href = "{{callback_url}}";
+
+                // Setting up a form to submit empty post request
+                var form = document.createElement("form");
+                form.method = "POST";
+                form.action = "{{callback_url}}";
+
+                // Adding `error[metadata]` as JSON
+                var errorMetadata = document.createElement("input");
+                errorMetadata.type = "hidden";
+                errorMetadata.name = "error[metadata]";
+                errorMetadata.value = JSON.stringify({
+                    "payment_id": "null",
+                    "order_id": "{{provider_id}}"
+                });
+                form.appendChild(errorMetadata);
+
+                // Append form to body and submit
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    };
+
+    var rzp1 = new Razorpay(options);
+    rzp1.open();
+    </script>
+    <input type="hidden" custom="Hidden Element" name="hidden">
+</form>
+{% endblock %}

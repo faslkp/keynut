@@ -67,7 +67,7 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, models.PROTECT, related_name='order_items', related_query_name='order_item')
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='order_items', related_query_name='order_item')
     product = models.ForeignKey(Product, models.PROTECT)
     variant = models.DecimalField(max_digits=10, decimal_places=2)
     price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -79,3 +79,28 @@ class OrderItem(models.Model):
     @property
     def total_amount(self):
         return self.variant * self.quantity * self.price
+
+
+class Payment(models.Model):
+    PAYMENT_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Initiated', 'Initiated'),
+        ('Processing', 'Processing'),
+        ('Success', 'Success'),
+        ('Failed', 'Failed')
+    ]
+    PAYMENT_METHODS = [
+        ('cash-on-delivery', 'Cash on Delivery'),
+        ('razorpay', 'RazorPay'),
+        ('wallet', 'Wallet')
+    ]
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='payments', related_query_name='payment')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    payment_date = models.DateTimeField(auto_now_add=True)
+    payment_method = models.CharField(max_length=50, choices=PAYMENT_METHODS)
+    payment_status = models.CharField(max_length=50, choices=PAYMENT_CHOICES, default='Pending')
+    transaction_id = models.CharField(max_length=50, blank=True)
+    payment_provider_order_id = models.CharField(max_length=100, blank=True)
+
+    def __str__(self):
+        return f"₹{self.amount} | Order ID: {self.order.order_id} | Via: {self.payment_method}"

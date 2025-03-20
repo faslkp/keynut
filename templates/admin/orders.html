@@ -22,20 +22,50 @@
                 <ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="?sortby=-order_date">Date (Newest)</a></li>
                     <li><a class="dropdown-item" href="?sortby=order_date">Date (Oldest)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=-order_total_amount">Amount (Highest)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=order_total_amount">Amount (Lowest)</a></li>
                 </ul>
             </div>
             
             <div class="dropdown">
                 <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-funnel-fill me-1"></i>
-                    <span>Filter</span>
+                    <span>Order Status</span>
                     <i class="bi bi-chevron-down ms-2"></i>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="?filter=">All Orders</a></li>
+                    <li><a class="dropdown-item" href="?order-status=">All</a></li>
                     {% for choice in order_status %}
-                    <li><a class="dropdown-item" href="?filter={{choice.0}}">{{choice.1}} Orders</a></li>
+                    <li><a class="dropdown-item" href="?order-status={{choice.0}}">{{choice.1}}</a></li>
                     {% endfor %}
+                </ul>
+            </div>
+
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-funnel-fill me-1"></i>
+                    <span>Payment</span>
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?pay-status=">All</a></li>
+                    <li><a class="dropdown-item" href="?pay-status=Success">Success</a></li>
+                    <li><a class="dropdown-item" href="?pay-status=Failed">Failed</a></li>
+                    <li><a class="dropdown-item" href="?pay-status=Pending">Pending</a></li>
+                </ul>
+            </div>
+
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-funnel-fill me-1"></i>
+                    <span>Payment Method</span>
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?pay-method=">All</a></li>
+                    <li><a class="dropdown-item" href="?pay-method=razorpay">RazorPay</a></li>
+                    <li><a class="dropdown-item" href="?pay-method=cash-on-delivery">Cash on Delivery</a></li>
+                    <li><a class="dropdown-item" href="?pay-method=wallet">Wallet</a></li>
                 </ul>
             </div>
 
@@ -64,15 +94,15 @@
                             <th class="py-3 px-3 border-0">Order ID</th>
                             <th class="py-3 px-3 border-0">User</th>
                             <th class="py-3 px-3 border-0">Order Date</th>
-                            <th class="py-3 px-3 border-0">Total Amount</th>
-                            <th class="py-3 px-3 border-0">Status</th>
-                            <th class="py-3 px-3 border-0">Update Status</th>
+                            <th class="py-3 px-3 border-0">Amount</th>
+                            <th class="py-3 px-3 border-0">Payment Details</th>
+                            <th class="py-3 px-3 border-0">Order Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         
                         {% for order in orders %}
-                        <tr>
+                        <tr class="align-middle">
                             <td class="py-3 px-3">
                                 <a class="btn-view-order text-decoration-none text-primary" href="#" 
                                     data-order-id="{{order.order_id}}"
@@ -80,25 +110,37 @@
                                     {{ order.order_id }}
                                 </a>
                             </td>
-                            <td class="py-3 px-3">{{ order.user.first_name }} {{ order.user.last_name }}</td>
+                            <td class="py-3 px-3">{{ order.user.first_name }}</td>
                             <td class="py-3 px-3">{{ order.order_date }}</td>
-                            <td class="py-3 px-3">₹{{ order.total_amount|floatformat:2 }}</td>
+                            <td class="py-3 px-3">₹{{ order.order_total_amount|floatformat:2 }}</td>
                             <td class="py-3 px-3">
-                                <select class="form-select status-dropdown" id="status-{{ order.id }}">
-                                    <option value="" selected disabled>{{ order.status }}</option>
-                                    {% for status in status_choices %}
-                                    {% if status.0 != order.status %}
-                                        <option value="{{ status.0 }}">
-                                            {{ status.1 }}
-                                        </option>
+                                {% for key, value in payment_methods.items %}
+                                    {% if key == order.payment_method %}
+                                        {{ value }}
                                     {% endif %}
-                                    {% endfor %}
-                                </select>
+                                {% endfor %}
+                                <br>
+                                Status: 
+                                <span class="
+                                    {% if order.payment_status == 'Success' %}text-success{% else %}text-danger{% endif %}
+                                ">{{ order.payment_status }}</span>
                             </td>
                             <td class="py-3 px-3">
-                                <button class="update-status-btn btn btn-outline-danger p-1" data-order-id="{{ order.id }}">
-                                    Update
-                                </button>
+                                <div class=" d-flex gap-1">
+                                    <select class="form-select status-dropdown" id="status-{{ order.id }}">
+                                        <option value="" selected disabled>{{ order.status }}</option>
+                                        {% for status in status_choices %}
+                                        {% if status.0 != order.status %}
+                                            <option value="{{ status.0 }}">
+                                                {{ status.1 }}
+                                            </option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                    <button class="update-status-btn btn btn-outline-danger p-1" data-order-id="{{ order.id }}">
+                                        Update
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}

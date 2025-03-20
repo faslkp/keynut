@@ -56,7 +56,7 @@ class CartItem(models.Model):
 
     def total_price(self):
         if self.variant.quantity <= self.product.stock:
-            return self.product.price * self.variant.quantity * self.quantity  # Corrected pricing logic
+            return self.product.discount_price * self.variant.quantity * self.quantity  # Corrected pricing logic
         else:
             return 0
 

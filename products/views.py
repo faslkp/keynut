@@ -49,6 +49,7 @@ def add_product(request):
                 "message": f"Product {product.name} added successfully."
             })
         else:
+            print(form.errors)
             return JsonResponse({
                 "error": True,
                 "message": "Form validation failed!",

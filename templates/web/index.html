@@ -64,35 +64,7 @@
         <div class="row row-cols-1 row-cols-md-4 g-4">
             
             {% for product in flash_sales %}
-            <div class="col">
-                <div class="card product-card h-100 shadow-sm position-relative">
-                    {% if product.discount > 0 %}
-                    <div class="badge bg-danger text-white position-absolute top-0 start-0 m-2">{{product.discount|floatformat:0}}% OFF</div>
-                    {% endif %}
-                    <a href="#" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
-                        <i class="bi bi-heart wish-badge-icon"></i>
-                    </a>
-                    <div class="image-wrapper">
-                        <a href="{% url 'product_details' product.slug %}">
-                            <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
-                        </a>
-                        {% if product.stock > 0 %}
-                        <button class="btn add-to-cart">Add to Cart</button>
-                        {% else %}
-                        <button class="btn out-of-stock">Out of Stock</button>
-                        {% endif %}
-                    </div>
-                    <a class="text-decoration-none text-dark" href="{% url 'product_details' product.slug %}">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">{{product.name}}</h5>
-                        <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
-                        <div class="star-rating">
-                            ★★★★☆ (12)
-                        </div>
-                    </div>
-                    </a>
-                </div>
-            </div>
+                {% include 'web/includes/product_card.html' %}
             {% endfor %}
             
         </div>
@@ -109,35 +81,7 @@
         <div class="row row-cols-1 row-cols-md-4 g-4">
             
             {% for product in best_selling %}
-            <div class="col">
-                <div class="card product-card h-100 shadow-sm position-relative">
-                    {% if product.discount > 0 %}
-                    <div class="badge bg-danger text-white position-absolute top-0 start-0 m-2">{{product.discount|floatformat:0}}% OFF</div>
-                    {% endif %}
-                    <a href="#" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
-                        <i class="bi bi-heart wish-badge-icon"></i>
-                    </a>
-                    <div class="image-wrapper">
-                        <a href="{% url 'product_details' product.slug %}">
-                            <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
-                        </a>
-                        {% if product.stock > 0 %}
-                        <button class="btn add-to-cart">Add to Cart</button>
-                        {% else %}
-                        <button class="btn out-of-stock">Out of Stock</button>
-                        {% endif %}
-                    </div>
-                    <a class="text-decoration-none text-dark" href="{% url 'product_details' product.slug %}">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">{{product.name}}</h5>
-                        <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
-                        <div class="star-rating">
-                            ★★★★☆ (12)
-                        </div>
-                    </div>
-                    </a>
-                </div>
-            </div>
+                {% include 'web/includes/product_card.html' %}
             {% endfor %}
 
         </div>
@@ -164,35 +108,7 @@
         <div class="row row-cols-1 row-cols-md-4 g-4">
             
             {% for product in new_arrivals %}
-            <div class="col">
-                <div class="card product-card h-100 shadow-sm position-relative">
-                    {% if product.discount > 0 %}
-                    <div class="badge bg-danger text-white position-absolute top-0 start-0 m-2">{{product.discount|floatformat:0}}% OFF</div>
-                    {% endif %}
-                    <a href="#" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
-                        <i class="bi bi-heart wish-badge-icon"></i>
-                    </a>
-                    <div class="image-wrapper">
-                        <a href="{% url 'product_details' product.slug %}">
-                            <img src="{{product.thumbnail.url}}" class="product-img" alt="Mabroom Dates">
-                        </a>
-                        {% if product.stock > 0 %}
-                        <button class="btn add-to-cart">Add to Cart</button>
-                        {% else %}
-                        <button class="btn out-of-stock">Out of Stock</button>
-                        {% endif %}
-                    </div>
-                    <a class="text-decoration-none text-dark" href="{% url 'product_details' product.slug %}">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">{{product.name}}</h5>
-                        <p class="card-text">₹{{product.discount_price}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price}}</del></span>{% endif %}</p>
-                        <div class="star-rating">
-                            ★★★★☆ (12)
-                        </div>
-                    </div>
-                    </a>
-                </div>
-            </div>
+                {% include 'web/includes/product_card.html' %}
             {% endfor %}
 
         </div>

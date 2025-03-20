@@ -1,5 +1,5 @@
-import random
 import os
+import uuid
 
 from django.db import models
 from django.utils.text import slugify
@@ -22,7 +22,7 @@ class Category(models.Model):
         if not self.slug:
             slug = slugify(self.name)
             while Category.objects.filter(slug=slug).exists():
-                slug = f"{slug}-{random.randint(1000,9999)}"
+                slug = f"{slug}-{uuid.uuid4().hex[:6]}"
             self.slug = slug
         super().save(*args, **kwargs)
 
@@ -75,11 +75,20 @@ class Product(models.Model):
     is_listed = models.BooleanField(default=True)
     is_deleted = models.BooleanField(default=False)
 
+    @property
+    def discount_price(self):
+        return self.price - (self.price * (self.discount/100))
+    
+    @property
+    def is_in_stock(self):
+        lowest_variant = self.variants.order_by('quantity').first()
+        return True if lowest_variant and self.stock >= lowest_variant.quantity else False
+
     def save(self, *args, **kwargs):
         if not self.slug:
             slug = slugify(self.name)
             while Product.objects.filter(slug=slug).exists():
-                slug = f"{slug}-{random.randint(1000, 9999)}"
+                slug = f"{slug}-{uuid.uuid4().hex[:6]}"
             self.slug = slug
 
         # Check if this is an existing object and if image changed

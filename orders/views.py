@@ -1,15 +1,24 @@
 import json
+
 from django.shortcuts import render, redirect
 from django.db import transaction
 from django.contrib import messages
 from django.db.models import Min
 from django.http import JsonResponse
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required, user_passes_test
+
+import razorpay
 
 from customers.models import Address, Cart, CartItem
 from products.models import Product
-from . models import Order, OrderItem, OrderAddress
+from . models import Order, OrderItem, OrderAddress, Payment
+from . services import create_razorpay_order, verify_razorpay_signature
 
 
+@login_required(login_url='404')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def checkout(request):
     context = {}
     if request.method == 'POST':
@@ -49,7 +58,7 @@ def checkout(request):
 
         if not address_id:
             messages.error(request, "Add a delivery address before proceeding with checkout!")
-            return redirect('cart')
+            return redirect('checkout')
         
         if address_id == 'new-address':
             name = request.POST.get('name')
@@ -106,7 +115,15 @@ def checkout(request):
         # if existing address is selected
         else:
             selected_address = Address.objects.filter(pk=address_id).first()
-    
+
+        # Payment method
+        payment_method = request.POST.get('payment-method')
+
+        if not payment_method:
+            messages.error(request, "Select a payment method before proceeding with checkout!")
+            return redirect('checkout')
+        
+        
         with transaction.atomic(): # Ensures atomicity
             
             # Create order address
@@ -138,7 +155,7 @@ def checkout(request):
             # Creating order instance
             order = Order.objects.create(
                 user = request.user,
-                delivery_address = order_address
+                delivery_address = order_address,
             )
 
             # Creating order items in bulk
@@ -147,7 +164,7 @@ def checkout(request):
                     order = order,
                     product = item.product,
                     variant = item.variant.quantity,
-                    price = item.product.price,
+                    price = item.product.discount_price,
                     quantity = item.quantity
                 )
                 for item in cart_items
@@ -167,7 +184,36 @@ def checkout(request):
             # Clear cart
             cart_items.delete()
 
-        return render(request, 'web/order_placed.html')
+        # Creating payment data
+        payment = Payment.objects.create(
+            order=order,
+            amount=order.total_amount,
+            payment_method=payment_method
+        )
+        
+        # Handle cash on delivery order
+        if payment_method == 'cash-on-delivery':
+            return render(request, 'web/order_placed.html')
+            
+        # Handling online payments
+        else:
+            # Creating razor pay order
+            razorpay_order = create_razorpay_order(order.total_amount)
+            
+            if razorpay_order['id']:
+                payment.payment_provider_order_id = razorpay_order['id']
+                payment.save()
+
+                context = {
+                    "callback_url": "http://" + "127.0.0.1:8000" + "/razorpay/callback/",
+                    "razorpay_key": settings.RAZORPAY_API_KEY,
+                    "order": order,
+                    'provider_id': razorpay_order['id']
+                }
+                return render(request, 'web/razorpay_payment.html', context=context)
+            else:
+                return render(request, 'web/order_failed.html', {'order': order})
+        
 
     # Handling GET request
     saved_addresses = Address.objects.filter(user=request.user)
@@ -183,6 +229,74 @@ def checkout(request):
         return redirect('cart')
 
 
+@csrf_exempt
+def razorpay_callback(request):
+    if request.method == 'GET':
+        return redirect('404')
+    
+    if "razorpay_signature" in request.POST:
+        payment_id = request.POST.get("razorpay_payment_id", "")
+        razorpay_order_id = request.POST.get("razorpay_order_id", "")
+        signature_id = request.POST.get("razorpay_signature", "")
+
+        payment_instance = Payment.objects.filter(payment_provider_order_id=razorpay_order_id).first()
+        payment_instance.transaction_id = payment_id
+        payment_instance.save()
+
+        if verify_razorpay_signature(request.POST):
+            payment_instance.payment_status = 'Success'
+            payment_instance.save()
+
+            # Update order status to 'Confirmed'
+            payment_instance.order.status = 'Confirmed'
+            payment_instance.order.save()
+
+            return render(request, 'web/order_placed.html')
+        else:
+            payment_instance.payment_status = 'Failed'
+            payment_instance.save()
+            return render(request, 'web/order_failed.html', {'order': payment_instance.order})
+    
+    else:
+        payment_id = json.loads(request.POST.get("error[metadata]")).get("payment_id")
+        razorpay_order_id = json.loads(request.POST.get("error[metadata]")).get(
+            "order_id"
+        )
+        payment_instance = Payment.objects.filter(payment_provider_order_id=razorpay_order_id).first()
+        payment_instance.transaction_id = payment_id
+        payment_instance.payment_status = 'Failed'
+        payment_instance.save()
+        return render(request, 'web/order_failed.html', {'order': payment_instance.order})
+
+
+def checkout_retry(request):
+    if request.method == 'POST':
+        order_id = request.POST.get('order_id')
+        order = Order.objects.filter(order_id=order_id, user=request.user).first()
+
+        razorpay_order = create_razorpay_order(order.total_amount)
+        if razorpay_order['id']:
+            Payment.objects.create(
+                order=order,
+                amount=order.total_amount,
+                payment_method='razorpay',
+                payment_provider_order_id=razorpay_order['id']
+            )
+            context = {
+                "callback_url": "http://" + "127.0.0.1:8000" + "/razorpay/callback/",
+                "razorpay_key": settings.RAZORPAY_API_KEY,
+                "order": order,
+                'provider_id': razorpay_order['id']
+            }
+            return render(request, 'web/razorpay_payment.html', context=context)
+        else:
+            return render(request, 'web/order_failed.html', {'order': order})
+
+    return redirect('404')
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def update_order_status(request):
     if request.method == 'POST':
         try:
@@ -215,3 +329,9 @@ def update_order_status(request):
             return JsonResponse({'error': True, "message": str(e)})
 
     return JsonResponse({'error': True, "message": "Invalid request"})
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def cancel_order(request, order_id):
+    pass

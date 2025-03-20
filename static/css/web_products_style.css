@@ -2,26 +2,6 @@
     font-size: 1rem;
 }
 
-.card {
-    transition: transform 0.3s ease;
-    border-radius: 0.5rem;
-}
-
-.card:hover {
-    transform: translateY(-0.5rem);
-}
-
-.card-title {
-    font-size: 1.25rem;
-}
-
-.card-text {
-    font-size: 1rem;
-}
-.rating {
-    font-size: 1rem;
-}
-
 @media (max-width: 768px) {
     .filter-sidebar {
         display: none;

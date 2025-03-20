@@ -1,0 +1,133 @@
+{% load tz %}
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Invoice</title>
+    <style>
+        body { 
+            font-family: Helvetica, Arial, sans-serif; 
+        }
+        .invoice-box { 
+            width: 100%; 
+        }
+        h2 { 
+            text-align: center; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 30px; 
+        }
+        th, td { 
+            padding: 4px; 
+            text-align: left; 
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-box">
+        <h3 class="text-center fw-bold mb-3">INVOICE</h2>
+        <div class="row">
+            <div class="comppany-details col-6">
+                <h1 class="fw-bold">Keynut</h1>
+            </div>
+            <div class="col-6">
+                <div class="d-flex justify-content-end">
+                    <p class="text-center py-1 px-3 border border-1 border-dark">Invoice Number # <span class="fw-bold">{{invoice_number}}</span></p>
+                </div>
+            </div>
+        </div>
+        <p class="mb-1">Kinfra Industrial Park, Kakkanchery, Malappuram, Kerala</p>
+        <hr class="my-2" style="opacity: 1; border-top: 1px solid #000;">
+        <div class="row mt-4">
+            <div class="col-6">
+                <p><strong>Order ID:</strong> {{ order.order_id }}</p>
+                <p><strong>Order Date:</strong> {{ order.order_date|date:"d-m-Y" }}</p>
+                <p><strong>Invoice Date:</strong> {% now "d-m-Y" %}</p>
+            </div>
+            <div class="col-6">
+                <p class="mb-1">Delivery Address:</p>
+                <p class="m-0 fw-bold">
+                    {{order.delivery_address.name}}
+                </p>
+                <p class="m-0">
+                    {{order.delivery_address.address_line_1}}, 
+                    {% if order.delivery_address.address_line_2 %}{{order.delivery_address.address_line_2}}, {% endif %}
+                    {{order.delivery_address.city}}, {{order.delivery_address.state}}, {{order.delivery_address.pin}}
+                </p>
+                <p class="m-0">
+                    Ph: {{order.delivery_address.phone}}
+                </p>
+            </div>
+        </div>
+        <table>
+            <thead style="border-top: 1px solid #000; border-bottom: 1px solid #000;">
+                <tr>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.order_items.all %}
+                <tr>
+                    <td>{{ item.product.name }} - {{item.variant}} {{item.product.unit}}</td>
+                    <td>₹{{ item.product.price }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td class="text-end">₹{{ item.total_amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td>&nbsp;</td>  <!-- Empty Cell -->
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr style="border-top: 1px solid #000; border-bottom: 1px solid #000;">
+                    <td></td>
+                    <td class="text-end fw-bold" colspan="2">Total:</td>
+                    <td class="text-end fw-bold">₹{{ order.total_amount|floatformat:2 }}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="payment-summary mt-3">
+            <div class="d-flex mb-1">
+                <p class="w-75 text-end mb-0">Sub Total:</p>
+                <p class="w-25 text-end mb-0">₹{{ order.total_amount|floatformat:2 }}</p>
+            </div>
+            <div class="d-flex mb-1">
+                <p class="w-75 text-end mb-0">Shipping:</p>
+                <p class="w-25 text-end mb-0">₹0</p>
+            </div>
+            <div class="d-flex mb-1">
+                <p class="w-75 text-end mb-0">Discount/Promotion:</p>
+                <p class="w-25 text-end mb-0">-₹0</p>
+            </div>
+            <div class="d-flex mb-1">
+                <p class="w-75 text-end mb-0 fw-bold">Total Amount:</p>
+                <p class="w-25 text-end mb-0 fw-bold">₹{{ order.total_amount|floatformat:2 }}</p>
+            </div>
+        </div>
+
+        <hr class="my-2" style="opacity: 1; border-top: 1px solid #000;">
+        <p class="small text-center">This is a computer generated invoice, hence does not require any sign or seal.</p>
+        <br>
+        <p class="mb-1">Thank you for shopping with us!</p>
+        <p class="small mb-0"><i>
+            Return Policy: We try to deliver perfectly each and every time. But in the off-chance that you
+            need to return the item, please do so with the original packing and invoice without which 
+            it will be difficult for us to act on your request. Terms and conditions apply.
+        </i></p>
+        <p class="small mb-0">
+            <i>The goods sold are intended for end user consmption and not for re-sale.</i>
+        </p>
+        <p class="small">Contact us: <a href="mailto:support@keynut.com">support@keynut.com</a></p>
+    </div>
+</body>
+</html>

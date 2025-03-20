@@ -1,24 +1,27 @@
 import random
 import datetime
+import tempfile
 
 from django.shortcuts import render, redirect
 from django.contrib.auth import login as authlogin, logout as authlogout, authenticate, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.db.models import F, Q, ExpressionWrapper, DecimalField
+from django.db.models import F, Q, Exists, OuterRef, BooleanField, Case, When, Value
 from django.core.mail import send_mail
 from django.views.decorators.cache import never_cache
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.template.loader import render_to_string
 
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.views import OAuth2LoginView
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+from weasyprint import HTML
 
 from products.models import Product, Category
 from customers.models import Address
 from customers.forms import AddressForm
-from orders.models import Order, OrderItem
+from orders.models import Order, OrderItem, Payment
 
 User = get_user_model()
 
@@ -27,23 +30,11 @@ def index(request):
     context = {}
     categories = Category.objects.filter(is_deleted=False)
     
-    flash_sales = Product.objects.filter(is_deleted=False, is_listed=True, category__is_deleted=False).annotate(
-        discount_price=ExpressionWrapper(
-            F('price') - (F('price') * (F('discount') / 100.0)), 
-            output_field=DecimalField(max_digits=10, decimal_places=2)
-            )).order_by('-relevance')[:4]
+    flash_sales = Product.objects.filter(is_listed=True, is_deleted=False, category__is_deleted=False).order_by('-relevance')[:4]
     
-    best_selling = Product.objects.filter(is_deleted=False, is_listed=True, category__is_deleted=False).annotate(
-        discount_price=ExpressionWrapper(
-            F('price') - (F('price') * (F('discount') / 100.0)), 
-            output_field=DecimalField(max_digits=10, decimal_places=2)
-            ))[:4]
+    best_selling = Product.objects.filter(is_listed=True, is_deleted=False, category__is_deleted=False)[:4]
     
-    new_arrivals = Product.objects.filter(is_deleted=False, is_listed=True, category__is_deleted=False).annotate(
-        discount_price=ExpressionWrapper(
-            F('price') - (F('price') * (F('discount') / 100.0)), 
-            output_field=DecimalField(max_digits=10, decimal_places=2)
-            )).order_by('-created_at')[:4]
+    new_arrivals = Product.objects.filter(is_listed=True, is_deleted=False, category__is_deleted=False).order_by('-created_at')[:4]
 
     context.update({
         'categories': categories, 
@@ -63,11 +54,7 @@ def products(request):
     selected_prices = request.GET.getlist('price')
     
 
-    products = Product.objects.filter(is_deleted=False, is_listed=True, category__is_deleted=False).annotate(
-        discount_price=ExpressionWrapper(
-            F('price') - (F('price') * (F('discount') / 100.0)), 
-            output_field=DecimalField(max_digits=10, decimal_places=2)
-            )).order_by('-relevance')
+    products = Product.objects.filter(is_deleted=False, is_listed=True, category__is_deleted=False).order_by('-relevance')
     
     # Handle Filters
     query = Q()
@@ -117,7 +104,7 @@ def products(request):
         products = products.order_by(sort_options[sortby])
 
     # Pagination
-    paginator = Paginator(products, 24)
+    paginator = Paginator(products, 16)
     page_number = request.GET.get('page')
     products = paginator.get_page(page_number)
 
@@ -131,12 +118,7 @@ def products(request):
 
 def product_details(request, slug):
     context = {}
-    product = Product.objects.select_related('category').filter(slug=slug).annotate(
-        discount_price=ExpressionWrapper(
-            F('price') - (F('price') * (F('discount') / 100.0)), 
-            output_field=DecimalField(max_digits=10, decimal_places=2)
-        )
-    ).first()
+    product = Product.objects.select_related('category').filter(slug=slug).first()
     if product and product.is_listed and not product.is_deleted and not product.category.is_deleted:
         product_variants = []
         for variant in product.variants.all().order_by('quantity'):
@@ -152,24 +134,17 @@ def product_details(request, slug):
         })
     else:
         return redirect('404')
-    
-    # Check stock status
-    lowest_variant = product.variants.order_by('quantity').first()
-    is_in_stock = lowest_variant and product.stock >= lowest_variant.quantity
 
-    related_products = Product.objects.select_related('category').filter(~Q(slug=slug)).annotate(
-        discount_price=ExpressionWrapper(
-            F('price') - (F('price') * (F('discount') / 100.0)), 
-            output_field=DecimalField(max_digits=10, decimal_places=2)
-        )
-    ).order_by('-relevance')[:4]
+    # Getting related products to display
+    related_products = Product.objects.select_related('category').filter(~Q(slug=slug)).order_by('-relevance')[:4]
     context.update({
-        'is_in_stock': is_in_stock,
         'related_products': related_products,
     })
     return render(request, 'web/product_details.html', context=context)
 
 
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_profile(request):
     if request.method == 'POST':
         first_name = request.POST.get('first_name')
@@ -198,6 +173,8 @@ def user_profile(request):
     return render(request, 'web/user_profile.html')
 
 
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_change_password(request):
     if request.method == 'POST':
         current_password = request.POST.get('current-password')
@@ -218,6 +195,8 @@ def user_change_password(request):
     return render(request, 'web/user_change_password.html')
 
 
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_address(request):
     addresses = Address.objects.filter(user=request.user, is_deleted=False)
     form = AddressForm()
@@ -228,6 +207,8 @@ def user_address(request):
     return render(request, 'web/user_address.html', context=context)
 
 
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_add_address(request):
     if request.method == 'POST':
         form = AddressForm(request.POST)
@@ -255,9 +236,11 @@ def user_add_address(request):
     })
 
 
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_edit_address(request, pk):
     if request.method == 'POST':
-        address = Address.objects.filter(pk=pk).first()
+        address = Address.objects.filter(pk=pk, user=request.user).first()
         form = AddressForm(request.POST, instance=address)
         if form.is_valid():
             updated_address = form.save(commit=False)
@@ -294,8 +277,10 @@ def user_edit_address(request, pk):
         })
 
 
+@login_required(login_url='404')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_set_address_default(request, pk):
-    selected_address = Address.objects.filter(pk=pk).first()
+    selected_address = Address.objects.filter(pk=pk, user=request.user).first()
     if not selected_address:
         return redirect('404')
     
@@ -310,6 +295,8 @@ def user_set_address_default(request, pk):
     return redirect('user_address')
 
 
+@login_required(login_url='404')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_delete_address(request, pk):
     if request.method == 'POST':
         address = Address.objects.filter(pk=pk, user=request.user).first()
@@ -330,11 +317,45 @@ def user_delete_address(request, pk):
             })
 
 
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_orders(request):
-    order_items = OrderItem.objects.filter(order__user=request.user).order_by('-order__order_date')
+    order_items = OrderItem.objects.filter(
+        order__user=request.user).select_related('order').prefetch_related('order__payments').annotate(
+        retry_payment=Case(
+            # If order status is NOT "Pending", mark False (no need to retry payment)
+            When(~Q(order__status="Pending"), then=Value(False)),
+
+            # If order is "Pending" AND has a "cash-on-delivery" payment, mark False
+            When(
+                Exists(
+                    Payment.objects.filter(
+                        order_id=OuterRef("order_id"),
+                        payment_method="cash-on-delivery"
+                    )
+                ),
+                then=Value(False),
+            ),
+
+            # If order is "Pending" AND has a "Success" payment with any method, mark False
+            When(
+                Exists(
+                    Payment.objects.filter(
+                        order_id=OuterRef("order_id"),
+                        payment_status="Success"
+                    )
+                ),
+                then=Value(False),
+            ),
+
+            # Otherwise, mark True (Pending orders without successful payment or cash-on-delivery)
+            default=Value(True),
+            output_field=BooleanField()
+        )
+    ).order_by('-order__order_date')
 
     # Pagination
-    paginator = Paginator(order_items, 3) # 10 Order items per page
+    paginator = Paginator(order_items, 10) # 10 Order items per page
     page_number = request.GET.get('page')
     order_items = paginator.get_page(page_number)
 
@@ -344,18 +365,52 @@ def user_orders(request):
     return render(request, 'web/user_orders.html', context=context)
 
 
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_view_order(request, order_id):
     order = Order.objects.prefetch_related('order_items').filter(order_id=order_id, user=request.user).first()
+
+    payment = Payment.objects.filter(
+        Q(order=order) & (Q(payment_status='Success') | Q(payment_method='cash-on-delivery'))).first()
 
     if not order:
         return redirect('404')
 
     context = {
         'order': order,
+        'payment': payment,
     }
     return render(request, 'web/user_order_details.html', context=context)
 
 
+@login_required(login_url='404')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
+def user_order_invoice(request, order_id):
+    order = Order.objects.filter(order_id=order_id, user=request.user).first()
+
+    if not order:
+        return redirect('404')
+    
+    invoice_number = f"IN-{order.id:06d}-{order.order_date.strftime("%y%m%d")}"
+    
+    # return render(request, 'web/order_invoice.html', {'order': order, 'invoice_number': invoice_number})
+    
+    html_string = render_to_string("web/order_invoice.html", {"order": order, 'invoice_number': invoice_number})
+
+    # Generate PDF
+    html = HTML(string=html_string)
+    pdf_file = tempfile.NamedTemporaryFile(delete=True)
+    html.write_pdf(target=pdf_file.name)
+
+    # Serve the file as response
+    with open(pdf_file.name, "rb") as pdf:
+        response = HttpResponse(pdf.read(), content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="invoice_{order.order_id}.pdf"'
+        return response
+
+
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_ratings(request):
     return render(request, 'web/user_ratings.html')
 

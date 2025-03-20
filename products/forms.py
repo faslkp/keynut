@@ -23,7 +23,7 @@ class ProductForm(forms.ModelForm):
 
     description = forms.CharField(
         widget=forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Enter product description', 'rows': 3}),
-        required=True
+        required=False
     )
 
     price = forms.DecimalField(
@@ -53,12 +53,6 @@ class ProductForm(forms.ModelForm):
         widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter stock quantity'}),
         required=True
     )
-
-    # variants = forms.MultipleChoiceField(
-    #     choices=ProductVariant.objects.all().order_by('quantity'),
-    #     widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
-    #     required=False
-    # )
 
     variants = forms.ModelMultipleChoiceField(
         queryset=ProductVariant.objects.all().order_by('quantity'),

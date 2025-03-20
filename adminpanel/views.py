@@ -6,7 +6,9 @@ from django.contrib.auth import get_user_model, authenticate, login as authlogin
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.core.mail import send_mail
-from django.db.models import Q
+from django.db.models import F, Q, Subquery, OuterRef, Sum, DecimalField
+from django.db.models.expressions import ExpressionWrapper
+from django.db.models.functions import Coalesce
 from django.db.models.functions import Lower
 from django.core.paginator import Paginator
 from django.http import JsonResponse
@@ -16,7 +18,7 @@ from django.core.serializers import serialize
 from customers.forms import CustomerForm
 from products.forms import ProductForm, CategoryForm
 from products.models import Product, Category
-from orders.models import Order, OrderItem
+from orders.models import Order, OrderItem, Payment
 
 User = get_user_model()
 
@@ -127,11 +129,44 @@ def customers(request):
 
 
 def orders(request):
-    orders = Order.objects.prefetch_related('order_items').all()
+    orders = Order.objects.prefetch_related('order_items', 'payments').annotate(
+        order_total_amount=ExpressionWrapper(
+            Sum(F('order_item__variant') * F('order_item__quantity') * F('order_item__price')),
+            output_field=DecimalField()
+        ),
+        payment_method=Coalesce(
+            # If there is a Success payment, getting it
+            Subquery(
+                Payment.objects.filter(order=OuterRef('pk'), payment_status='Success')
+                .order_by('-payment_date')
+                .values('payment_method')[:1]
+            ),
+            # If there is no Success payment, getting latest payment details
+            Subquery(
+                Payment.objects.filter(order=OuterRef('pk'))
+                .order_by('-payment_date')
+                .values('payment_method')[:1]
+            ),
+        ),
+        payment_status=Coalesce(
+            Subquery(
+                Payment.objects.filter(order=OuterRef('pk'), payment_status='Success')
+                .order_by('-payment_date')
+                .values('payment_status')[:1]
+            ),
+            Subquery(
+                Payment.objects.filter(order=OuterRef('pk'))
+                .order_by('-payment_date')
+                .values('payment_status')[:1]
+            ),
+        )
+    ).order_by('-order_date')
 
     # Handle sort, filter, search
     sortby = request.GET.get('sortby')
-    filter = request.GET.get('filter')
+    filter_order_status = request.GET.get('order-status')
+    filter_pay_status = request.GET.get('pay-status')
+    filter_pay_method = request.GET.get('pay-method')
     q = request.GET.get('q')
 
     if sortby:
@@ -140,13 +175,17 @@ def orders(request):
             orders = orders.order_by(Lower(field_name).desc())
         else:
             orders = orders.order_by(sortby)
-    if filter:
-        orders = orders.filter(status=filter)
+    if filter_order_status:
+        orders = orders.filter(status=filter_order_status)
+    if filter_pay_status:
+        orders = orders.filter(payment_status=filter_pay_status)
+    if filter_pay_method:
+        orders = orders.filter(payment_method=filter_pay_method)
     if q:
         orders = orders.filter(Q(order_id__icontains=q) | Q(user__first_name__icontains=q) | Q(user__last_name__icontains=q))
 
     # Pagination
-    paginator = Paginator(orders, 3)
+    paginator = Paginator(orders, 10)
     page_number = request.GET.get('page')
     orders = paginator.get_page(page_number)
 
@@ -155,10 +194,13 @@ def orders(request):
     # Exclude the disabled statuses from STATUS_CHOICES
     status_choices = [choice for choice in Order.STATUS_CHOICES if choice[0] not in disabled_statuses]
 
+    payment_methods = dict(Payment.PAYMENT_METHODS)
+
     context = {
         'orders': orders,
         'order_status': Order.STATUS_CHOICES,
         'status_choices': status_choices,
+        'payment_methods': payment_methods,
     }
     return render(request, 'admin/orders.html', context=context)
 

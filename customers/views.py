@@ -121,6 +121,8 @@ def cutomer_blocking(request, pk):
     return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)
 
 
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def cart(request):
     context = {}
     cart = Cart.objects.filter(user=request.user).first()
@@ -149,7 +151,20 @@ def cart(request):
     return render(request, 'web/cart.html', context=context)
 
 
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def add_to_cart(request):
+    # Handling not logged in user - redirect to product page after login
+    if not request.user.is_authenticated:
+        product = Product.objects.filter(
+            id=request.POST.get('product_id'),
+            is_listed=True,
+            is_deleted=False,
+            category__is_deleted=False
+        ).first()
+
+        redirect_url = f"{reverse('login')}?next={reverse('product_details', kwargs={'slug': product.slug})}"
+        return redirect(redirect_url)
+    
     if request.method == 'POST':
         product_id = request.POST.get('product_id')
         variant_id = request.POST.get('selected_variant')
@@ -197,6 +212,8 @@ def add_to_cart(request):
     return redirect('cart')
 
 
+@login_required(login_url='404')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def remove_from_cart(request, pk):
     if request.method == 'POST':
         order_item = CartItem.objects.filter(pk=pk)
@@ -216,5 +233,7 @@ def remove_from_cart(request, pk):
         })
 
 
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def wishlist(request):
     pass

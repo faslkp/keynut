@@ -120,7 +120,7 @@
                             </a>
                             <span>{{item.product.name}} - {{item.variant.quantity}} {{item.product.unit}}</span>
                         </td>
-                        <td>₹<span id="price-{{item.id}}">{{item.product.price}}</span></td>
+                        <td>₹<span id="price-{{item.id}}">{{item.product.discount_price|floatformat:2}}</span></td>
                         <td>
                             {% if item.product.stock < item.variant.quantity %}
                             <span class="text-danger">Out of stock<span>

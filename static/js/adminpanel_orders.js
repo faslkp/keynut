@@ -69,8 +69,12 @@ document.addEventListener("DOMContentLoaded", function () {
             let paramName;
             if (this.href.includes("sortby")) {
                 paramName = "sortby";
-            } else if (this.href.includes("filter")) {
-                paramName = "filter";
+            } else if (this.href.includes("order-status")) {
+                paramName = "order-status";
+            } else if (this.href.includes("pay-status")) {
+                paramName = "pay-status";
+            } else if (this.href.includes("pay-method")) {
+                paramName = "pay-method";
             }
     
             let paramValue = new URL(this.href).searchParams.get(paramName);

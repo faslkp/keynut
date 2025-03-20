@@ -1,6 +1,6 @@
 {% extends "web/base.html" %}
 
-{% block title %}Order Placed Successfully{% endblock title %}
+{% block title %}Order Failed{% endblock title %}
 
 {% block stylesheet %}
 <style>
@@ -30,16 +30,20 @@
     <div class="container d-flex flex-column align-items-center justify-content-center">
         <div class="card shadow-lg p-4 text-center" style="max-width: 500px;">
             <div class="mb-3">
-                <div class="text-center text-success" style="font-size: 5rem;">
-                    <i class="bi bi-check-circle-fill"></i>
+                <div class="text-center text-danger" style="font-size: 5rem;">
+                    <i class="bi bi-x-circle-fill"></i>
                 </div>
             </div>
-            <h2 class="text-success">Order Placed Successfully!</h2>
-            <p class="text-muted">Thank you for your purchase. Your order has been received and will be processed soon.</p>
+            <h2 class="text-success">Payment failed!</h2>
+            <p class="text-muted">Your order payment was unsuccessful. Please retry payment.</p>
             
             <div class="d-grid gap-2 mt-3">
-                <a href="{% url 'products' %}" class="btn btn-success">Continue Shopping</a>
-                <a href="{% url 'user_orders' %}" class="btn btn-outline-success">View Orders</a>
+                <form action="{% url 'checkout_retry' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="order_id" value="{{order.order_id}}">
+                    <button type="submit" class="btn btn-danger w-100">Retry Payment</button>
+                </form>
+                <a href="{% url 'user_orders' %}" class="btn btn-outline-danger">View Orders</a>
             </div>
         </div>
     </div>

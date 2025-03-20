@@ -8,11 +8,35 @@ Order Details
 
 <div class="wrapper">
 
-    <div class="order-details-page p-3 mb-5" style="box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;">
-        <p class="">Order ID: {{order.order_id}}</p>
-        <p class="">Order Date: {{order.order_date}}</p>
-        <p class="">Order Total: ₹{{order.total_amount|floatformat:2}}</p>
-        <p class="mb-0">Order Status: <span class="fw-bold">{{order.status}}</span></p>
+    <div class="row mb-5" style="box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;">
+        <div class="col-12 col-md-8 p-3">
+            <p class="">Order ID: <span class="fw-bold">{{order.order_id}}</span></p>
+            <p class="">Order Date: <span class="fw-bold">{{order.order_date}}</span></p>
+            <p class="">Order Total: <span class="fw-bold">₹{{order.total_amount|floatformat:2}}</span></p>
+            <p class="">Payment Method: <span class="fw-bold">{{payment.get_payment_method_display}}</span></p>
+            <p class="mb-0">Order Status: 
+                <span class="fw-bold
+                    {% if order.status == 'Pending' %}text-secondary{% endif %}
+                    {% if order.status == 'Confirmed' %}text-dark{% endif %}
+                    {% if order.status == 'Processing' %}text-warning{% endif %}
+                    {% if order.status == 'Shipped' %}text-primary{% endif %}
+                    {% if order.status == 'Delivered' %}text-success{% endif %}
+                    {% if order.status == 'Returned' %}text-warning{% endif %}
+                    {% if order.status == 'Refunded' %}text-danger{% endif %}
+                    {% if order.status == 'Cancelled' %}text-danger{% endif %}
+                ">
+                    {{order.status}}
+                </span>
+            </p>
+        </div>
+        <div class="col-12 col-md 4 p-3 d-flex flex-column align-items-end justify-content-between gap-2">
+            {% if payment %}
+            <a href="{% url 'user_order_invoice' order.order_id %}" class="btn btn-outline-danger">Download Invoice</a>
+            {% endif %}
+            {% if order.status == 'Pending' or order.status == 'Confirmed' or order.status == 'Processing' %}
+            <a href="#" class="btn btn-danger">Cancel Order</a>
+            {% endif %}
+        </div>
     </div>
     <div class="">
         <p class="text-dark fw-bold">Order Items:</p>
