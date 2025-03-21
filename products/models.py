@@ -4,6 +4,7 @@ import uuid
 from django.db import models
 from django.utils.text import slugify
 from django.core.files.base import ContentFile
+from django.apps import apps
 
 from decimal import Decimal
 from PIL import Image
@@ -83,6 +84,12 @@ class Product(models.Model):
     def is_in_stock(self):
         lowest_variant = self.variants.order_by('quantity').first()
         return True if lowest_variant and self.stock >= lowest_variant.quantity else False
+    
+    def is_in_wishlist(self, user):
+        if not user.is_authenticated:
+            return False
+        Wishlist = apps.get_model('customers', 'Wishlist')
+        return Wishlist.objects.filter(user=user, product=self).exists()
 
     def save(self, *args, **kwargs):
         if not self.slug:

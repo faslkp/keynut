@@ -233,15 +233,15 @@
 }
 .wish-badge {
     font-size: 1.5rem; /* Base size for the badge */
-    z-index: 100;
+    z-index: 1000;
     background: #fff;
     border-radius: 50%;
     aspect-ratio: 1;
     width: 2.5rem; /* Increased for better visibility, match image */
     height: 2.5rem; /* Matches width for perfect circle */
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
     text-decoration: none;
     border: 1px solid #ccc; /* Optional: Adds a subtle border like the image */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);

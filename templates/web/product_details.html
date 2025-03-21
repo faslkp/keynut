@@ -191,11 +191,15 @@
                 </div>
     
                 <!-- Add to Cart Button -->
-                <div class="d-flex gap-4">
+                <div class="d-flex gap-3">
                     <button type="submit" class="btn btn-danger w-100 mb-2" style="font-size: 1.25rem;">Add to Cart</button>
-                    <button id="wishlistProductButton" class="btn btn-outline-secondary mb-2 d-flex align-items-center justify-content-center" style="font-size: 1.25rem;">
-                        <i class="bi bi-heart wish-badge-icon"></i>
-                    </button>
+                    <a href="javascript:void(0);" id="wishlistProductButton" class="wish-badge btn btn-outline-secondary mb-2" style="font-size: 1.25rem;">
+                        <i id="wishlist-icon-{{product.id}}" 
+                            class="bi {% if in_wishlist %}bi-heart-fill text-danger{% else %}bi-heart{% endif %} wish-badge-icon"
+                            data-product-id="{{product.id}}"
+                            data-csrf-token="{{csrf_token}}"
+                        ></i>
+                    </a>
                 </div>
             </form>
 
@@ -246,8 +250,9 @@
     <h3 class="mt-5 mb-3" style="font-size: 1.5rem;">Related Items</h3>
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
         <!-- Related Product 1 -->
+        {% load wishlist_tags %}
         {% for product in related_products %}
-            {% include 'web/includes/product_card.html' %}
+            {% include 'web/includes/product_card.html' with product=product in_wishlist=product|is_in_wishlist:request.user %}
         {% endfor %}
     </div>
 </section>

@@ -8,12 +8,13 @@ from django.http import JsonResponse
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.urls import reverse
 
 import razorpay
 
 from customers.models import Address, Cart, CartItem
 from products.models import Product
-from . models import Order, OrderItem, OrderAddress, Payment
+from . models import Order, OrderItem, OrderAddress, Payment, ReturnRequest
 from . services import create_razorpay_order, verify_razorpay_signature
 
 
@@ -333,5 +334,99 @@ def update_order_status(request):
 
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
-def cancel_order(request, order_id):
-    pass
+def user_cancel_order(request):
+    if request.method == 'POST':
+        order_id = request.POST.get('order-id')
+        cancellation_note = request.POST.get('cancellation-note')
+
+        order = Order.objects.filter(order_id=order_id, user=request.user).first()
+        if not order:
+            return redirect('404')
+        
+        with transaction.atomic():
+            order.status = "cancelled"
+            order.notes += f"\nUser cancellation note: {cancellation_note}"
+            order.save()
+
+            # Updating stock
+            products_to_update = []
+
+            for item in order.order_items.all():
+                item.product.stock += item.variant * item.quantity
+                products_to_update.append(item.product)
+
+            Product.objects.bulk_update(products_to_update, ["stock"])
+        
+        return redirect('user_orders')
+    
+    return redirect('404')
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def user_return_order(request):
+    if request.method == 'POST':
+        order_id = request.POST.get('order-id')
+        return_reason = request.POST.get('return-reason')
+
+        order = Order.objects.filter(order_id=order_id, user=request.user).first()
+        if not order:
+            return redirect('404')
+        
+        ReturnRequest.objects.create(
+            order=order,
+            reason=return_reason
+        )
+        order.status = 'return_requested'
+        order.save()
+
+        messages.success(request, f"We have received your return request for order {order.order_id}. Once the request is approved, you will receive an email with instructions on how to return.")
+                
+        return redirect(reverse('user_view_order', kwargs={'order_id':order.order_id}))
+    
+    return redirect('404')
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def process_return_request(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            request_id = data.get("request_id")
+            new_status = data.get("status")
+
+            if not new_status:
+                return JsonResponse({
+                    'error': True,
+                    'message': "Nothing to update!"
+                })
+
+            return_request = ReturnRequest.objects.filter(id=request_id).first()
+            if return_request:
+                return_request.status = new_status
+                return_request.save(update_fields=["status"])
+
+                # Update order status
+                if new_status == 'approved':
+                    return_request.order.status = 'return_approved'
+                    return_request.order.save(update_fields=["status"])
+                
+                elif new_status == 'rejected':
+                    return_request.order.status = 'return_rejected'
+                    return_request.order.save(update_fields=["status"])
+
+                return JsonResponse({
+                    'success': True,
+                    'message': "Return status updated successfully."
+                })
+            else:
+                return JsonResponse({
+                    'error': True,
+                    'message': "Return request not found!"
+                })
+        
+        except Exception as e:
+            return JsonResponse({'error': True, "message": str(e)})
+
+    return JsonResponse({'error': True, "message": "Invalid request"})

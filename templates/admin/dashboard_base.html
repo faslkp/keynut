@@ -18,7 +18,7 @@
     <div class="sidebar-backdrop"></div>
     
     <!-- Sidebar -->
-    <div class="sidebar">
+    <div class="sidebar overflow-auto custom-scrollbar">
         <div class="sidebar-logo">
             <img src="{% static 'images/keynut.png' %}" alt="Keynut">
             <span>KEYNUT</span>
@@ -33,9 +33,27 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{% url 'admin_orders' %}" class="nav-link">
+                        <i class="bi bi-cart"></i>
+                        Orders
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'admin_returns' %}" class="nav-link">
+                        <i class="bi bi-arrow-return-left"></i>
+                        Return Requests
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{% url 'admin_products' %}" class="nav-link">
                         <i class="bi bi-box"></i>
                         Products
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'admin_product_variants' %}" class="nav-link">
+                        <i class="bi bi-layers"></i>
+                        Product Variants
                     </a>
                 </li>
                 <li class="nav-item">
@@ -51,21 +69,15 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{% url 'admin_orders' %}" class="nav-link">
-                        <i class="bi bi-cart"></i>
-                        Orders
+                    <a href="{% url 'admin_coupons' %}" class="nav-link">
+                        <i class="bi bi-tag"></i>
+                        Coupons
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="{% url 'admin_reports' %}" class="nav-link">
                         <i class="bi bi-bar-chart"></i>
                         Reports
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'admin_coupons' %}" class="nav-link">
-                        <i class="bi bi-tag"></i>
-                        Coupons
                     </a>
                 </li>
                 <li class="nav-item">

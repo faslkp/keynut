@@ -31,20 +31,24 @@ class OrderAddress(models.Model):
 
 class Order(models.Model):
     STATUS_CHOICES = [
-        ('Pending', 'Pending'),
-        ('Confirmed', 'Confirmed'),
-        ('Processing', 'Processing'),
-        ('Shipped', 'Shipped'),
-        ('Delivered', 'Delivered'),
-        ('Returned', 'Returned'),
-        ('Refunded', 'Refunded'),
-        ('Cancelled', 'Cancelled'),
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('processing', 'Processing'),
+        ('shipped', 'Shipped'),
+        ('out_for_delivery', 'Out for Delivery'),
+        ('delivered', 'Delivered'),
+        ('return_requested', 'Return Requested'),
+        ('return_approved', 'Returned Approved'),
+        ('return_rejected', 'Returned Rejected'),
+        ('refunded', 'Refunded'),
+        ('cancelled', 'Cancelled'),
     ]
     order_id = models.CharField(max_length=20, unique=True, editable=False, blank=True)
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='orders', related_query_name='order')
     order_date = models.DateTimeField(auto_now_add=True)
     delivery_address = models.ForeignKey(OrderAddress, on_delete=models.PROTECT)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    notes = models.TextField(blank=True)
 
     def __str__(self):
         return f"Order ID: {self.order_id} - {self.status}"
@@ -83,11 +87,11 @@ class OrderItem(models.Model):
 
 class Payment(models.Model):
     PAYMENT_CHOICES = [
-        ('Pending', 'Pending'),
-        ('Initiated', 'Initiated'),
-        ('Processing', 'Processing'),
-        ('Success', 'Success'),
-        ('Failed', 'Failed')
+        ('pending', 'Pending'),
+        ('initiated', 'Initiated'),
+        ('processing', 'Processing'),
+        ('success', 'Success'),
+        ('failed', 'Failed')
     ]
     PAYMENT_METHODS = [
         ('cash-on-delivery', 'Cash on Delivery'),
@@ -103,4 +107,21 @@ class Payment(models.Model):
     payment_provider_order_id = models.CharField(max_length=100, blank=True)
 
     def __str__(self):
-        return f"₹{self.amount} | Order ID: {self.order.order_id} | Via: {self.payment_method}"
+        return f"₹{self.amount} | Order ID: {self.order.order_id} | Via: {self.payment_method} | {self.payment_status}"
+
+
+class ReturnRequest(models.Model):
+    RETURN_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='returns', related_query_name='return')
+    reason = models.TextField()
+    note = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=RETURN_STATUS_CHOICES, default='Pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Return for Order {self.order.order_id} - Status: {self.status}"

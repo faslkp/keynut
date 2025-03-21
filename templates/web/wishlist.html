@@ -1,0 +1,66 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Wishlist{% endblock title %}
+
+{% block header-nav %}
+{% include "web/includes/header-nav.html" %}
+{% endblock%}
+
+{% block content %}
+
+<!-- Messages -->
+<div class="messages container col-12 mt-5 mb-2 text-center">
+    {% for message in messages %}
+    <p class="{% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+    {% endfor %}
+</div>
+
+<!-- Content Section -->
+<section class="container pt-3 pb-5">
+    <!-- Breadcrupb -->
+    <nav class="mb-4" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Wishlist</li>
+        </ol>
+    </nav>
+
+    {% if not wishlist_items %}
+
+    <div class="my-5 py-5">
+        <p class="text-center text-danger fs-3">Your wishlist is empty.</p>
+        <div class="text-center mt-5">
+            <a href="{% url 'products' %}" class="btn btn-danger me-3">Return to Shop</a>
+            <a href="{% url 'index' %}" class="btn btn-danger">Home</a>
+        </div>
+    </div>
+
+    {% else %}
+    
+    <!-- Wishlist items -->
+    <h3 class="mt-5 mb-3" style="font-size: 1.5rem;">Wishlist</h3>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mt-3 mb-5 pb-5">
+        <!-- Related Product 1 -->
+        {% load wishlist_tags %}
+        {% for item in wishlist_items %}
+            {% include 'web/includes/product_card.html' with product=item.product in_wishlist=True %}
+        {% endfor %}
+    </div>
+
+    {% endif %}
+    
+    <!-- Related Items -->
+    <h3 class="mt-5 mb-3" style="font-size: 1.5rem;">Just for You</h3>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+        <!-- Related Product 1 -->
+        {% for product in suggested_products %}
+            {% include 'web/includes/product_card.html' with product=product in_wishlist=product|is_in_wishlist:request.user %}
+        {% endfor %}
+    </div>
+</section>
+{% endblock content %}
+
+{% block footer %}
+{% include "web/includes/footer.html" %}
+{% endblock %}

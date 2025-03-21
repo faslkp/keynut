@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-from . models import Address, Cart, CartItem
+from . models import Address, Wishlist, Cart, CartItem
 
 # admin.site.register(User)
 @admin.register(User)
@@ -23,6 +23,8 @@ class AddressAdmin(admin.ModelAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 admin.site.register(Address, AddressAdmin)
+
+admin.site.register(Wishlist)
 
 admin.site.register(Cart)
 

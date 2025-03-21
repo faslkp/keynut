@@ -3,8 +3,12 @@
         {% if product.discount > 0 %}
         <div class="badge bg-danger text-white position-absolute top-0 start-0 m-2">{{product.discount|floatformat:0}}% OFF</div>
         {% endif %}
-        <a href="#" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
-            <i class="bi bi-heart wish-badge-icon"></i>
+        <a href="javascript:void(0);" class="wish-badge position-absolute top-0 end-0 m-2 text-muted">
+            <i id="wishlist-icon-{{product.id}}" 
+                class="bi {% if in_wishlist %}bi-heart-fill text-danger{% else %}bi-heart{% endif %} wish-badge-icon"
+                data-product-id="{{product.id}}"
+                data-csrf-token="{{csrf_token}}"
+            ></i>
         </a>
         <div class="image-wrapper">
             <a href="{% url 'product_details' product.slug %}">

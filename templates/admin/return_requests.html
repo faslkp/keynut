@@ -1,15 +1,15 @@
 {% extends "admin/dashboard_base.html" %}
 {% load static %}
-{% block title %}Orders{% endblock title %}
+{% block title %}Return Requests{% endblock title %}
 
 {% block script_top %}
 <meta name="csrf-token" content="{{ csrf_token }}">
 {% endblock script_top %}
 
-{% block page_head %}Orders{% endblock page_head %}
+{% block page_head %}Return Requests{% endblock page_head %}
 
 {% block content %}
-<!-- Customer Page Content -->
+<!-- Return Requests Page Content -->
 <div class="container-fluid py-4">
     <!-- Page Header with Controls -->
     <div class="row mb-4 align-items-center justify-content-between">
@@ -20,52 +20,22 @@
                     <i class="bi bi-chevron-down ms-2"></i>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="?sortby=-order_date">Date (Newest)</a></li>
-                    <li><a class="dropdown-item" href="?sortby=order_date">Date (Oldest)</a></li>
-                    <li><a class="dropdown-item" href="?sortby=-order_total_amount">Amount (Highest)</a></li>
-                    <li><a class="dropdown-item" href="?sortby=order_total_amount">Amount (Lowest)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=-created_at">Date (Newest)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=created_at">Date (Oldest)</a></li>
                 </ul>
             </div>
             
             <div class="dropdown">
                 <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-funnel-fill me-1"></i>
-                    <span>Order Status</span>
+                    <span>Request Status</span>
                     <i class="bi bi-chevron-down ms-2"></i>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="?order-status=">All</a></li>
-                    {% for choice in order_status %}
-                    <li><a class="dropdown-item" href="?order-status={{choice.0}}">{{choice.1}}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
-
-            <div class="dropdown">
-                <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-funnel-fill me-1"></i>
-                    <span>Payment</span>
-                    <i class="bi bi-chevron-down ms-2"></i>
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="?pay-status=">All</a></li>
-                    <li><a class="dropdown-item" href="?pay-status=Success">Success</a></li>
-                    <li><a class="dropdown-item" href="?pay-status=Failed">Failed</a></li>
-                    <li><a class="dropdown-item" href="?pay-status=Pending">Pending</a></li>
-                </ul>
-            </div>
-
-            <div class="dropdown">
-                <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-funnel-fill me-1"></i>
-                    <span>Payment Method</span>
-                    <i class="bi bi-chevron-down ms-2"></i>
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="?pay-method=">All</a></li>
-                    <li><a class="dropdown-item" href="?pay-method=razorpay">RazorPay</a></li>
-                    <li><a class="dropdown-item" href="?pay-method=cash-on-delivery">Cash on Delivery</a></li>
-                    <li><a class="dropdown-item" href="?pay-method=wallet">Wallet</a></li>
+                    <li><a class="dropdown-item" href="?status=">All</a></li>
+                    <li><a class="dropdown-item" href="?status=Pending">Pending</a></li>
+                    <li><a class="dropdown-item" href="?status=Accepted">Accepted</a></li>
+                    <li><a class="dropdown-item" href="?status=Rejected">Rejected</a></li>
                 </ul>
             </div>
 
@@ -76,7 +46,7 @@
                     </span>
                     <input type="text" name="q" class="form-control border-start-0 bg-light" placeholder="Search" aria-label="Search">
                 </div>
-                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'admin_orders' %}" title="Clear">
+                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'admin_returns' %}" title="Clear">
                     <i class="bi bi-x-circle"></i>
                 </a>
             </form>
@@ -84,7 +54,7 @@
         
     </div>
     
-    <!-- Orders Table -->
+    <!-- Requests Table -->
     <div class="card">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -93,53 +63,50 @@
                         <tr>
                             <th class="py-3 px-3 border-0">Order ID</th>
                             <th class="py-3 px-3 border-0">User</th>
-                            <th class="py-3 px-3 border-0">Order Date</th>
-                            <th class="py-3 px-3 border-0">Amount</th>
+                            <th class="py-3 px-3 border-0">Request Date</th>
                             <th class="py-3 px-3 border-0">Payment Details</th>
-                            <th class="py-3 px-3 border-0">Order Status</th>
+                            <th class="py-3 px-3 border-0">Reason</th>
+                            <th class="py-3 px-3 border-0">Request Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         
-                        {% for order in orders %}
+                        {% for return_request in return_requests %}
                         <tr class="align-middle">
                             <td class="py-3 px-3">
                                 <a class="btn-view-order text-decoration-none text-primary" href="#" 
-                                    data-order-id="{{order.order_id}}"
+                                    data-order-id="{{return_request.order.order_id}}"
                                     data-bs-toggle="modal" data-bs-target="#orderDetailsModal">
-                                    {{ order.order_id }}
+                                    {{ return_request.order.order_id }}
                                 </a>
                             </td>
-                            <td class="py-3 px-3">{{ order.user.first_name }}</td>
-                            <td class="py-3 px-3">{{ order.order_date }}</td>
-                            <td class="py-3 px-3">₹{{ order.order_total_amount|floatformat:2 }}</td>
+                            <td class="py-3 px-3">{{ return_request.order.user.first_name }}</td>
+                            <td class="py-3 px-3">{{ return_request.created_at }}</td>
                             <td class="py-3 px-3">
+                                ₹{{ return_request.order_total_amount|floatformat:2 }}
+                                <br>
                                 {% for key, value in payment_methods.items %}
-                                    {% if key == order.payment_method %}
+                                    {% if key == return_request.payment_method %}
                                         {{ value }}
                                     {% endif %}
                                 {% endfor %}
-                                <br>
-                                Status: 
-                                <span class="
-                                    {% if order.payment_status == 'success' %}text-success{% else %}text-danger{% endif %}
-                                ">{{ order.payment_status }}</span>
+                            </td>
+                            <td class="py-3 px-3">
+                                {{return_request.reason}}
                             </td>
                             <td class="py-3 px-3">
                                 <div class=" d-flex gap-1">
-                                    <select class="form-select status-dropdown" id="status-{{ order.id }}">
-                                        <option value="" selected disabled>{{ order.get_status_display }}</option>
-                                        {% if order.status != 'cancelled' and order.status != 'refunded' and order.status != 'return_rejected' and order.status != 'return_approved' and order.status != 'return_requested' %}
+                                    <select class="form-select status-dropdown" id="status-{{ return_request.id }}">
+                                        <option value="" selected disabled>{{ return_request.get_status_display }}</option>
                                             {% for status in status_choices %}
-                                                {% if status.0 != order.status %}
+                                                {% if status.0 != return_request.status %}
                                                     <option value="{{ status.0 }}">
                                                         {{ status.1 }}
                                                     </option>
                                                 {% endif %}
                                             {% endfor %}
-                                        {% endif %}
                                     </select>
-                                    <button class="update-status-btn btn btn-outline-danger p-1" data-order-id="{{ order.id }}">
+                                    <button class="update-status-btn btn btn-outline-danger p-1" data-request-id="{{ return_request.id }}">
                                         Update
                                     </button>
                                 </div>
@@ -156,13 +123,13 @@
     <!-- Pagination -->
     <div class="d-flex justify-content-between align-items-center mt-4">
         <div class="text-muted">
-            Page <span class="fw-medium">{{ orders.number }}</span> of <span class="fw-medium">{{ orders.paginator.num_pages }}</span> pages
+            Page <span class="fw-medium">{{ return_requests.number }}</span> of <span class="fw-medium">{{ return_requests.paginator.num_pages }}</span> pages
         </div>
         <nav aria-label="orders pagination">
             <ul class="pagination mb-0">
-                {% if orders.has_previous %}
+                {% if return_requests.has_previous %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" data-page="{{ orders.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
+                    <a class="page-link pagination-link" data-page="{{ return_requests.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
                         <i class="bi bi-chevron-left"></i>
                     </a>
                 </li>
@@ -175,12 +142,12 @@
                 {% endif %}
 
                 <li class="page-item active">
-                    <a class="page-link">{{ orders.number }}</a>
+                    <a class="page-link">{{ return_requests.number }}</a>
                 </li>
 
-                {% if orders.has_next %}
+                {% if return_requests.has_next %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" data-page="{{ orders.next_page_number }}" aria-label="Next" style="cursor: pointer;">
+                    <a class="page-link pagination-link" data-page="{{ return_requests.next_page_number }}" aria-label="Next" style="cursor: pointer;">
                         <i class="bi bi-chevron-right"></i>
                     </a>
                 </li>
@@ -229,24 +196,16 @@
             <div class="modal-body">
                 <div class="row">
                     <div class="col-12 col-md-6">
-                        <div class="mb-3">
+                        <div class="mb-2">
                             <p class="m-0 text-secondary">Order ID:</p>
                             <p class="order-id m-0 fw-bold"></p>
                         </div>
                         <dvi class="mb-3">
                             <p class="mb-2 text-secondary">Order Date: <span class="order-date text-dark"></span></p>
-                            <p class="m-0 text-secondary">Delivery address:</p>
-                            <p class="delivery-address"></p>
+                            <p class="mb-2 text-secondary">Status: <span class="order-status text-dark"></span></p>
                         </dvi>
                     </div>
                     <div class="col-12 col-md-6">
-                        <div class="mb-3">
-                            <p class="m-0 fw-bold text-secondary">Order Status:</p>
-                            <select class="form-select order-status-dropdown mb-2" id="order-status-dropdown">
-                                <option value="" selected disabled><span class="order-status"></span></option>
-                            </select>
-                            <button href="#" id="updateStatusButton" class="btn btn-danger p-1">Update Status</button>
-                        </div>
                         <div class="payment-summary border border-secondary px-2 py-1">
                             <p class="m-0">Payment Summary:</p>
                             <p class="d-flex justify-content-between mb-0">
@@ -266,6 +225,10 @@
                             </p>
                             <hr class="my-0">
                         </div>
+                    </div>
+                    <div class="col-12">
+                        <p class="m-0 text-secondary">Delivery address:</p>
+                        <p class="delivery-address"></p>
                     </div>
                 </div>
                 <div class="order-items">
@@ -318,5 +281,5 @@
 
 {% block script %}
 <!-- Products page specific JS file -->
-<script src="{% static 'js/adminpanel_orders.js' %}"></script>
+<script src="{% static 'js/adminpanel_returns.js' %}"></script>
 {% endblock script %}

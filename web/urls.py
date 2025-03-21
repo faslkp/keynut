@@ -1,8 +1,8 @@
 from django.urls import path
 
 from . import views
-from customers.views import cart, add_to_cart, remove_from_cart, wishlist
-from orders.views import checkout, cancel_order, razorpay_callback, checkout_retry
+from customers.views import cart, add_to_cart, remove_from_cart, wishlist, toggle_wishlist
+from orders.views import checkout, user_cancel_order, user_return_order, razorpay_callback, checkout_retry
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -10,6 +10,7 @@ urlpatterns = [
     path('deals/', views.products, name='deals'),
     path('products/<str:slug>/', views.product_details, name='product_details'),
     path('wishlist/', wishlist, name='wishlist'),
+    path('wishlist/<int:product_id>/toggle/', toggle_wishlist, name='toggle_wishlist'),
     path('cart/', cart, name='cart'),
     path('cart/add/', add_to_cart, name='add_to_cart'),
     path('cart/<int:pk>/remove/', remove_from_cart, name='remove_from_cart'),
@@ -17,7 +18,8 @@ urlpatterns = [
     path('orders/', views.user_orders, name='user_orders'),
     path('orders/<str:order_id>/view/', views.user_view_order, name='user_view_order'),
     path('orders/<str:order_id>/invoice/', views.user_order_invoice, name='user_order_invoice'),
-    path('orders/<str:order_id>/cancel/', cancel_order, name='user_cancel_order'),
+    path('orders/cancel-order/', user_cancel_order, name='user_cancel_order'),
+    path('orders/return-order/', user_return_order, name='user_return_order'),
     path('razorpay/callback/', razorpay_callback, name='razorpay_callback'),
     path('checkout/retry/', checkout_retry, name='checkout_retry'),
     path('login/', views.login, name='login'),

@@ -25,16 +25,19 @@ My Orders
             <p class="m-0 text-secondary" style="font-size: 0.95rem;">
                 Order Status: 
                 <span class=" fw-bold
-                    {% if order_item.order.status == 'Pending' %}text-secondary{% endif %}
-                    {% if order_item.order.status == 'Confirmed' %}text-dark{% endif %}
-                    {% if order_item.order.status == 'Processing' %}text-warning{% endif %}
-                    {% if order_item.order.status == 'Shipped' %}text-primary{% endif %}
-                    {% if order_item.order.status == 'Delivered' %}text-success{% endif %}
-                    {% if order_item.order.status == 'Returned' %}text-warning{% endif %}
-                    {% if order_item.order.status == 'Refunded' %}text-danger{% endif %}
-                    {% if order_item.order.status == 'Cancelled' %}text-danger{% endif %}
+                    {% if order_item.order.status == 'pending' %}text-secondary{% endif %}
+                    {% if order_item.order.status == 'confirmed' %}text-dark{% endif %}
+                    {% if order_item.order.status == 'processing' %}text-warning{% endif %}
+                    {% if order_item.order.status == 'shipped' %}text-primary{% endif %}
+                    {% if order_item.order.status == 'out_for_delivery' %}text-success{% endif %}
+                    {% if order_item.order.status == 'delivered' %}text-success{% endif %}
+                    {% if order_item.order.status == 'return_requested' %}text-warning{% endif %}
+                    {% if order_item.order.status == 'return_approved' %}text-danger{% endif %}
+                    {% if order_item.order.status == 'return_rejected' %}text-danger{% endif %}
+                    {% if order_item.order.status == 'refunded' %}text-danger{% endif %}
+                    {% if order_item.order.status == 'cancelled' %}text-danger{% endif %}
                 ">
-                    {{order_item.order.status}}
+                    {{order_item.order.get_status_display}}
                 </span>
             </p>
             <div class="d-flex gap-2 mt-2">

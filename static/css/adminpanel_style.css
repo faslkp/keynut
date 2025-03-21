@@ -78,6 +78,33 @@ body {
     justify-content: space-between;
 }
 
+
+/* Hide scrollbar by default (cross-browser) */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 0; /* Hide scrollbar in WebKit browsers (Chrome, Safari) */
+    background: transparent; /* Optional: ensures no background shows */
+}
+
+.custom-scrollbar {
+    scrollbar-width: none; /* Hide scrollbar in Firefox */
+}
+
+/* Show scrollbar on hover */
+.custom-scrollbar:hover::-webkit-scrollbar {
+    width: 8px; /* Set scrollbar width for WebKit browsers */
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: #888; /* Scrollbar color */
+    border-radius: 4px; /* Optional: rounded edges */
+}
+
+.custom-scrollbar:hover {
+    scrollbar-width: thin; /* Show thin scrollbar in Firefox */
+    scrollbar-color: #888 transparent; /* Thumb color and track color */
+}
+
+
 .sidebar-logo {
     padding: 1.25rem;
     display: flex;

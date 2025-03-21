@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.db.models import F
 
 from . forms import CustomerForm
-from . models import Cart, CartItem
+from . models import Wishlist, Cart, CartItem
 from products.models import Product, ProductVariant
 
 User = get_user_model()
@@ -119,6 +119,37 @@ def cutomer_blocking(request, pk):
             return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)
         
     return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)
+
+
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
+def wishlist(request):
+    whishlist_items = Wishlist.objects.filter(user=request.user)
+
+    suggested_products = products = Product.objects.filter(is_deleted=False, is_listed=True, category__is_deleted=False).order_by('-relevance')[:4]
+    context = {
+        'wishlist_items': whishlist_items,
+        'suggested_products': suggested_products,
+    }
+    return render(request, 'web/wishlist.html', context=context)
+
+
+def toggle_wishlist(request, product_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': True, 'message': 'Please log in to manage your wishlist.'}, status=401)
+
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return JsonResponse({'error': True, 'message': 'Product not found.'}, status=404)
+
+    wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, product=product)
+
+    if not created:
+        wishlist_item.delete()
+        return JsonResponse({'success': True, 'message': 'Removed from wishlist', 'in_wishlist': False})
+    else:
+        return JsonResponse({'success': True, 'message': 'Added to wishlist', 'in_wishlist': True})
 
 
 @login_required(login_url='login')
@@ -232,8 +263,3 @@ def remove_from_cart(request, pk):
             'message': "Item removed from cart successfully."
         })
 
-
-@login_required(login_url='login')
-@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
-def wishlist(request):
-    pass

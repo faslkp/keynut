@@ -63,8 +63,9 @@
         </div>
         <div class="row row-cols-1 row-cols-md-4 g-4">
             
+            {% load wishlist_tags %}
             {% for product in flash_sales %}
-                {% include 'web/includes/product_card.html' %}
+                {% include 'web/includes/product_card.html' with product=product in_wishlist=product|is_in_wishlist:request.user %}
             {% endfor %}
             
         </div>
@@ -81,7 +82,7 @@
         <div class="row row-cols-1 row-cols-md-4 g-4">
             
             {% for product in best_selling %}
-                {% include 'web/includes/product_card.html' %}
+                {% include 'web/includes/product_card.html' with product=product in_wishlist=product|is_in_wishlist:request.user %}
             {% endfor %}
 
         </div>
@@ -108,7 +109,7 @@
         <div class="row row-cols-1 row-cols-md-4 g-4">
             
             {% for product in new_arrivals %}
-                {% include 'web/includes/product_card.html' %}
+                {% include 'web/includes/product_card.html' with product=product in_wishlist=product|is_in_wishlist:request.user %}
             {% endfor %}
 
         </div>

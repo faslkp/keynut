@@ -19,7 +19,7 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from weasyprint import HTML
 
 from products.models import Product, Category
-from customers.models import Address
+from customers.models import Address, Wishlist
 from customers.forms import AddressForm
 from orders.models import Order, OrderItem, Payment
 
@@ -135,10 +135,14 @@ def product_details(request, slug):
     else:
         return redirect('404')
 
+    # Check if in wishlist
+    in_wishlist = Wishlist.objects.filter(user=request.user, product=product).exists()
+
     # Getting related products to display
     related_products = Product.objects.select_related('category').filter(~Q(slug=slug)).order_by('-relevance')[:4]
     context.update({
         'related_products': related_products,
+        'in_wishlist': in_wishlist,
     })
     return render(request, 'web/product_details.html', context=context)
 
@@ -324,7 +328,7 @@ def user_orders(request):
         order__user=request.user).select_related('order').prefetch_related('order__payments').annotate(
         retry_payment=Case(
             # If order status is NOT "Pending", mark False (no need to retry payment)
-            When(~Q(order__status="Pending"), then=Value(False)),
+            When(~Q(order__status="pending"), then=Value(False)),
 
             # If order is "Pending" AND has a "cash-on-delivery" payment, mark False
             When(
@@ -342,7 +346,7 @@ def user_orders(request):
                 Exists(
                     Payment.objects.filter(
                         order_id=OuterRef("order_id"),
-                        payment_status="Success"
+                        payment_status="success"
                     )
                 ),
                 then=Value(False),
@@ -371,7 +375,7 @@ def user_view_order(request, order_id):
     order = Order.objects.prefetch_related('order_items').filter(order_id=order_id, user=request.user).first()
 
     payment = Payment.objects.filter(
-        Q(order=order) & (Q(payment_status='Success') | Q(payment_method='cash-on-delivery'))).first()
+        Q(order=order) & (Q(payment_status='success') | Q(payment_method='cash-on-delivery'))).first()
 
     if not order:
         return redirect('404')

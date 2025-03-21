@@ -4,8 +4,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // Update order status
     document.querySelectorAll(".update-status-btn").forEach(button => {
         button.addEventListener("click", function () {
-            let orderId = this.getAttribute("data-order-id");
-            let newStatus = document.getElementById(`status-${orderId}`).value;
+            let requestId = this.dataset.requestId;
+            let newStatus = document.getElementById(`status-${requestId}`).value;
             let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content'); // Get CSRF token
 
             // Get the feedback modal elements
@@ -15,14 +15,14 @@ document.addEventListener("DOMContentLoaded", function () {
             feedbackModalLabel.innerText = "";
             feedbackModalDesc.innerText = "";
 
-            fetch("/admin/orders/update-status/", {
+            fetch("/admin/returns/update-status/", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "X-CSRFToken": csrfToken // Include CSRF token
                 },
                 body: JSON.stringify({
-                    order_id: orderId, 
+                    request_id: requestId, 
                     status: newStatus 
                 })
             })
@@ -102,11 +102,6 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".btn-view-order").forEach(button => {
         button.addEventListener("click", function (event) {
             // Setting up Update Status button and disabling to wait for fetching product data
-            const updateStatusButton = document.getElementById('updateStatusButton');
-            const newButton = updateStatusButton.cloneNode(true); // Clone the button (without event listeners)
-            updateStatusButton.parentNode.replaceChild(newButton, updateStatusButton); // Replace old button
-            newButton.disabled = true;
-            newButton.innerText = "Please wait"
             document.getElementById('orderDetailsModalLabel').innerText = "Order Details"
 
             // Getting order details fields
@@ -117,8 +112,6 @@ document.addEventListener("DOMContentLoaded", function () {
             const orderTotalSpan = document.querySelector('.order-total');
             const orderItemsSpan = document.querySelector('.order-items-table');
             const paymentsSpan = document.querySelector('.payments-table');
-            const statusChoicesSpan = document.querySelector('.order-status-dropdown')
-            statusChoicesSpan.innerHTML = `<option value="" selected disabled><span class="order-status"></span></option>`
             const orderStatusSpan = document.querySelector('.order-status');
 
             // Clear existing values
@@ -160,11 +153,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Adding order details to modal
                 orderIdSpan.innerText = data.order_id
                 orderDateSpan.innerText = data.order_date.split("T")[0]
+                orderStatusSpan.innerText = data.status
                 orderSubTotalSpan.innerText = `₹${parseFloat(data.total_amount).toFixed(2)}`
                 orderTotalSpan.innerText = `₹${parseFloat(data.total_amount).toFixed(2)}`
 
                 orderAddressSpan.innerText = `${data.address.name}, ${data.address.address_line_1}, ${data.address.address_line_2}, ${data.address.city}, ${data.address.state}, ${data.address.pin}, ${data.address.phone}, `
                 
+                data.status_choices.forEach(choice => {
+                    if (choice[0] == data.status) {
+                        orderStatusSpan.innerText = choice[1]
+                    }
+                });
+
                 // const orderItems = JSON.parse(data.order_items)
                 data.order_items.forEach(item => {
                     
@@ -193,71 +193,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Append the new row to the tbody
                     paymentsSpan.appendChild(newPaymentRow);
                 })
-
-                data.status_choices.forEach(choice => {
-                    if (choice[0] == data.status) {
-                        orderStatusSpan.innerText = choice[1]
-                    } else {
-                        const option = document.createElement("option"); // Create an <option> element
-                        option.value = choice[0]; // Set value
-                        option.textContent = choice[1]; // Set display text
-                        statusChoicesSpan.appendChild(option); // Append it to <select>
-                    }
-                });
-
-                newButton.dataset.orderId = data.id
-                newButton.dataset.orderStatus = data.status
-
-                newButton.disabled = false;
-                newButton.innerText = "Update Status"
-
-                // Attaching new event listener to the Update Status button
-                newButton.addEventListener('click', function (event) {
-
-                    event.preventDefault();
-
-                    // Disable button to avoid duplicate requests
-                    this.disabled = true;
-                    this.innerText = "Please wait";
-
-                    let orderId = this.getAttribute("data-order-id");
-                    let newStatus = document.getElementById("order-status-dropdown").value;
-                    let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-                    // Ajax request to edit product details
-                    fetch("/admin/orders/update-status/", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRFToken": csrfToken // Include CSRF token
-                        },
-                        body: JSON.stringify({
-                            order_id: orderId, 
-                            status: newStatus 
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const button = this;
-                            button.innerText = "Status updated"
-                            button.classList.remove('btn-danger')
-                            button.classList.add('btn-success')
-                            setTimeout(() => {
-                                button.innerText = "Update Status"; // Revert back after 1 seconds
-                                button.disabled = false
-                                button.classList.remove('btn-success')
-                                button.classList.add('btn-danger')
-                            }, 2000);
-                        } else {
-                            alert(data.message)
-                        }
-                    })
-                    .catch(error => console.error("Error:", error));
-                });
             })
             .catch(error => {
-                console.log("Error occured." + error)
+                console.log("Error occured. " + error)
                 alert("Something went wrong! Please reload the page.")
             });
         });

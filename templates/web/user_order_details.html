@@ -16,27 +16,45 @@ Order Details
             <p class="">Payment Method: <span class="fw-bold">{{payment.get_payment_method_display}}</span></p>
             <p class="mb-0">Order Status: 
                 <span class="fw-bold
-                    {% if order.status == 'Pending' %}text-secondary{% endif %}
-                    {% if order.status == 'Confirmed' %}text-dark{% endif %}
-                    {% if order.status == 'Processing' %}text-warning{% endif %}
-                    {% if order.status == 'Shipped' %}text-primary{% endif %}
-                    {% if order.status == 'Delivered' %}text-success{% endif %}
-                    {% if order.status == 'Returned' %}text-warning{% endif %}
-                    {% if order.status == 'Refunded' %}text-danger{% endif %}
-                    {% if order.status == 'Cancelled' %}text-danger{% endif %}
+                    {% if order.status == 'pending' %}text-secondary{% endif %}
+                    {% if order.status == 'confirmed' %}text-dark{% endif %}
+                    {% if order.status == 'processing' %}text-warning{% endif %}
+                    {% if order.status == 'shipped' %}text-primary{% endif %}
+                    {% if order.status == 'delivered' %}text-success{% endif %}
+                    {% if order_item.order.status == 'out_for_delivery' %}text-success{% endif %}
+                    {% if order.status == 'return_requested' %}text-warning{% endif %}
+                    {% if order.status == 'return_approved' %}text-danger{% endif %}
+                    {% if order.status == 'return_rejected' %}text-danger{% endif %}
+                    {% if order.status == 'refunded' %}text-danger{% endif %}
+                    {% if order.status == 'cancelled' %}text-danger{% endif %}
                 ">
-                    {{order.status}}
+                    {{order.get_status_display}}
                 </span>
             </p>
         </div>
         <div class="col-12 col-md 4 p-3 d-flex flex-column align-items-end justify-content-between gap-2">
+            
             {% if payment %}
-            <a href="{% url 'user_order_invoice' order.order_id %}" class="btn btn-outline-danger">Download Invoice</a>
+                {% if order.status != 'Pending' and order.status != 'Cancelled' and order.status != 'Refunded' %}
+                    <a href="{% url 'user_order_invoice' order.order_id %}" class="btn btn-outline-danger">Download Invoice</a>
+                {% endif %}
             {% endif %}
+
             {% if order.status == 'Pending' or order.status == 'Confirmed' or order.status == 'Processing' %}
-            <a href="#" class="btn btn-danger">Cancel Order</a>
+                <a href="#" class="cancel-order-btn btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">Cancel Order</a>
+            {% endif %}
+
+            {% if order.status == 'Delivered' %}
+                <a href="#" class="return-order-btn btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#returnOrderModal">Return Order</a>
             {% endif %}
         </div>
+
+        {% if order.status == 'return_approved' %}
+        <p class="text-danger">
+            Please pack your items in original package or any safe packages. 
+            Remember to include copy of your invoice in the package so we can process returns faster.
+        </p>
+        {% endif %}
     </div>
     <div class="">
         <p class="text-dark fw-bold">Order Items:</p>
@@ -114,4 +132,78 @@ Order Details
     
 </div>
 
+{% if order.status == 'Pending' or order.status == 'Confirmed' or order.status == 'Processing' %}
+<!-- Cancel Order Confirmation Modal -->
+<div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelOrderModalLabel">Cancel Order Confirmation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'user_cancel_order' %}" method="post" id="orderCancelReturnForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p id="cancelOrderModalDesc">Are you sure want to cancel this order? This cannot be undone.</p>
+                    <input type="hidden" id="cancel-order-id" name="order-id" value="{{order.order_id}}">
+                    <label for="cancellation-note" class="form-label">Reason for cancellation</label>
+                    <input type="text" id="cancellation-return-note" name="cancellation-note" class="form-control" placeholder="Please mention reason for cancelling this order." required>
+                    <small id="cancellation-return-error-message" class="error-message text-danger"></small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="cancelOrderCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" id="cancelOrderConfirmButton" class="btn btn-danger">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if order.status == 'Delivered' %}
+<!-- Return Order Confirmation Modal -->
+<div class="modal fade" id="returnOrderModal" tabindex="-1" aria-labelledby="returnOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="returnOrderModalLabel">Order Return Confirmation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'user_return_order' %}" method="post" id="orderCancelReturnForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" id="cancel-order-id" name="order-id" value="{{order.order_id}}">
+                    <label for="cancellation-note" class="form-label">Reason for return</label>
+                    <input type="text" id="cancellation-return-note" name="return-reason" class="form-control" placeholder="Please mention reason for returning this order." required>
+                    <small id="cancellation-return-error-message" class="error-message text-danger"></small>
+                
+                    <p class="mt-3 text-danger">Please do not return any items before approval from our side. Please wait for us to confirm and approve your request.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="returnOrderCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" id="returnOrderConfirmButton" class="btn btn-danger">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    document.getElementById('orderCancelReturnForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        const cancellationNote = document.getElementById('cancellation-return-note').value;
+        const errorMessage = document.getElementById('cancellation-return-error-message');
+
+        if (!cancellationNote || cancellationNote.trim() == '') {
+            errorMessage.innerText = 'Please enter a valid reason.'
+            return;
+        }
+        
+        this.submit();
+        
+    })
+</script>
 {% endblock profile_content %}
+
