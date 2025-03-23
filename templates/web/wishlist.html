@@ -42,7 +42,7 @@
     <h3 class="mt-5 mb-3" style="font-size: 1.5rem;">Wishlist</h3>
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mt-3 mb-5 pb-5">
         <!-- Related Product 1 -->
-        {% load wishlist_tags %}
+        {% load custom_tags %}
         {% for item in wishlist_items %}
             {% include 'web/includes/product_card.html' with product=item.product in_wishlist=True %}
         {% endfor %}

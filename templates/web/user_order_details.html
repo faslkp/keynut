@@ -83,7 +83,7 @@ Order Details
                         </div>
                         <span class="col-md-8 fw-bold">{{ order_item.product.name }}</span>
                     </td>
-                    <td class="py-3 px-3">₹{{ order_item.product.price }}</td>
+                    <td class="py-3 px-3">₹{{ order_item.price }}</td>
                     <td class="py-3 px-3">{{ order_item.variant }} {{order_item.product.unit}}</td>
                     <td class="py-3 px-3">{{ order_item.quantity }}</td>
                     <td class="py-3 px-3">₹{{ order_item.total_amount|floatformat:2 }}</td>

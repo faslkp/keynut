@@ -14,6 +14,7 @@ import razorpay
 
 from customers.models import Address, Cart, CartItem
 from products.models import Product
+from promotions.services import OfferService
 from . models import Order, OrderItem, OrderAddress, Payment, ReturnRequest
 from . services import create_razorpay_order, verify_razorpay_signature
 
@@ -125,6 +126,7 @@ def checkout(request):
             return redirect('checkout')
         
         
+        # Starting the order creation
         with transaction.atomic(): # Ensures atomicity
             
             # Create order address
@@ -154,22 +156,44 @@ def checkout(request):
                 )
 
             # Creating order instance
+            shipping_charge = cart.shipping_charge()
+            _,_,cart_level_discount = cart.total_price()
+            
             order = Order.objects.create(
                 user = request.user,
                 delivery_address = order_address,
+                shipping_charge = shipping_charge,
+                order_level_discount=cart_level_discount
             )
 
-            # Creating order items in bulk
-            order_items = [
-                OrderItem(
-                    order = order,
-                    product = item.product,
-                    variant = item.variant.quantity,
-                    price = item.product.discount_price,
-                    quantity = item.quantity
+            # Apply OfferService for each cart item and create order items
+            order_items = []
+            for item in cart_items:
+                product = item.product
+                variant_quantity = item.variant.quantity
+                quantity = item.quantity
+
+                # Apply Offers and Coupons
+                offer_service = OfferService(product, variant_quantity, quantity, user=request.user)
+                offer_service.apply_offers()
+                offer_service.apply_coupons()
+
+                # Calculate Final Price
+                final_price = offer_service.calculate_final_price()
+
+                # Getting per unit discount amount
+                discount_amount_per_unit = product.price - final_price
+                
+                # Create order item
+                order_item = OrderItem(
+                    order=order,
+                    product=product,
+                    variant=variant_quantity,
+                    price=final_price,
+                    quantity=quantity,
+                    discount_amount=discount_amount_per_unit
                 )
-                for item in cart_items
-            ]
+                order_items.append(order_item)
 
             OrderItem.objects.bulk_create(order_items)
 

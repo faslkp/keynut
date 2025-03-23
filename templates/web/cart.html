@@ -1,4 +1,5 @@
 {% extends "web/base.html" %}
+{% load custom_tags %}
 
 {% block title %}Home{% endblock title %}
 
@@ -120,7 +121,7 @@
                             </a>
                             <span>{{item.product.name}} - {{item.variant.quantity}} {{item.product.unit}}</span>
                         </td>
-                        <td>₹<span id="price-{{item.id}}">{{item.product.discount_price|floatformat:2}}</span></td>
+                        <td>₹<span id="price-{{item.id}}">{{item.product.price|floatformat:2}}</span></td>
                         <td>
                             {% if item.product.stock < item.variant.quantity %}
                             <span class="text-danger">Out of stock<span>
@@ -134,7 +135,7 @@
                             </div>
                             {% endif %}
                         </td>
-                        <td>₹<span id="total-{{item.id}}">{{item.total_price|floatformat:2}}</span></td>
+                        <td>₹<span id="total-{{item.id}}">{{item.total_price|get_index:0|floatformat:2}}</span></td>
                         <td>
                             <button class="remove-from-cart btn btn-link p-0" data-item-id="{{item.id}}">
                                 <i class="bi bi-trash"></i>
@@ -157,24 +158,39 @@
     <div class="row pt-5 justify-content-between">
         <!-- Coupon Section -->
         <div class="col-12 col-md-5 coupon-section">
-            <div class="d-flex gap-2">
-                <input type="text" class="form-control border border-secondary" placeholder="Coupon Code">
-                <button class="btn btn-danger w-auto text-nowrap">Apply Coupon</button>
+            <form action="{% url 'apply_coupon' %}" method="post" class="d-flex gap-2">
+                {% csrf_token %}
+                <input type="text" name="coupon-code" class="form-control border border-secondary" placeholder="Coupon Code">
+                <button type="submit" class="btn btn-danger w-auto text-nowrap">Apply Coupon</button>
+            </form>
+            {% if cart.coupon %}
+            <div class="bg-warning-subtle p-3 rounded-3 mt-3">
+                <div class="d-flex justify-content-between align-items-end mb-1">
+                    <p class="text-success mb-0">Coupon {{cart.coupon.code}} applied.</p>
+                    <form action="{% url 'apply_coupon' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger p-1">Remove Coupon</button>
+                    </form>
+                </div>
+                <small class="text-success">{{cart.coupon.description}}</small>
             </div>
+            {% endif %}
         </div>
 
         <!-- Cart Summary -->
         <div class="col-12 col-md-4">
             <div class="cart-summary">
-                <h5 class="fw-bold">Cart Total</h5>
-                <p class="d-flex justify-content-between"><span>Subtotal:</span> <span>₹{{cart.total_price|floatformat:2}}</span></p>
-                <hr class="my-1">
-                <p class="d-flex justify-content-between"><span>Shipping:</span> <span>₹0</span></p>
-                <hr class="my-1">
-                <p class="d-flex justify-content-between"><span>Promotion/Discount:</span> <span>-₹0</span></p>
-                <hr class="my-1 mb-2">
-                <p class="d-flex justify-content-between fw-bold"><span>Total:</span> <span>₹{{cart.total_price|floatformat:2}}</span></p>
-                <a href="{% url 'checkout' %}" class="btn btn-danger py-2 px-3 mt-4 d-block mx-auto">Proceed to Checkout</a>
+                {% with total_price=cart.total_price|get_index:0 total_discount=cart.total_price|get_index:1 %}
+                    <h5 class="fw-bold">Cart Total</h5>
+                    <p class="d-flex justify-content-between"><span>Subtotal:</span> <span>₹{{ total_price|add:total_discount|floatformat:2 }}</span></p>
+                    <hr class="my-1">
+                    <p class="d-flex justify-content-between"><span>Shipping:</span> <span>₹{{ cart.shipping_charge|floatformat:2 }}</span></p>
+                    <hr class="my-1">
+                    <p class="d-flex justify-content-between"><span>Promotion/Discount:</span> <span>-₹{{total_discount|floatformat:2}}</span></p>
+                    <hr class="my-1 mb-2">
+                    <p class="d-flex justify-content-between fw-bold"><span>Total:</span> <span>₹{{total_price|add:cart.shipping_charge|floatformat:2}}</span></p>
+                    <a href="{% url 'checkout' %}" class="btn btn-danger py-2 px-3 mt-4 d-block mx-auto">Proceed to Checkout</a>
+                {% endwith %}
             </div>
         </div>
     </div>

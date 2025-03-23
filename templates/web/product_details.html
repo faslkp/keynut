@@ -250,7 +250,7 @@
     <h3 class="mt-5 mb-3" style="font-size: 1.5rem;">Related Items</h3>
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
         <!-- Related Product 1 -->
-        {% load wishlist_tags %}
+        {% load custom_tags %}
         {% for product in related_products %}
             {% include 'web/includes/product_card.html' with product=product in_wishlist=product|is_in_wishlist:request.user %}
         {% endfor %}

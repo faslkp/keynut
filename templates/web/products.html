@@ -103,7 +103,7 @@
         <div class="col-12 col-md-9">
             <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
                 
-                {% load wishlist_tags %}
+                {% load custom_tags %}
                 {% for product in products %}
                     {% include 'web/includes/product_card.html' with product=product in_wishlist=product|is_in_wishlist:request.user %}
                 {% endfor %}

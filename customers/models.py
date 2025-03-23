@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 
 from products.models import Product, ProductVariant
+from promotions.services import OfferService
+from promotions.models import Coupon
 
 
 class Customer(AbstractUser):
@@ -48,10 +50,40 @@ class Wishlist(models.Model):
 
 class Cart(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+
     def total_price(self):
-        return sum(item.total_price() for item in self.cart_items.all())
+        total_order_price, total_items_discount = map(sum, zip(*(item.total_price() for item in self.cart_items.all())))
+        
+        # Apply cart-level coupon if applicable
+        total_cart_level_discount = self.calculate_total_coupon_discount(total_order_price)
+        total_order_price -= total_cart_level_discount
+        
+        total_discount = total_items_discount + total_cart_level_discount
+
+        return total_order_price, total_discount, total_cart_level_discount
+    
+
+    def calculate_total_coupon_discount(self, total_price):
+        if not self.coupon or not self.coupon.apply_to_total_order:
+            return 0
+
+        if self.coupon.discount_type == 'percentage':
+            discount = (self.coupon.discount_value / 100) * total_price
+            if self.coupon.max_discount_amount:
+                discount = min(discount, self.coupon.max_discount_amount)
+        else:
+            discount = self.coupon.discount_value
+        
+        return discount
+
+
+    def shipping_charge(self):
+        cart_total = self.total_price()[0]  # Get total price without discount
+        return 40 if cart_total < 1000 else 0
+
 
     def __str__(self):
         return f"Cart of {self.user.username}"
@@ -64,11 +96,27 @@ class CartItem(models.Model):
     quantity = models.IntegerField(default=1)  # Number of packets
     added_at = models.DateTimeField(auto_now_add=True)
 
+
     def total_price(self):
-        if self.variant.quantity <= self.product.stock:
-            return self.product.discount_price * self.variant.quantity * self.quantity  # Corrected pricing logic
+        # Check if the total required quantity is within stock and then calculate total price
+        if self.variant.quantity * self.quantity <= self.product.stock:
+            offer_service = OfferService(
+                self.product, 
+                self.variant.quantity, 
+                self.quantity, 
+                coupon_code=self.cart.coupon.code if self.cart.coupon else None
+            )
+            offer_service.apply_offers()
+            offer_service.apply_coupons()
+            
+            # Calculate Final Price
+            discounted_price, disount = offer_service.calculate_final_price()
+            final_price = discounted_price * self.variant.quantity * self.quantity
+            
+            return final_price, disount
         else:
-            return 0
+            return 0, 0
+
 
     def __str__(self):
         return f"{self.quantity} x {self.variant.quantity}kg of {self.product.name} in {self.cart.user.username}'s cart"

@@ -12,6 +12,8 @@ from django.db.models import F
 from . forms import CustomerForm
 from . models import Wishlist, Cart, CartItem
 from products.models import Product, ProductVariant
+from promotions.services import OfferService
+from promotions.models import Coupon
 
 User = get_user_model()
 
@@ -263,3 +265,39 @@ def remove_from_cart(request, pk):
             'message': "Item removed from cart successfully."
         })
 
+
+def apply_coupon(request):
+    if request.method == 'POST':
+        coupon_code = request.POST.get('coupon-code','').upper()
+        # if not coupon_code:
+        #     return redirect('cart')
+
+        coupon = Coupon.objects.filter(code=coupon_code).first()
+        cart = Cart.objects.get(user=request.user)
+        if coupon:
+            try:
+                # Initialize OfferService and validate coupon
+                offer_service = OfferService(
+                    product=None, 
+                    variant_quantity=None, 
+                    quantity=None, 
+                    user=request.user, 
+                    coupon_code=coupon.code
+                )
+                offer_service.validate_coupon(cart_total=cart.total_price()[0])
+
+                # Store valid coupon in the cart
+                cart.coupon = coupon
+                cart.save()
+
+                return redirect('cart')
+        
+            except ValueError as e:
+                messages.error(request, str(e))
+                return redirect('cart')
+            except Cart.DoesNotExist:
+                messages.error(request, "Something went wrong! Please try again.")
+        else:
+            cart.coupon = None
+            cart.save()
+    return redirect('cart')

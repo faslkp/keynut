@@ -75,14 +75,13 @@
 
             // Add active class to the clicked item
             this.classList.add('active');
-            console.log('hello')
         });
     });
 
     // Check the active link and apply it on page load
-    // const currentUrl = window.location.pathname
+    const currentPageUrl = window.location.pathname
     sideNavLinks.forEach(link => {
-        if (link.getAttribute('href') === currentUrl) {
+        if (link.getAttribute('href') === currentPageUrl) {
             link.classList.add('active');
         }
     });
