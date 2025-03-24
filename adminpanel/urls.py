@@ -30,7 +30,10 @@ urlpatterns = [
     path('returns/', views.return_requests, name='admin_returns'),
     path('returns/update-status/', process_return_request, name='update_return_status'),
     path('reports/', views.dashboard, name='admin_reports'),
-    path('coupons/', views.dashboard, name='admin_coupons'),
+    path('offers/', views.offers, name='admin_offers'),
+    path('offers/add/', views.add_offer, name='add_offer'),
+    path('coupons/', views.coupons, name='admin_coupons'),
+    path('coupons/add/', views.add_coupon, name='add_coupon'),
     path('settings/', views.dashboard, name='admin_settings'),
     path('unavailable/', views.unavailable, name='unavailable'),
 ]

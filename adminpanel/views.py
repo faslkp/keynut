@@ -19,6 +19,8 @@ from customers.forms import CustomerForm
 from products.forms import ProductForm, CategoryForm
 from products.models import Product, Category
 from orders.models import Order, OrderItem, Payment, ReturnRequest
+from promotions.models import Offer, Coupon
+from promotions.forms import OfferForm, CouponForm
 
 User = get_user_model()
 
@@ -289,6 +291,151 @@ def return_requests(request):
         'payment_methods': payment_methods,
     }
     return render(request, 'admin/return_requests.html', context=context)
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def offers(request):
+    offers = Offer.objects.all().order_by('-start_date')
+
+    sortby = request.GET.get('sortby')
+    filter = request.GET.get('filter')
+    q = request.GET.get('q')
+    
+    # Handle sort, filter, category and search
+    if sortby:
+        if sortby.startswith('-'):
+            field_name = sortby.lstrip('-')
+            offers = offers.order_by(Lower(field_name).desc())
+        else:
+            offers = offers.order_by(sortby)
+    if filter:
+        match filter:
+            case "active":
+                offers = offers.filter(start_date__lte=datetime.datetime.now(), end_date__gte=datetime.datetime.now())
+            case "upcoming":
+                offers = offers.filter(start_date__gt=datetime.datetime.now())
+            case "expired":
+                offers = offers.filter(end_date__lt=datetime.datetime.now())
+    if q:
+        offers = offers.filter(name__icontains=q)
+    
+    # Pagination
+    paginator = Paginator(offers, 10) #10 offers per page
+    page_number = request.GET.get('page')
+    offers = paginator.get_page(page_number)
+
+    form = OfferForm()
+
+    context = {
+        'offers': offers,
+        'form': form,
+    }
+    return render(request, 'admin/offers.html', context=context)
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def add_offer(request):
+    if request.method == 'POST':
+        form = OfferForm(request.POST)
+        if form.is_valid():
+            offer = form.save()
+            return JsonResponse({
+                'success': True,
+                'message': f"Offer {offer.name} added successfully.",
+            })
+        else:
+            return JsonResponse({
+                'error': True,
+                'message': "Invalid or incomplete data received. Please correct and resubmit",
+            })
+    return JsonResponse({
+        'error': True,
+        'message': 'Invalid request.',
+    })
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def coupons(request):
+    coupons = Coupon.objects.all().order_by('-start_date')
+
+    sortby = request.GET.get('sortby')
+    filter = request.GET.get('filter')
+    q = request.GET.get('q')
+    
+    # Handle sort, filter, category and search
+    if sortby:
+        if sortby.startswith('-'):
+            field_name = sortby.lstrip('-')
+            coupons = coupons.order_by(Lower(field_name).desc())
+        else:
+            coupons = coupons.order_by(sortby)
+    if filter:
+        match filter:
+            case "active":
+                coupons = coupons.filter(start_date__lte=datetime.datetime.now(), end_date__gte=datetime.datetime.now(), is_active=True)
+            case "disabled":
+                coupons = coupons.filter(is_active=False)
+            case "percentage":
+                coupons = coupons.filter(discount_type='percentage')
+            case "flat":
+                coupons = coupons.filter(discount_type='flat')
+            case "cart":
+                coupons = coupons.filter(apply_to_total_order=True)
+            case "product":
+                coupons = coupons.filter(products__isnull=False)
+            case "category":
+                coupons = coupons.filter(categories__isnull=False)
+            case "user":
+                coupons = coupons.filter(users__isnull=False)
+    if q:
+        coupons = coupons.filter(Q(code__icontains=q) | Q(description__icontains=q))
+    
+    # Pagination
+    paginator = Paginator(coupons, 10) #10 coupons per page
+    page_number = request.GET.get('page')
+    coupons = paginator.get_page(page_number)
+
+    form = CouponForm()
+    context = {
+        'coupons': coupons,
+        'form': form
+    }
+    return render(request, 'admin/coupons.html', context=context)
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def add_coupon(request):
+    if request.method == 'POST':
+        
+        # Check if coupon already exists
+        coupon_code = request.POST.get('code')
+        if Coupon.objects.filter(code=coupon_code).exists():
+            return JsonResponse({
+                'error': True,
+                'message': f"Coupon {coupon_code} already exists.",
+            })
+        
+        form = CouponForm(request.POST)
+        if form.is_valid():
+            coupon = form.save()
+            return JsonResponse({
+                'success': True,
+                'message': f"Offer {coupon.code} added successfully.",
+            })
+        else:
+            return JsonResponse({
+                'error': True,
+                'message': "Invalid or incomplete data received. Please correct and resubmit",
+            })
+        
+    return JsonResponse({
+        'error': True,
+        'message': 'Invalid request.',
+    })
 
 
 @user_passes_test(lambda user: not user.is_authenticated, login_url='dashboard',redirect_field_name=None)

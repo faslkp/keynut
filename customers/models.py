@@ -103,7 +103,8 @@ class CartItem(models.Model):
             offer_service = OfferService(
                 self.product, 
                 self.variant.quantity, 
-                self.quantity, 
+                self.quantity,
+                user=self.cart.user,
                 coupon_code=self.cart.coupon.code if self.cart.coupon else None
             )
             offer_service.apply_offers()

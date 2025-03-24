@@ -179,10 +179,12 @@ def checkout(request):
                 offer_service.apply_coupons()
 
                 # Calculate Final Price
-                final_price = offer_service.calculate_final_price()
+                final_price, applied_discount = offer_service.calculate_final_price()
 
                 # Getting per unit discount amount
                 discount_amount_per_unit = product.price - final_price
+                print(f"Discount amount per unit: {discount_amount_per_unit}")
+                print(f"Applied discount: {applied_discount}")
                 
                 # Create order item
                 order_item = OrderItem(
@@ -248,7 +250,7 @@ def checkout(request):
         'saved_addresses': saved_addresses,
         'cart': cart,
     })
-    if cart.total_price() > 0:
+    if cart.total_price()[0] > 0:
         return render(request, 'web/checkout.html', context=context)
     else:
         return redirect('cart')

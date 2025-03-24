@@ -29,8 +29,6 @@ class OfferService:
         # Get current time for active offer validation
         current_time = timezone.now()
 
-        from django.db import connection
-
         # Fetch product and category-based offers
         product_offers = Offer.objects.filter(applicable_products=self.product, is_active=True, start_date__lte=current_time, end_date__gte=current_time)
         category_offers = Offer.objects.filter(applicable_categories=self.product.category, is_active=True, start_date__lte=current_time, end_date__gte=current_time)

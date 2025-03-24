@@ -18,13 +18,13 @@
     <div class="sidebar-backdrop"></div>
     
     <!-- Sidebar -->
-    <div class="sidebar overflow-auto custom-scrollbar">
+    <div class="sidebar">
         <div class="sidebar-logo">
             <img src="{% static 'images/keynut.png' %}" alt="Keynut">
             <span>KEYNUT</span>
         </div>
         
-        <div class="mt-3">
+        <div class="mt-3 overflow-auto custom-scrollbar">
             <ul class="nav flex-column">
                 <li class="nav-item">
                     <a href="{% url 'dashboard' %}" class="nav-link">
@@ -42,6 +42,18 @@
                     <a href="{% url 'admin_returns' %}" class="nav-link">
                         <i class="bi bi-arrow-return-left"></i>
                         Return Requests
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'admin_offers' %}" class="nav-link">
+                        <i class="bi bi-cash-coin"></i>
+                        Offers
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'admin_coupons' %}" class="nav-link">
+                        <i class="bi bi-tag"></i>
+                        Coupons
                     </a>
                 </li>
                 <li class="nav-item">
@@ -69,12 +81,6 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{% url 'admin_coupons' %}" class="nav-link">
-                        <i class="bi bi-tag"></i>
-                        Coupons
-                    </a>
-                </li>
-                <li class="nav-item">
                     <a href="{% url 'admin_reports' %}" class="nav-link">
                         <i class="bi bi-bar-chart"></i>
                         Reports
@@ -87,14 +93,13 @@
                     </a>
                 </li>
             </ul>
-        </div>
-        
-        <div class="mt-auto px-3 py-3">
-            <a href="{% url 'admin_logout' %}" class="btn btn-danger w-100">Logout</a>
-        </div>
-        
-        <div class="sidebar-footer">
-            © 2025 Keynut
+            <div class="mt-auto px-3 py-3">
+                <a href="{% url 'admin_logout' %}" class="btn btn-danger w-100">Logout</a>
+            </div>
+            
+            <div class="sidebar-footer">
+                © 2025 Keynut
+            </div>
         </div>
     </div>
     
