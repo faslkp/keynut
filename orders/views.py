@@ -125,6 +125,18 @@ def checkout(request):
             messages.error(request, "Select a payment method before proceeding with checkout!")
             return redirect('checkout')
         
+        # Getting cart total, shipping charge and cart level discount
+        # moved to here to compare with wallet balance before proceeding with order
+        cart_total,_,_ = cart.total_price()
+        shipping_charge = cart.shipping_charge()
+        _,_,cart_level_discount = cart.total_price()
+
+        # Checking wallet balance for wallet orders before proceeding with order
+        if payment_method == 'wallet':
+            wallet, _ = Wallet.objects.get_or_create(user=request.user)
+            if wallet.balance < cart_total + shipping_charge:
+                messages.error(request, "Insufficient balance in wallet. Please select a different payment method.")
+                return redirect('checkout')
         
         # Starting the order creation
         with transaction.atomic(): # Ensures atomicity
@@ -156,9 +168,6 @@ def checkout(request):
                 )
 
             # Creating order instance
-            shipping_charge = cart.shipping_charge()
-            _,_,cart_level_discount = cart.total_price()
-            
             order = Order.objects.create(
                 user = request.user,
                 delivery_address = order_address,
@@ -210,36 +219,57 @@ def checkout(request):
 
             # Clear cart
             cart_items.delete()
+            cart.coupon = None
+            cart.save(update_fields=["coupon"])
 
-        # Creating payment data
-        payment = Payment.objects.create(
-            order=order,
-            amount=order.total_amount,
-            payment_method=payment_method
-        )
+            # Creating payment data
+            payment = Payment.objects.create(
+                order=order,
+                amount=order.total_amount,
+                payment_method=payment_method
+            )
         
-        # Handle cash on delivery order
-        if payment_method == 'cash-on-delivery':
-            return render(request, 'web/order_placed.html')
+            # Handle cash on delivery order
+            if payment_method == 'cash-on-delivery':
+                return render(request, 'web/order_placed.html')
             
-        # Handling online payments
-        else:
-            # Creating razor pay order
-            razorpay_order = create_razorpay_order(order.total_amount)
-            
-            if razorpay_order['id']:
-                payment.payment_provider_order_id = razorpay_order['id']
+            # Handle wallet payment order
+            if payment_method == 'wallet':
+                wallet.balance -= order.total_amount
+                wallet.save(update_fields=["balance"])
+
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    transaction_type='payment',
+                    amount=order.total_amount,
+                    status='success',
+                    notes=f"Payment for order {order.order_id}"
+                )
+
+                payment.transaction_id = 'WALLET'
+                payment.payment_status = 'success'
                 payment.save()
 
-                context = {
-                    "callback_url": "http://" + "127.0.0.1:8000" + "/razorpay/callback/",
-                    "razorpay_key": settings.RAZORPAY_API_KEY,
-                    "order": order,
-                    'provider_id': razorpay_order['id']
-                }
-                return render(request, 'web/razorpay_payment.html', context=context)
-            else:
-                return render(request, 'web/order_failed.html', {'order': order})
+                return render(request, 'web/order_placed.html')
+                
+            # Handling online payments
+            if payment_method == 'razorpay':
+                # Creating razor pay order
+                razorpay_order = create_razorpay_order(order.total_amount)
+                
+                if razorpay_order['id']:
+                    payment.payment_provider_order_id = razorpay_order['id']
+                    payment.save()
+
+                    context = {
+                        "callback_url": "http://" + "127.0.0.1:8000" + "/razorpay/callback/",
+                        "razorpay_key": settings.RAZORPAY_API_KEY,
+                        "order": order,
+                        'provider_id': razorpay_order['id']
+                    }
+                    return render(request, 'web/razorpay_payment.html', context=context)
+                else:
+                    return render(request, 'web/order_failed.html', {'order': order})
         
 
     # Handling GET request

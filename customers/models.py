@@ -56,27 +56,42 @@ class Cart(models.Model):
 
 
     def total_price(self):
-        total_order_price, total_items_discount = map(sum, zip(*(item.total_price() for item in self.cart_items.all())))
+        total_cart_value, total_items_level_discount = map(sum, zip(*(item.total_price() for item in self.cart_items.all())))
         
         # Apply cart-level coupon if applicable
-        total_cart_level_discount = self.calculate_total_coupon_discount(total_order_price)
-        total_order_price -= total_cart_level_discount
+        cart_level_discount = self.calculate_cart_level_coupon_discount(total_cart_value)
+        final_cart_value = total_cart_value - cart_level_discount
         
-        total_discount = total_items_discount + total_cart_level_discount
-
-        return total_order_price, total_discount, total_cart_level_discount
+        total_discount = total_items_level_discount + cart_level_discount
+        print('total dicount:', total_discount)
+        print('cart level discount:', cart_level_discount)
+        print('items level discount:', total_items_level_discount)
+        return final_cart_value, total_discount, cart_level_discount
     
 
-    def calculate_total_coupon_discount(self, total_price):
+    def calculate_cart_level_coupon_discount(self, total_price):
         if not self.coupon or not self.coupon.apply_to_total_order:
             return 0
 
+        offer_service = OfferService(
+                None,
+                None,
+                None,
+                user=self.user,
+                coupon_code=self.coupon.code if self.coupon else None
+            )
+        try:
+            offer_service.validate_coupon(cart_total=total_price)
+        except ValueError as e:
+            print(f"Coupon validation failed: {e}")
+            return 0
+        
         if self.coupon.discount_type == 'percentage':
             discount = (self.coupon.discount_value / 100) * total_price
             if self.coupon.max_discount_amount:
                 discount = min(discount, self.coupon.max_discount_amount)
         else:
-            discount = self.coupon.discount_value
+            discount = min(self.coupon.discount_value, total_price)
         
         return discount
 
@@ -111,9 +126,8 @@ class CartItem(models.Model):
             offer_service.apply_offers()
             offer_service.apply_coupons()
             
-            # Calculate Final Price
-            discounted_price, disount = offer_service.calculate_final_price()
-            final_price = discounted_price * self.variant.quantity * self.quantity
+            # Calculate Final Price 
+            final_price, disount = offer_service.calculate_final_price()
             
             return final_price, disount
         else:

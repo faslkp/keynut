@@ -112,14 +112,29 @@
                             <hr class="mt-2 mb-3">
                             <p class="fs-5 mb-0 fw-bold d-flex justify-content-between"><span>Total:</span><span>₹{{ total_price|add:cart.shipping_charge|floatformat:2 }}</span></p>
                             <hr class="mt-3">
+                            
                         {% endwith %}
                     </div>
                     <h5 class="mt-4 mb-3">Payment Method:</h5>
                     <div class="payment-option">
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="radio" name="payment-method" value="razorpay" id="razorpay" checked>
-                            <label class="form-check-label" for="razorpay"> Pay online: UPI / Debit/Credit Card / Net Banking</label>
+                            <label class="form-check-label" for="razorpay">Pay online: UPI / Debit/Credit Card / Net Banking</label>
                         </div>
+                        {% with total_price=cart.total_price|get_index:0 %}
+                        <div class="form-check mb-3">
+                            {% if request.user.wallet.balance > total_price|add:cart.shipping_charge %}
+                            <input class="form-check-input" type="radio" name="payment-method" value="wallet" id="wallet">
+                            <label class="form-check-label" for="wallet">Wallet</label><br>
+                            <small class="">Balance: ₹{{request.user.wallet.balance|default:0|floatformat:2}}</small>
+                            {% else %}
+                            <input class="form-check-input" type="radio" name="payment-method" value="wallet" id="wallet" disabled>
+                            <label class="form-check-label" for="wallet">Wallet</label><br>
+                            <small class="text-danger">₹{{request.user.wallet.balance|default:0|floatformat:2}} (Insufficient balance)</small>
+                            {% endif %}
+                            
+                        </div>
+                        {% endwith %}
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="payment-method" value="cash-on-delivery" id="cashOnDelivery">
                             <label class="form-check-label" for="cashOnDelivery">Cash on Delivery</label>
@@ -145,6 +160,7 @@
     document.addEventListener("DOMContentLoaded", function () {
         const newAddressRadio = document.getElementById("new-address");
         const razorpayRadio = document.getElementById("razorpay");
+        const walletRadio = document.getElementById("wallet");
         const cashRadio = document.getElementById("cashOnDelivery");
         const palceOrderButton = document.getElementById("place-order-button");
         const checkoutForm = document.getElementById("checkoutForm");
@@ -208,6 +224,10 @@
 
         razorpayRadio.addEventListener('change', function () {
             palceOrderButton.innerText = 'Proceed to Payment'
+        })
+
+        walletRadio.addEventListener('change', function () {
+            palceOrderButton.innerText = 'Place Order'
         })
 
         cashRadio.addEventListener('change', function () {
