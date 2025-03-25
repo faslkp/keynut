@@ -1,6 +1,7 @@
 import random
 import datetime
 import tempfile
+import uuid
 
 from django.shortcuts import render, redirect
 from django.contrib.auth import login as authlogin, logout as authlogout, authenticate, get_user_model
@@ -19,7 +20,7 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from weasyprint import HTML
 
 from products.models import Product, Category
-from customers.models import Address, Wishlist
+from customers.models import Address, Wishlist, Wallet, WalletTransaction
 from customers.forms import AddressForm
 from orders.models import Order, OrderItem, Payment
 
@@ -376,7 +377,7 @@ def user_view_order(request, order_id):
 
     payment = Payment.objects.filter(
         Q(order=order) & (Q(payment_status='success') | Q(payment_method='cash-on-delivery'))).first()
-
+    print(payment)
     if not order:
         return redirect('404')
 
@@ -397,8 +398,6 @@ def user_order_invoice(request, order_id):
     
     invoice_number = f"IN-{order.id:06d}-{order.order_date.strftime("%y%m%d")}"
     
-    # return render(request, 'web/order_invoice.html', {'order': order, 'invoice_number': invoice_number})
-    
     html_string = render_to_string("web/order_invoice.html", {"order": order, 'invoice_number': invoice_number})
 
     # Generate PDF
@@ -411,6 +410,18 @@ def user_order_invoice(request, order_id):
         response = HttpResponse(pdf.read(), content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="invoice_{order.order_id}.pdf"'
         return response
+
+
+@login_required(login_url='404')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
+def wallet(request):
+    wallet, created = Wallet.objects.get_or_create(user=request.user)
+    transactions = wallet.transactions.all().order_by('-created_at')
+    context = {
+        'wallet': wallet,
+        'transactions': transactions,
+    }
+    return render(request, 'web/user_wallet.html', context=context)
 
 
 @login_required(login_url='login')
@@ -660,8 +671,10 @@ def recover(request):
 
 @user_passes_test(lambda user: not user.is_authenticated, login_url='/',redirect_field_name=None)
 def register(request):
+    referral_key = request.GET.get('ref')
     context = {
-        'stage': "primary"
+        'stage': "primary",
+        'referral_key': referral_key
     }
     if request.method == 'POST':
         first_name = request.POST.get('first_name')
@@ -671,6 +684,7 @@ def register(request):
         password2 = request.POST.get('password2')
         resend_otp = request.POST.get('resend_otp')
         user_entered_otp = request.POST.get('otp')
+        referral_key = request.POST.get('referral_key')
 
         # Validating fields
         if first_name and last_name and email and password1 and password2:
@@ -682,10 +696,40 @@ def register(request):
                         username = email,
                         first_name = first_name,
                         last_name = last_name,
-                        email = email
+                        email = email,
+                        referral_key = str(uuid.uuid4())
                     )
                     user.set_password(password1)
                     user.save()
+
+                    # Handling referral bonus
+                    if referral_key:
+                        referred_by = User.objects.filter(referral_key=referral_key).first()
+                        if referred_by:
+                            referrer_wallet, _ = Wallet.objects.get_or_create(user=referred_by)
+                            referrer_wallet.balance += 100
+                            referrer_wallet.save()
+                            WalletTransaction.objects.create(
+                                wallet=referrer_wallet,
+                                transaction_type='referral',
+                                amount=100,
+                                status='success',
+                                notes=f"Received on referring {user.first_name}"
+                            )
+
+                            user_wallet, _ = Wallet.objects.get_or_create(user=user)
+                            user_wallet.balance += 50
+                            user_wallet.save()
+                            WalletTransaction.objects.create(
+                                wallet=user_wallet,
+                                transaction_type='referral',
+                                amount=50,
+                                status='success',
+                                notes=f"Referred by {referred_by.first_name}"
+                            )
+                            messages.success(request, "You have been referred by a friend. You both have received Keynut bonus in your wallet.")
+                        else:
+                            messages.error(request, "Invalid referral key! Please check and try again.")
 
                     # Generate OTP
                     otp = str(random.randint(1000, 9999))
@@ -788,6 +832,7 @@ def register(request):
                     if user:
                         user.is_verified = True
                         user.save()
+                        user.backend = 'django.contrib.auth.backends.ModelBackend'
                         authlogin(request, user)
                         return redirect('index')
                 else:

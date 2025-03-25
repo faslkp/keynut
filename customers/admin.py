@@ -4,13 +4,13 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-from . models import Address, Wishlist, Cart, CartItem
+from . models import Address, Wishlist, Cart, CartItem, Wallet, WalletTransaction
 
 # admin.site.register(User)
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ('Additional Info', {'fields': ('phone', 'is_verified', 'is_blocked', 'is_deleted')}),
+        ('Additional Info', {'fields': ('phone', 'referral_key', 'is_verified', 'is_blocked', 'is_deleted')}),
     )
 
 
@@ -34,3 +34,7 @@ class CartItemAdmin(admin.ModelAdmin):
             kwargs["queryset"] = User.objects.all()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 admin.site.register(CartItem, CartItemAdmin)
+
+admin.site.register(Wallet)
+
+admin.site.register(WalletTransaction)

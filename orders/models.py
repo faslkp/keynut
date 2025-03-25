@@ -40,6 +40,7 @@ class Order(models.Model):
         ('return_requested', 'Return Requested'),
         ('return_approved', 'Returned Approved'),
         ('return_rejected', 'Returned Rejected'),
+        ('return_received', 'Returned Recieved'),
         ('refunded', 'Refunded'),
         ('cancelled', 'Cancelled'),
     ]

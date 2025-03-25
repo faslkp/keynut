@@ -12,7 +12,7 @@ Order Details
         <div class="col-12 col-md-8 p-3">
             <p class="">Order ID: <span class="fw-bold">{{order.order_id}}</span></p>
             <p class="">Order Date: <span class="fw-bold">{{order.order_date}}</span></p>
-            <p class="">Order Total: <span class="fw-bold">₹{{order.total_amount|floatformat:2}}</span></p>
+            <p class="">Order Total: <span class="fw-bold">₹{{order.total_amount|add:order.shipping_charge|floatformat:2}}</span></p>
             <p class="">Payment Method: <span class="fw-bold">{{payment.get_payment_method_display}}</span></p>
             <p class="mb-0">Order Status: 
                 <span class="fw-bold

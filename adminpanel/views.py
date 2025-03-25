@@ -1,5 +1,7 @@
 import random
 import datetime
+import csv
+import tempfile
 
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, authenticate, login as authlogin, logout as authlogout
@@ -13,7 +15,11 @@ from django.db.models.functions import Lower
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.forms.models import model_to_dict
-from django.core.serializers import serialize
+from django.db.models import Count
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+
+from weasyprint import HTML
 
 from customers.forms import CustomerForm
 from products.forms import ProductForm, CategoryForm
@@ -336,28 +342,6 @@ def offers(request):
 
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
-def add_offer(request):
-    if request.method == 'POST':
-        form = OfferForm(request.POST)
-        if form.is_valid():
-            offer = form.save()
-            return JsonResponse({
-                'success': True,
-                'message': f"Offer {offer.name} added successfully.",
-            })
-        else:
-            return JsonResponse({
-                'error': True,
-                'message': "Invalid or incomplete data received. Please correct and resubmit",
-            })
-    return JsonResponse({
-        'error': True,
-        'message': 'Invalid request.',
-    })
-
-
-@login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def coupons(request):
     coupons = Coupon.objects.all().order_by('-start_date')
 
@@ -408,34 +392,141 @@ def coupons(request):
 
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
-def add_coupon(request):
-    if request.method == 'POST':
+def reports(request):
+    today = datetime.datetime.today().date()
+    start_of_week = today - datetime.timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
+    end_of_week = start_of_week + datetime.timedelta(days=6)
+    start_of_month = today.replace(day=1)
+    start_of_year = today.replace(month=1, day=1)
+
+    # Initial filtering
+    base_query = OrderItem.objects.select_related('order').prefetch_related('product').filter(
+        ~Q(order__status='pending') & ~Q(order__status='refunded') & ~Q(order__status='cancelled')
+    )
+
+    order_items = base_query.annotate(total_quantity=F('variant') * F('quantity')).order_by('-order__order_date')
+
+    # Handling filters
+    filter_value = request.GET.get('filter')
+    start_date = request.GET.get('start-date')
+    end_date = request.GET.get('end-date')
+
+    if filter_value:
+        match filter_value:
+            case "today":
+                order_items = order_items.filter(order__order_date__date=today)
+            case "yesterday":
+                order_items = order_items.filter(order__order_date__date=today - datetime.timedelta(days=1))
+            case "this-week":
+                order_items = order_items.filter(order__order_date__date__range=(start_of_week, end_of_week))
+            case "this-month":
+                order_items = order_items.filter(order__order_date__date__gte=start_of_month)
+            case "this-year":
+                order_items = order_items.filter(order__order_date__date__gte=start_of_year)
+
+    # Custom date range filtering
+    if start_date and end_date:
+        end_date_obj = datetime.datetime.strptime(end_date, "%Y-%m-%d") + datetime.timedelta(days=1)
+        order_items = order_items.filter(order__order_date__range=[start_date, end_date_obj])
+    elif start_date:
+        order_items = order_items.filter(order__order_date__gte=start_date)
+    elif end_date:
+        end_date_obj = datetime.datetime.strptime(end_date, "%Y-%m-%d") + datetime.timedelta(days=1)
+        order_items = order_items.filter(order__order_date__lte=end_date_obj)
+
+    # Perform aggregation
+    reports = order_items.aggregate(
+        total_sales=Sum(F('variant') * F('quantity') * F('price')),
+        total_orders=Count('order', distinct=True),
+        total_products_sold=Sum(F('quantity') * F('variant')),
+        average_order_value=ExpressionWrapper(
+            Coalesce(Sum(F('variant') * F('quantity') * F('price')), 0) /
+            Coalesce(Count('order', distinct=True), 1),
+            output_field=DecimalField()
+        )
+    )
+
+    # Handle download
+    download = request.GET.get('download')
+    if download:
+        if download == 'csv':
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="reports.csv"'
+
+            writer = csv.writer(response)
+            writer.writerow(['Total Sales', 'Total Orders', 'Total Products Sold', 'Average Order Value'])
+            writer.writerow([reports['total_sales'], reports['total_orders'], reports['total_products_sold'], reports['average_order_value']])
+            writer.writerow([])
+            writer.writerow(['Product Name', 'Category', 'Price', 'Variant', 'Quantity', 'Total Quantity', 'Item Price', 'Total Amount', 'Order ID', 'Order Date', 'Order Status'])
+            for item in order_items:
+                writer.writerow([
+                    item.product.name,
+                    item.product.category.name,
+                    item.product.price,
+                    item.variant,
+                    item.quantity,
+                    item.total_quantity,
+                    item.price,
+                    item.total_amount,
+                    item.order.order_id,
+                    item.order.order_date,
+                    item.order.status,
+                ])
+            return response
         
-        # Check if coupon already exists
-        coupon_code = request.POST.get('code')
-        if Coupon.objects.filter(code=coupon_code).exists():
-            return JsonResponse({
-                'error': True,
-                'message': f"Coupon {coupon_code} already exists.",
-            })
-        
-        form = CouponForm(request.POST)
-        if form.is_valid():
-            coupon = form.save()
-            return JsonResponse({
-                'success': True,
-                'message': f"Offer {coupon.code} added successfully.",
-            })
-        else:
-            return JsonResponse({
-                'error': True,
-                'message': "Invalid or incomplete data received. Please correct and resubmit",
-            })
-        
-    return JsonResponse({
-        'error': True,
-        'message': 'Invalid request.',
-    })
+        # PDF
+        elif download == 'pdf':
+            # Getting date range string
+            if filter_value:
+                match filter_value:
+                    case "today":
+                        filter_value = datetime.datetime.today().strftime("%d %B, %Y")
+                    case "yesterday":
+                        filter_value = (datetime.datetime.today() - datetime.timedelta(days=1)).strftime("%d %B, %Y")
+                    case "this-week":
+                        filter_value = f"{start_of_week.strftime('%d %B, %Y')} - {end_of_week.strftime('%d %B, %Y')}"
+                    case "this-month":
+                        filter_value = datetime.datetime.today().strftime("%B, %Y")
+                    case "this-year":
+                        filter_value = datetime.datetime.today().strftime("%Y")
+            elif start_date and end_date:
+                filter_value = f"{start_date} - {end_date}"
+            elif start_date:
+                filter_value = f"Since {start_date}"
+            elif end_date:
+                filter_value = f"Until {end_date}"
+
+            # Setting context values
+            pdf_context = {
+                'reports': reports,
+                'order_items': order_items,
+                'filter_value': filter_value
+            }
+
+            # Setting HTML string
+            html_string = render_to_string("admin/reports_pdf.html", context=pdf_context)
+
+            # Generate PDF
+            html = HTML(string=html_string)
+            pdf_file = tempfile.NamedTemporaryFile(delete=True)
+            html.write_pdf(target=pdf_file.name)
+
+            # Serve the file as response
+            with open(pdf_file.name, "rb") as pdf:
+                response = HttpResponse(pdf.read(), content_type="application/pdf")
+                response["Content-Disposition"] = f'attachment; filename="reports.pdf"'
+                return response
+
+    # Pagination
+    paginator = Paginator(order_items, 10) #10 coupons per page
+    page_number = request.GET.get('page')
+    order_items = paginator.get_page(page_number)
+
+    context = {
+        'reports': reports,
+        'order_items': order_items
+    }
+    return render(request, 'admin/reports.html', context=context)
 
 
 @user_passes_test(lambda user: not user.is_authenticated, login_url='dashboard',redirect_field_name=None)

@@ -1,0 +1,223 @@
+{% extends "admin/dashboard_base.html" %}
+{% load static %}
+{% block title %}Sales Reports{% endblock title %}
+
+{% block stylesheet %}
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock stylesheet %}
+
+{% block script_top %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+{% endblock script_top %}
+
+{% block page_head %}Sales Reports{% endblock page_head %}
+
+{% block content %}
+<!-- Reports Page Content -->
+<div class="container-fluid py-2">
+    <!-- Page Header with Controls -->
+    <div class="row mb-2 align-items-center justify-content-between">
+        <div class="col-12 col-md-auto mb-md-0 d-flex flex-column flex-md-row gap-3">
+            <div class="dropdown mb-1">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                  Select Date Range
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                    <li><a class="dropdown-item" href="?filter=" onclick="hideDateSelectors()">All Time</a></li>
+                    <li><a class="dropdown-item" href="?filter=today" onclick="hideDateSelectors()">Today</a></li>
+                    <li><a class="dropdown-item" href="?filter=yesterday" onclick="hideDateSelectors()">Yesterday</a></li>
+                    <li><a class="dropdown-item" href="?filter=this-week" onclick="hideDateSelectors()">This Week</a></li>
+                    <li><a class="dropdown-item" href="?filter=this-month" onclick="hideDateSelectors()">This Month</a></li>
+                    <li><a class="dropdown-item" href="?filter=this-year" onclick="hideDateSelectors()">This Year</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="showDateSelectors()">Custom</a></li>
+                </ul>
+            </div>
+            <!-- Date Range Selectors (Initially Hidden) -->
+            <div id="date-selectors" class="mb-1" style="display: none;">
+                <form class="d-flex gap-2" action="">
+                    <input type="text" name="start-date" id="start-date" class="form-control" placeholder="Select Start Date">
+                    <input type="text" name="end-date" id="end-date" class="form-control" placeholder="Select End Date">
+                    <input type="submit" value="Apply" class="btn btn-outline-secondary">
+                </form>
+            </div>
+        </div>
+        <div class="col-12 col-md-auto mb-md-0 d-flex flex-column flex-md-row gap-3">
+            <a href="?download=pdf" class="param-link btn btn-outline-secondary">Download PDF</a>
+            <a href="?download=csv" class="param-link btn btn-outline-secondary">Download CSV</a>
+        </div>
+    </div>
+    
+    <div class="px-3 mb-1 d-flex justify-content-between gap-2">
+        <div class="p-3">
+            <p class="mb-1">Total Sales</p>
+            <p class="fs-3 text-success fw-bold m-0">₹{{reports.total_sales|floatformat:2}}</p>
+        </div>
+        <div class="p-3">
+            <p class="mb-1">Number of Orders</p>
+            <p class="fs-3 text-success fw-bold m-0">{{reports.total_orders}}</p>
+        </div>
+        <div class="p-3">
+            <p class="mb-1">Total Products Sold</p>
+            <p class="fs-3 text-success fw-bold m-0">{{reports.total_products_sold|floatformat:2}} units</p>
+        </div>
+        <div class="p-3">
+            <p class="mb-1">Average Order Value</p>
+            <p class="fs-3 text-success fw-bold m-0">₹{{reports.average_order_value|floatformat:2}}</p>
+        </div>
+    </div>
+
+
+    <!-- Orders Items Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="py-3 px-3 border-0">Product</th>
+                            <th class="py-3 px-3 border-0">Order ID</th>
+                            <th class="py-3 px-3 border-0">Order Date</th>
+                            <th class="py-3 px-3 border-0">Variant</th>
+                            <th class="py-3 px-3 border-0">Qty.</th>
+                            <th class="py-3 px-3 border-0">Total Qty.</th>
+                            <th class="py-3 px-3 border-0">Amount</th>
+                            <th class="py-3 px-3 border-0">Order Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                        {% for order_item in order_items %}
+                        <tr>
+                            <td class="align-middle">{{ order_item.product.name }}</td>
+                            <td class="align-middle">{{ order_item.order.order_id }}</td>
+                            <td class="py-3 px-3">{{ order_item.order.order_date }}</td>
+                            <td class="py-3 px-3">{{ order_item.variant }}</td>
+                            <td class="py-3 px-3">{{ order_item.quantity }}</td>
+                            <td class="py-3 px-3">{{ order_item.total_quantity }}</td>
+                            <td class="py-3 px-3">₹{{ order_item.total_amount|floatformat:2 }}</td>
+                            <td class="py-3 px-3">{{ order_item.order.get_status_display }}</td>
+                        </tr>
+                        {% endfor %}
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted">
+            Page <span class="fw-medium">{{ order_items.number }}</span> of <span class="fw-medium">{{ order_items.paginator.num_pages }}</span> pages
+        </div>
+        <nav aria-label="order_items pagination">
+            <ul class="pagination mb-0">
+                {% if order_items.has_previous %}
+                <li class="page-item">
+                    <a class="page-link pagination-link" data-page="{{ order_items.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Previous">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <a class="page-link">{{ order_items.number }}</a>
+                </li>
+
+                {% if order_items.has_next %}
+                <li class="page-item">
+                    <a class="page-link pagination-link" data-page="{{ order_items.next_page_number }}" aria-label="Next" style="cursor: pointer;">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block script %}
+<script>
+    // Functions to Show and Hide Date Selectors
+    function showDateSelectors() {
+        document.getElementById('date-selectors').style.display = 'block';
+        const url = new URL(window.location.href);
+  
+        // Remove 'filter' parameter if it exists
+        if (url.searchParams.has('filter')) {
+            url.searchParams.delete('filter');
+            window.history.replaceState({}, '', url);
+        }
+    }
+
+    function hideDateSelectors() {
+        document.getElementById('date-selectors').style.display = 'none';
+    }
+
+    // Initialize Flatpickr for Start and End Date
+    flatpickr("#start-date", {
+        dateFormat: "Y-m-d",
+    });
+
+    flatpickr("#end-date", {
+        dateFormat: "Y-m-d",
+    });
+
+    // Handle pagination links dynamically
+    document.addEventListener("click", function (event) {
+        if (event.target.closest(".pagination-link")) {  // Check if clicked element or parent has .pagination-link
+            event.preventDefault();
+
+            let pageNumber = event.target.closest(".pagination-link").getAttribute("data-page");
+
+            if (pageNumber) {
+                let url = new URL(window.location.href);
+                url.searchParams.set("page", pageNumber); // Update page number
+
+                window.location.href = url.toString();
+            }
+        }
+    });
+
+    // Sort, Filter and Categories
+    document.querySelectorAll(".param-link").forEach(item => {
+        item.addEventListener("click", function (event) {
+            event.preventDefault(); // Prevent default action
+    
+            let url = new URL(window.location.href);
+            
+            // Identify parameter type (sortby, filter, or category)
+            let paramName;
+            if (this.href.includes("filter")) {
+                paramName = "filter";
+            } else if (this.href.includes("download")) {
+                paramName = "download";
+            }
+    
+            let paramValue = new URL(this.href).searchParams.get(paramName);
+    
+            url.searchParams.set(paramName, paramValue); // Update the selected parameter
+    
+            window.location.href = url.toString(); // Reload with updated URL
+        });
+    });
+</script>
+{% endblock script %}

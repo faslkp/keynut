@@ -4,6 +4,7 @@ from . import views
 from products.views import add_product, edit_product, add_stock, unlist_product, add_category, edit_category, delete_category
 from customers.views import add_customer, edit_customer, cutomer_blocking
 from orders.views import update_order_status, process_return_request
+from promotions.views import add_offer, add_coupon
 
 urlpatterns = [
     path('login/', views.admin_login, name='admin_login'),
@@ -29,11 +30,11 @@ urlpatterns = [
     path('orders/update-status/', update_order_status, name='update_order_status'),
     path('returns/', views.return_requests, name='admin_returns'),
     path('returns/update-status/', process_return_request, name='update_return_status'),
-    path('reports/', views.dashboard, name='admin_reports'),
+    path('reports/', views.reports, name='admin_reports'),
     path('offers/', views.offers, name='admin_offers'),
-    path('offers/add/', views.add_offer, name='add_offer'),
+    path('offers/add/', add_offer, name='add_offer'),
     path('coupons/', views.coupons, name='admin_coupons'),
-    path('coupons/add/', views.add_coupon, name='add_coupon'),
+    path('coupons/add/', add_coupon, name='add_coupon'),
     path('settings/', views.dashboard, name='admin_settings'),
     path('unavailable/', views.unavailable, name='unavailable'),
 ]

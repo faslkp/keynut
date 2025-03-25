@@ -9,6 +9,7 @@ from promotions.models import Coupon
 
 class Customer(AbstractUser):
     phone = models.CharField(max_length=15, null=True, blank=True)
+    referral_key = models.CharField(max_length=10, unique=True, blank=True)
     is_verified = models.BooleanField(default=False)
     is_blocked = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
@@ -121,3 +122,40 @@ class CartItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.variant.quantity}kg of {self.product.name} in {self.cart.user.username}'s cart"
+
+
+class Wallet(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
+
+    def __str__(self):
+        return f"Wallet of {self.user.username}"
+    
+
+class WalletTransaction(models.Model):
+    TRANSACTION_TYPES = [
+        ('add_money', 'Add Money'),
+        ('payment', 'Payment'),
+        ('refund', 'Refund'),
+        ('cashback', 'Cashback'),
+        ('referral', 'Referral Bonus'),
+    ]
+    STATUS_TYPES = [
+        ('pending', 'Pending'),
+        ('success', 'Success'),
+        ('failed', 'Failed'),
+    ]
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions')
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=10, default='pending', choices=STATUS_TYPES)
+    notes = models.CharField(max_length=255, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
+
+    def __str__(self):
+        return f"{self.transaction_type} of {self.amount} in Wallet of {self.wallet.user.username}"

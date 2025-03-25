@@ -12,7 +12,7 @@ from django.urls import reverse
 
 import razorpay
 
-from customers.models import Address, Cart, CartItem
+from customers.models import Address, Cart, CartItem, Wallet, WalletTransaction
 from products.models import Product
 from promotions.services import OfferService
 from . models import Order, OrderItem, OrderAddress, Payment, ReturnRequest
@@ -271,16 +271,16 @@ def razorpay_callback(request):
         payment_instance.save()
 
         if verify_razorpay_signature(request.POST):
-            payment_instance.payment_status = 'Success'
+            payment_instance.payment_status = 'success'
             payment_instance.save()
 
             # Update order status to 'Confirmed'
-            payment_instance.order.status = 'Confirmed'
+            payment_instance.order.status = 'confirmed'
             payment_instance.order.save()
 
             return render(request, 'web/order_placed.html')
         else:
-            payment_instance.payment_status = 'Failed'
+            payment_instance.payment_status = 'failed'
             payment_instance.save()
             return render(request, 'web/order_failed.html', {'order': payment_instance.order})
     
@@ -291,7 +291,7 @@ def razorpay_callback(request):
         )
         payment_instance = Payment.objects.filter(payment_provider_order_id=razorpay_order_id).first()
         payment_instance.transaction_id = payment_id
-        payment_instance.payment_status = 'Failed'
+        payment_instance.payment_status = 'failed'
         payment_instance.save()
         return render(request, 'web/order_failed.html', {'order': payment_instance.order})
 
@@ -373,6 +373,19 @@ def user_cancel_order(request):
             order.status = "cancelled"
             order.notes += f"\nUser cancellation note: {cancellation_note}"
             order.save()
+
+            # Refunding amount to wallet
+            wallet, _ = Wallet.objects.get_or_create(user=request.user)
+            wallet.balance += order.total_amount + order.shipping_charge
+            wallet.save(update_fields=["balance"])
+
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                transaction_type='refund',
+                amount=order.total_amount + order.shipping_charge,
+                status='success',
+                notes=f"Refund for order {order.order_id}"
+            )
 
             # Updating stock
             products_to_update = []

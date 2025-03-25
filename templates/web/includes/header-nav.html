@@ -44,16 +44,13 @@
                             </li>
                             <li class="d-flex align-items-center">
                                 <i class="bi bi-bag-check"></i>
-                                <a class="dropdown-item" href="{% url 'user_orders' %}">My Orders</a>
+                                <a class="dropdown-item" href="{% url 'user_orders' %}">Orders</a>
                             </li>
                             <li class="d-flex align-items-center">
-                                <i class="bi bi-heart"></i>
-                                <a class="dropdown-item" href="#">Wishlist</a>
+                                <i class="bi bi-wallet2"></i>
+                                <a class="dropdown-item" href="{% url 'wallet' %}">Wallet</a>
                             </li>
-                            <li class="d-flex align-items-center">
-                                <i class="bi bi-star"></i>
-                                <a class="dropdown-item" href="#">My Ratings</a>
-                            </li>
+                            <hr class="m-1">
                             <li class="d-flex align-items-center">
                                 <i class="bi bi-box-arrow-left"></i>
                                 <a class="dropdown-item" href="{% url 'logout' %}">Logout</a>

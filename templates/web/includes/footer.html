@@ -8,11 +8,47 @@
                     <input type="email" class="form-control mb-2" placeholder="Enter your email">
                     <i class="bi bi-send"></i>
                 </div>
+                {% if request.user.is_authenticated %}
+                <div class="referral mt-3">
+                    <p class="text-white mb-1 fw-bold">Refer and earn ₹100 for you and ₹50 for your friend!</p>
+                    <button data-referral=
+"
+🌰 One Bite, That’s Enough! 🌰
+Hey there! I've been enjoying delicious nuts, dates, and dry fruits from Keynut — and now you can too!
+Sign up using my referral link and get ₹50 added to your Keynut wallet! 🛒✨
+👉 {{ request.build_absolute_uri|slice:':-1' }}{% url 'register' %}?ref={{ request.user.referral_key }}
+Happy snacking! 🍴
+" 
+                        id="refer-now-btn" class="btn btn-light">Refer Now
+                    </button>
+                    <br>
+                    <small class="link-copied-feedback text-light mt-1" style="display: none;">Referral link copied.</small>
+                    <script>
+                        const referButton = document.getElementById('refer-now-btn');
+                        referButton.addEventListener('click', () => {
+                            // Get the data-value attribute from the clicked button
+                            
+                            const textToCopy = referButton.dataset.referral;
+                            
+                            // Use the Clipboard API to copy the text
+                            navigator.clipboard.writeText(textToCopy).then(() => {
+                                console.log('Text copied to clipboard');
+                                document.querySelector('.link-copied-feedback').style.display = 'block';
+                                setTimeout(() => {
+                                    document.querySelector('.link-copied-feedback').style.display = 'none';
+                                }, 2000);
+                            }).catch(err => {
+                                console.error('Failed to copy: ', err);
+                            });
+                        });
+                    </script>
+                </div>
+                {% endif %}
             </div>
             <div class="col-md-3">
                 <h5>Support</h5>
                 <p>support@keynut.com</p>
-                <p>+91 93421 5633</p>
+                <p>+91 8921 43 53 56</p>
             </div>
             <div class="col-md-3">
                 <h5>Account</h5>

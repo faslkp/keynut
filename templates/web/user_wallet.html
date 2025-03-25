@@ -1,0 +1,55 @@
+{% extends "web/user_base.html" %}
+
+{% block profile_content_head %}
+Wallet
+{% endblock profile_content_head %}
+
+{% block profile_content %}
+
+<div class="wrapper">
+
+    <div class="row mb-5" style="box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;">
+        <div class="col-12 p-4">
+            <p class="text-center text-success fs-3 fw-bold mb-1">₹{{wallet.balance|floatformat:2}}</p>
+            <p class="text-center text-secondary mb-0">Available Balance</p>
+        </div>
+    </div>
+    {% if transactions %}
+    <div class="">
+        <p class="text-dark fw-bold">Wallet transactions:</p>
+    </div>
+
+    <div class="table-responsive mb-5">
+        <table class="table table-hover table-striped mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="py-3 px-3 border-0">Date</th>
+                    <th class="py-3 px-3 border-0">Type</th>
+                    <th class="py-3 px-3 border-0">Amount</th>
+                    <th class="py-3 px-3 border-0">Status</th>
+                    <th class="py-3 px-3 border-0">Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+                {% for transaction in transactions %}
+                <tr class="align-middle">
+                    <td class="py-3 px-3 border-0">{{transaction.created_at}}</td>
+                    <td class="py-3 px-3 border-0">{{transaction.get_transaction_type_display}}</td>
+                    {% if transaction.transaction_type == 'payment' %}
+                    <td class="py-3 px-3 border-0 text.danger">-{{transaction.amount}}</td>
+                    {% else %}
+                    <td class="py-3 px-3 border-0 text-success">+{{transaction.amount}}</td>
+                    {% endif %}
+                    <td class="py-3 px-3 border-0">{{transaction.get_status_display}}</td>
+                    <td class="py-3 px-3 border-0">{{transaction.notes}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock profile_content %}
+
