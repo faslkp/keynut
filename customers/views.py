@@ -7,11 +7,12 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.contrib import messages
-from django.db.models import F
+from django.db.models import F, Q
+from django.utils.timezone import now
 
 from . forms import CustomerForm
 from . models import Wishlist, Cart, CartItem
-from products.models import Product, ProductVariant
+from products.models import Product, ProductVariant, Category
 from promotions.services import OfferService
 from promotions.models import Coupon
 
@@ -176,10 +177,18 @@ def cart(request):
         if item.quantity * item.variant.quantity > item.product.stock:
             item.quantity = int(item.product.stock / item.variant.quantity)
 
+    products_in_carts = Product.objects.filter(cartitem__cart__user=request.user)
+    categories_in_carts = Category.objects.filter(product__cartitem__cart__user=request.user)
+    available_coupons = Coupon.objects.filter((
+        ((Q(products=None) & Q(categories=None)) & (Q(users=None) | Q(users=request.user))) | 
+        (Q(products__in=products_in_carts) & (Q(users=None) | Q(users=request.user))) | 
+        (Q(categories__in=categories_in_carts) & (Q(users=None) | Q(users=request.user)))
+    ) & (Q(start_date__lte=now()) & Q(end_date__gte=now())))
 
     context.update({
         'cart': cart,
         'cart_items': cart_items,
+        'available_coupons': available_coupons,
     })
     return render(request, 'web/cart.html', context=context)
 

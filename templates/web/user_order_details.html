@@ -13,7 +13,9 @@ Order Details
             <p class="">Order ID: <span class="fw-bold">{{order.order_id}}</span></p>
             <p class="">Order Date: <span class="fw-bold">{{order.order_date}}</span></p>
             <p class="">Order Total: <span class="fw-bold">₹{{order.total_amount|add:order.shipping_charge|floatformat:2}}</span></p>
+            {% if payment.payment_method %}
             <p class="">Payment Method: <span class="fw-bold">{{payment.get_payment_method_display}}</span></p>
+            {% endif %}
             <p class="mb-0">Order Status: 
                 <span class="fw-bold
                     {% if order.status == 'pending' %}text-secondary{% endif %}
@@ -35,16 +37,16 @@ Order Details
         <div class="col-12 col-md 4 p-3 d-flex flex-column align-items-end justify-content-between gap-2">
             
             {% if payment %}
-                {% if order.status != 'Pending' and order.status != 'Cancelled' and order.status != 'Refunded' %}
+                {% if order.status != 'pending' and order.status != 'cancelled' and order.status != 'refunded' %}
                     <a href="{% url 'user_order_invoice' order.order_id %}" class="btn btn-outline-danger">Download Invoice</a>
                 {% endif %}
             {% endif %}
 
-            {% if order.status == 'Pending' or order.status == 'Confirmed' or order.status == 'Processing' %}
+            {% if order.status == 'pending' or order.status == 'confirmed' or order.status == 'processing' %}
                 <a href="#" class="cancel-order-btn btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">Cancel Order</a>
             {% endif %}
 
-            {% if order.status == 'Delivered' %}
+            {% if order.status == 'delivered' %}
                 <a href="#" class="return-order-btn btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#returnOrderModal">Return Order</a>
             {% endif %}
         </div>
@@ -132,7 +134,7 @@ Order Details
     
 </div>
 
-{% if order.status == 'Pending' or order.status == 'Confirmed' or order.status == 'Processing' %}
+{% if order.status == 'pending' or order.status == 'confirmed' or order.status == 'processing' %}
 <!-- Cancel Order Confirmation Modal -->
 <div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -160,7 +162,7 @@ Order Details
 </div>
 {% endif %}
 
-{% if order.status == 'Delivered' %}
+{% if order.status == 'delivered' %}
 <!-- Return Order Confirmation Modal -->
 <div class="modal fade" id="returnOrderModal" tabindex="-1" aria-labelledby="returnOrderModalLabel" aria-hidden="true">
     <div class="modal-dialog">

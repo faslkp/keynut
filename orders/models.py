@@ -48,7 +48,7 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='orders', related_query_name='order')
     order_date = models.DateTimeField(auto_now_add=True)
     delivery_address = models.ForeignKey(OrderAddress, on_delete=models.PROTECT)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     notes = models.TextField(blank=True)
     shipping_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     order_level_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -110,7 +110,7 @@ class Payment(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     payment_date = models.DateTimeField(auto_now_add=True)
     payment_method = models.CharField(max_length=50, choices=PAYMENT_METHODS)
-    payment_status = models.CharField(max_length=50, choices=PAYMENT_CHOICES, default='Pending')
+    payment_status = models.CharField(max_length=50, choices=PAYMENT_CHOICES, default='pending')
     transaction_id = models.CharField(max_length=50, blank=True)
     payment_provider_order_id = models.CharField(max_length=100, blank=True)
 
@@ -127,7 +127,7 @@ class ReturnRequest(models.Model):
     order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='returns', related_query_name='return')
     reason = models.TextField()
     note = models.TextField(blank=True)
-    status = models.CharField(max_length=20, choices=RETURN_STATUS_CHOICES, default='Pending')
+    status = models.CharField(max_length=20, choices=RETURN_STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

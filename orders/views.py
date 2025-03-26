@@ -250,6 +250,9 @@ def checkout(request):
                 payment.payment_status = 'success'
                 payment.save()
 
+                order.status = 'confirmed'
+                order.save()
+
                 return render(request, 'web/order_placed.html')
                 
             # Handling online payments
@@ -326,6 +329,8 @@ def razorpay_callback(request):
         return render(request, 'web/order_failed.html', {'order': payment_instance.order})
 
 
+@login_required(login_url='404')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def checkout_retry(request):
     if request.method == 'POST':
         order_id = request.POST.get('order_id')
@@ -405,17 +410,23 @@ def user_cancel_order(request):
             order.save()
 
             # Refunding amount to wallet
-            wallet, _ = Wallet.objects.get_or_create(user=request.user)
-            wallet.balance += order.total_amount + order.shipping_charge
-            wallet.save(update_fields=["balance"])
+            payment = order.payments.filter(payment_status='success').first()
+            if payment:
+                wallet, _ = Wallet.objects.get_or_create(user=request.user)
+                wallet.balance += order.total_amount + order.shipping_charge
+                wallet.save(update_fields=["balance"])
 
-            WalletTransaction.objects.create(
-                wallet=wallet,
-                transaction_type='refund',
-                amount=order.total_amount + order.shipping_charge,
-                status='success',
-                notes=f"Refund for order {order.order_id}"
-            )
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    transaction_type='refund',
+                    amount=order.total_amount + order.shipping_charge,
+                    status='success',
+                    notes=f"Refund for order {order.order_id}"
+                )
+
+                messages.success(request, f"Order {order.order_id} has been cancelled successfully. The amount has been refunded to your wallet.")
+            else:
+                messages.success(request, f"Order {order.order_id} has been cancelled successfully.")
 
             # Updating stock
             products_to_update = []
@@ -426,7 +437,7 @@ def user_cancel_order(request):
 
             Product.objects.bulk_update(products_to_update, ["stock"])
         
-        return redirect('user_orders')
+        return redirect('user_view_order', order_id=order.order_id)
     
     return redirect('404')
 

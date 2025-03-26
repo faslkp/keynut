@@ -16,15 +16,16 @@ class Offer(models.Model):
     ]
 
     name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
     offer_type = models.CharField(max_length=20, choices=OFFER_TYPE_CHOICES)
     discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES)
     discount_value = models.DecimalField(max_digits=10, decimal_places=2)
     min_purchase_value = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     max_discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # For percentage cap
-    applicable_products = models.ManyToManyField(Product, blank=True)
-    applicable_categories = models.ManyToManyField(Category, blank=True)
-    start_date = models.DateTimeField(null=True, blank=True)
-    end_date = models.DateTimeField(null=True, blank=True)
+    applicable_products = models.ManyToManyField(Product, blank=True, related_name='offers')
+    applicable_categories = models.ManyToManyField(Category, blank=True, related_name='offers')
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
@@ -45,8 +46,8 @@ class Coupon(models.Model):
     min_purchase_value = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     apply_to_total_order = models.BooleanField(default=False)
     single_use_per_user = models.BooleanField(default=False)
-    start_date = models.DateTimeField(null=True, blank=True)
-    end_date = models.DateTimeField(null=True, blank=True)
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
     is_active = models.BooleanField(default=True)
     users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='coupons')
     products = models.ManyToManyField(Product, blank=True, related_name='coupons')

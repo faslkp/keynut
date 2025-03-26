@@ -24,21 +24,21 @@
         <div class="col-12 col-md-auto mb-md-0 d-flex flex-column flex-md-row gap-3">
             <div class="dropdown mb-1">
                 <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                  Select Date Range
+                  
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                    <li><a class="dropdown-item" href="?filter=" onclick="hideDateSelectors()">All Time</a></li>
-                    <li><a class="dropdown-item" href="?filter=today" onclick="hideDateSelectors()">Today</a></li>
+                    <li><a class="dropdown-item" href="?filter=today" onclick="hideDateSelectors(this)">Today</a></li>
                     <li><a class="dropdown-item" href="?filter=yesterday" onclick="hideDateSelectors()">Yesterday</a></li>
                     <li><a class="dropdown-item" href="?filter=this-week" onclick="hideDateSelectors()">This Week</a></li>
                     <li><a class="dropdown-item" href="?filter=this-month" onclick="hideDateSelectors()">This Month</a></li>
                     <li><a class="dropdown-item" href="?filter=this-year" onclick="hideDateSelectors()">This Year</a></li>
+                    <li><a class="dropdown-item" href="?filter=" onclick="hideDateSelectors()">All Time</a></li>
                     <li><a class="dropdown-item" href="#" onclick="showDateSelectors()">Custom</a></li>
                 </ul>
             </div>
             <!-- Date Range Selectors (Initially Hidden) -->
             <div id="date-selectors" class="mb-1" style="display: none;">
-                <form class="d-flex gap-2" action="">
+                <form class="date-filter-form d-flex gap-2" action="">
                     <input type="text" name="start-date" id="start-date" class="form-control" placeholder="Select Start Date">
                     <input type="text" name="end-date" id="end-date" class="form-control" placeholder="Select End Date">
                     <input type="submit" value="Apply" class="btn btn-outline-secondary">
@@ -166,19 +166,92 @@
             url.searchParams.delete('filter');
             window.history.replaceState({}, '', url);
         }
+        document.getElementById('dropdownMenuButton1').innerHTML = 'Custom';
     }
 
     function hideDateSelectors() {
         document.getElementById('date-selectors').style.display = 'none';
     }
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const filterParam = urlParams.get('filter');
+    const filterButton = document.getElementById('dropdownMenuButton1');
+
+    console.log(filterParam);
+    if (filterParam && filterParam == 'today') {
+        filterButton.innerHTML = 'Today';
+    } else if (filterParam && filterParam == 'yesterday') {
+        filterButton.innerHTML = 'Yesterday';
+    } else if (filterParam && filterParam == 'this-week') {
+        filterButton.innerHTML = 'This Week';
+    } else if (filterParam && filterParam == 'this-month') {
+        filterButton.innerHTML = 'This Month';
+    } else if (filterParam && filterParam == 'this-year') {
+        filterButton.innerHTML = 'This Year';
+    } else {
+        filterButton.innerHTML = 'All Time';
+    }
+
     // Initialize Flatpickr for Start and End Date
     flatpickr("#start-date", {
         dateFormat: "Y-m-d",
+        maxDate: "today",
     });
 
     flatpickr("#end-date", {
         dateFormat: "Y-m-d",
+        maxDate: "today",
+    });
+
+    // Validate start date and end date
+    document.querySelector('.date-filter-form').addEventListener('submit', function(event) {
+        const startDateInput = document.getElementById('start-date').value;
+        const endDateInput = document.getElementById('end-date').value;
+        const currentDate = new Date();
+        
+        if (!startDateInput && !endDateInput) {
+            alert('Either Start Date or End Date is required.');
+            event.preventDefault();
+            return;
+        }
+        
+        if (startDateInput) {
+            const startDate = new Date(startDateInput);
+            if (isNaN(startDate.getTime())) {
+            alert('Invalid Start Date.');
+            event.preventDefault();
+            return;
+            }
+            if (startDate > currentDate) {
+            alert('Start Date cannot be in the future.');
+            event.preventDefault();
+            return;
+            }
+        }
+        
+        if (endDateInput) {
+            const endDate = new Date(endDateInput);
+            if (isNaN(endDate.getTime())) {
+            alert('Invalid End Date.');
+            event.preventDefault();
+            return;
+            }
+            if (endDate > currentDate) {
+            alert('End Date cannot be in the future.');
+            event.preventDefault();
+            return;
+            }
+        }
+        
+        if (startDateInput && endDateInput) {
+            const startDate = new Date(startDateInput);
+            const endDate = new Date(endDateInput);
+            if (startDate > endDate) {
+            alert('End Date must be after Start Date.');
+            event.preventDefault();
+            return;
+            }
+        }
     });
 
     // Handle pagination links dynamically

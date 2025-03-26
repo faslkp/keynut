@@ -37,7 +37,7 @@ Wallet
                     <td class="py-3 px-3 border-0">{{transaction.created_at}}</td>
                     <td class="py-3 px-3 border-0">{{transaction.get_transaction_type_display}}</td>
                     {% if transaction.transaction_type == 'payment' %}
-                    <td class="py-3 px-3 border-0 text.danger">-{{transaction.amount}}</td>
+                    <td class="py-3 px-3 border-0 text-danger">-{{transaction.amount}}</td>
                     {% else %}
                     <td class="py-3 px-3 border-0 text-success">+{{transaction.amount}}</td>
                     {% endif %}

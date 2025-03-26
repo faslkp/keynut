@@ -16,7 +16,7 @@
 🌰 One Bite, That’s Enough! 🌰
 Hey there! I've been enjoying delicious nuts, dates, and dry fruits from Keynut — and now you can too!
 Sign up using my referral link and get ₹50 added to your Keynut wallet! 🛒✨
-👉 {{ request.build_absolute_uri|slice:':-1' }}{% url 'register' %}?ref={{ request.user.referral_key }}
+👉 {{ request.scheme }}://{{ request.get_host }}{% url 'register' %}?ref={{ request.user.referral_key }}
 Happy snacking! 🍴
 " 
                         id="refer-now-btn" class="btn btn-light">Refer Now
