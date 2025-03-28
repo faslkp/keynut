@@ -229,37 +229,41 @@ def checkout(request):
             cart.save(update_fields=["coupon"])
 
             # Creating payment data
+            order_total_amount = order.total_amount
+
             payment = Payment.objects.create(
                 order=order,
-                amount=order.total_amount,
+                amount=order_total_amount,
                 payment_method=payment_method
             )
         
             # Handle cash on delivery order
             if payment_method == 'cash-on-delivery':
-                return render(request, 'web/order_placed.html')
+                return render(request, 'web/order_placed.html', {'order': order})
             
             # Handle wallet payment order
             if payment_method == 'wallet':
-                wallet.balance -= order.total_amount
-                wallet.save(update_fields=["balance"])
+                if wallet.balance >= order_total_amount:
+                    wallet.balance -= order_total_amount
+                    wallet.save(update_fields=["balance"])
 
-                WalletTransaction.objects.create(
+                wallet_transaction = WalletTransaction.objects.create(
                     wallet=wallet,
                     transaction_type='payment',
-                    amount=order.total_amount,
+                    amount=order_total_amount,
                     status='success',
-                    notes=f"Payment for order {order.order_id}"
+                    notes=f"Payment for order {order.order_id}",
+                    order=order
                 )
 
-                payment.transaction_id = 'WALLET'
+                payment.transaction_id = wallet_transaction.transaction_id
                 payment.payment_status = 'success'
                 payment.save()
 
                 order.status = 'confirmed'
                 order.save()
 
-                return render(request, 'web/order_placed.html')
+                return render(request, 'web/order_placed.html', {'order': order})
                 
             # Handling online payments
             if payment_method == 'razorpay':
@@ -303,7 +307,7 @@ def razorpay_callback(request):
     if "razorpay_signature" in request.POST:
         payment_id = request.POST.get("razorpay_payment_id", "")
         razorpay_order_id = request.POST.get("razorpay_order_id", "")
-        signature_id = request.POST.get("razorpay_signature", "")
+        # signature_id = request.POST.get("razorpay_signature", "")
 
         payment_instance = Payment.objects.filter(payment_provider_order_id=razorpay_order_id).first()
         payment_instance.transaction_id = payment_id
@@ -317,7 +321,7 @@ def razorpay_callback(request):
             payment_instance.order.status = 'confirmed'
             payment_instance.order.save()
 
-            return render(request, 'web/order_placed.html')
+            return render(request, 'web/order_placed.html', {'order': payment_instance.order})
         else:
             payment_instance.payment_status = 'failed'
             payment_instance.save()

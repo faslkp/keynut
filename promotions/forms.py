@@ -12,6 +12,15 @@ class OfferForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter Offer Name'}),
         required=True
     )
+    description = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Enter offer description and terms.', 'rows': 3}),
+        help_text='The description will be displayed in user side banner and product details page. Please make clear and comprehensive.',
+        required=False
+    )
+    banner_image = forms.ImageField(
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        required=True
+    )
     offer_type = forms.ChoiceField(
         label='Offer Type', 
         choices=Offer.OFFER_TYPE_CHOICES, 

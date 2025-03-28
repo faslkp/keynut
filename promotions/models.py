@@ -17,6 +17,7 @@ class Offer(models.Model):
 
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
+    banner_image = models.ImageField(upload_to='images/offers/')
     offer_type = models.CharField(max_length=20, choices=OFFER_TYPE_CHOICES)
     discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES)
     discount_value = models.DecimalField(max_digits=10, decimal_places=2)

@@ -1,7 +1,6 @@
 import random
 import datetime
 import tempfile
-import uuid
 import re
 
 from django.shortcuts import render, redirect
@@ -14,6 +13,7 @@ from django.views.decorators.cache import never_cache
 from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
+from django.utils import timezone
 
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.views import OAuth2LoginView
@@ -24,6 +24,7 @@ from products.models import Product, Category
 from customers.models import Address, Wishlist, Wallet, WalletTransaction
 from customers.forms import AddressForm
 from orders.models import Order, OrderItem, Payment
+from promotions.models import Offer
 
 User = get_user_model()
 
@@ -38,11 +39,15 @@ def index(request):
     
     new_arrivals = Product.objects.filter(is_listed=True, is_deleted=False, category__is_deleted=False).order_by('-created_at')[:4]
 
+    offers = Offer.objects.filter(is_active=True, start_date__lte=timezone.now(), end_date__gte=timezone.now()).order_by('?')
+    
     context.update({
         'categories': categories, 
         'flash_sales': flash_sales,
         'best_selling': best_selling,
         'new_arrivals': new_arrivals,
+        'main_offer':offers[0],
+        'second_offer': offers[1]
     })
     return render(request, 'web/index.html', context=context)
 

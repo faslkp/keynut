@@ -1,4 +1,5 @@
 {% extends "web/base.html" %}
+{% load static %}
 
 {% block title %}Home{% endblock title %}
 
@@ -38,13 +39,23 @@
             </div>
             <!-- Main Banner -->
             <div class="col-md-9">
-                <div class="main-banner">
+                {% if main_offer %}
+                <div class="main-banner rounded" style="background: url({{main_offer.banner_image.url}}) no-repeat center/cover;">
                     <div class="container">
-                        <h1>Up to 10% off Voucher</h1>
-                        <p>Shop Now</p>
-                        <a href="{% url 'products' %}?sort=relevance" class="btn btn-light btn-lg">Shop Now</a>
+                        <h1>{{main_offer.name}}</h1>
+                        <p class="mx-auto" style="max-width: 70%">{{main_offer.description}}</p>
+                        <a href="{% url 'deals' %}" class="btn btn-light btn-lg">Shop Now</a>
                     </div>
                 </div>
+                {% else %}
+                <div class="main-banner rounded" style="background: url({% static 'images/sales-bg.webp' %}) no-repeat center/cover;">
+                    <div class="container">
+                        <h1>One Bite! That's Enough.</h1>
+                        <p class="fs-5">Explore the taste of premium quality nuts, dry fruits, and spices.</p>
+                        <a href="{% url 'deals' %}" class="btn btn-light btn-lg">Shop Now</a>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -93,12 +104,18 @@
 </section>
 
 <!-- Deal of the Day -->
-<section class="deal-of-day py-5">
+<section class="deal-of-day py-5" 
+    {% if second_offer %}
+    style="background: url({{second_offer.banner_image.url}}) no-repeat center/cover;"
+    {% else %}
+    style="background: url({% static 'images/sales-bg.webp' %}) no-repeat center/cover;"
+    {% endif %}
+>
     <div class="container">
-        <h3 class="section-title">Deal of the Day</h3>
-        <h1>Enhance Your Bite Experience</h1>
-        <p>Buy Now</p>
-        <a href="{% url 'products' %}?sort=relevance" class="btn btn-light btn-lg">Buy Now</a>
+        <h3 class="section-title py-1 px-2 fs-5 bg-dark text-white rounded-2 d-inline-block">Deal of the Day</h3>
+        <h1>Enhance Your Bite Experience{% if second_offer %} with {{second_offer.name}}{% endif %}</h1>
+        <p class="fs-4">One Bite! That's enough to get in love.</p>
+        <a href="{% url 'deals' %}" class="btn btn-light btn-lg">Buy Now</a>
     </div>
 </section>
 

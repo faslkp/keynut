@@ -39,7 +39,7 @@
             
             <div class="d-grid gap-2 mt-3">
                 <a href="{% url 'products' %}" class="btn btn-success">Continue Shopping</a>
-                <a href="{% url 'user_orders' %}" class="btn btn-outline-success">View Orders</a>
+                <a href="{% url 'user_view_order' order.order_id %}" class="btn btn-outline-success">View Order Details</a>
             </div>
         </div>
     </div>

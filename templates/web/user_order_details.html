@@ -43,7 +43,7 @@ Order Details
             {% endif %}
 
             {% if order.status == 'pending' or order.status == 'confirmed' or order.status == 'processing' %}
-                <a href="#" class="cancel-order-btn btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">Cancel Order</a>
+                <a href="#" class="cancel-order-btn btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">Cancel Order</a>
             {% endif %}
 
             {% if order.status == 'delivered' %}

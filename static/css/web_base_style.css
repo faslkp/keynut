@@ -46,14 +46,17 @@
     color: #6c757d;
 }
 .main-banner {
-    background: url('https://picsum.photos/seed/dates/1200/400') no-repeat center/cover;
     height: 20rem;
-    color: white;
+    background: #313131;
+    color: #fff;
     display: flex;
-    align-items: center;
+    align-items: end;
+    padding-bottom: 2rem;
 }
 .main-banner .container {
     text-align: center;
+    padding: 1rem 0;
+    background-color: rgba(0, 0, 0, 0.5);
 }
 .main-banner h1 {
     font-size: 2.5rem;
@@ -153,11 +156,14 @@
     border-radius: 0.3rem;
 }
 .deal-of-day {
-    background: url('https://picsum.photos/seed/nuts/1200/300') no-repeat center/cover;
-    height: 15rem;
+    height: 17rem;
     color: white;
     display: flex;
     align-items: center;
+}
+.deal-of-day .container {
+    padding: 1rem 0;
+    background-color: rgba(0, 0, 0, 0.5);
 }
 .flash-sales .section-title-container {
     display: flex;
