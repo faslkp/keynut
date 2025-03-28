@@ -32,7 +32,7 @@
                     <li><a class="dropdown-item" href="?filter=this-week" onclick="hideDateSelectors()">This Week</a></li>
                     <li><a class="dropdown-item" href="?filter=this-month" onclick="hideDateSelectors()">This Month</a></li>
                     <li><a class="dropdown-item" href="?filter=this-year" onclick="hideDateSelectors()">This Year</a></li>
-                    <li><a class="dropdown-item" href="?filter=" onclick="hideDateSelectors()">All Time</a></li>
+                    <li><a class="dropdown-item" href="?filter=all-time" onclick="hideDateSelectors()">All Time</a></li>
                     <li><a class="dropdown-item" href="#" onclick="showDateSelectors()">Custom</a></li>
                 </ul>
             </div>
@@ -175,6 +175,8 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const filterParam = urlParams.get('filter');
+    const startDateParam = urlParams.get('start-date');
+    const endDateParam = urlParams.get('end-date');
     const filterButton = document.getElementById('dropdownMenuButton1');
 
     console.log(filterParam);
@@ -188,8 +190,10 @@
         filterButton.innerHTML = 'This Month';
     } else if (filterParam && filterParam == 'this-year') {
         filterButton.innerHTML = 'This Year';
+    } else if (startDateParam || endDateParam) {
+        filterButton.innerHTML = 'Custom'
     } else {
-        filterButton.innerHTML = 'All Time';
+        filterButton.innerHTML = 'This Week';
     }
 
     // Initialize Flatpickr for Start and End Date

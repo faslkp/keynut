@@ -35,6 +35,7 @@ urlpatterns = [
     path('offers/add/', add_offer, name='add_offer'),
     path('coupons/', views.coupons, name='admin_coupons'),
     path('coupons/add/', add_coupon, name='add_coupon'),
+    path('wallet-transactions/', views.wallet_transactions, name='admin_wallet_transactions'),
     path('settings/', views.dashboard, name='admin_settings'),
     path('unavailable/', views.unavailable, name='unavailable'),
 ]

@@ -125,11 +125,17 @@ def checkout(request):
             messages.error(request, "Select a payment method before proceeding with checkout!")
             return redirect('checkout')
         
+        # Handling cash on delivery and wallet eligibility
         # Getting cart total, shipping charge and cart level discount
-        # moved to here to compare with wallet balance before proceeding with order
         cart_total,_,_ = cart.total_price()
         shipping_charge = cart.shipping_charge()
         _,_,cart_level_discount = cart.total_price()
+
+        # Checking cash on delivery eligibility
+        if payment_method == 'cash-on-delivery' and (cart_total + shipping_charge) >= 1000:
+            messages.error(request, "Orders with total amount above ₹1000 is not eligible for Cash on Delivery.")
+            return redirect('checkout')
+
 
         # Checking wallet balance for wallet orders before proceeding with order
         if payment_method == 'wallet':

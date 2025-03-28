@@ -76,13 +76,19 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{% url 'admin_wallet_transactions' %}" class="nav-link">
+                        <i class="bi bi-wallet2"></i>
+                        Wallet Transactions
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{% url 'admin_customers' %}" class="nav-link">
                         <i class="bi bi-people"></i>
                         Customers
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{% url 'admin_reports' %}?filter=this-week" class="nav-link">
+                    <a href="{% url 'admin_reports' %}" class="nav-link">
                         <i class="bi bi-bar-chart"></i>
                         Reports
                     </a>

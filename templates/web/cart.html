@@ -237,31 +237,19 @@
             plusButton.addEventListener("click", function () {
                 let quantity = parseInt(quantityInput.value, 10);
                 const selectedVariant = parseFloat(quantityInput.dataset.variant);
-                const itemId = this.dataset.itemId
-                const variantWeight = this.dataset.itemVariant
-                const price = parseFloat(document.getElementById(`price-${itemId}`).innerText)
-                const totalAmount = document.getElementById(`total-${itemId}`)
                 
                 if (!selectedVariant || selectedVariant <= 0) return; // Prevent issues when no variant is selected
 
                 if ((quantity < 10) && ((quantity + 1) * selectedVariant <= maxStock)) {
                     quantityInput.value = quantity + 1;
-                    let updated_price = (quantity + 1) * variantWeight * price
-                    totalAmount.innerText = updated_price.toFixed(2)
                 }
             });
 
             minusButton.addEventListener("click", function () {
                 let quantity = parseInt(quantityInput.value, 10);
-                const itemId = this.dataset.itemId
-                const variantWeight = this.dataset.itemVariant
-                const price = parseFloat(document.getElementById(`price-${itemId}`).innerText)
-                const totalAmount = document.getElementById(`total-${itemId}`)
                 
                 if (quantity > 1) {
                     quantityInput.value = quantity - 1;
-                    let updated_price = (quantity - 1) * variantWeight * price
-                    totalAmount.innerText = updated_price.toFixed(2)
                 }
             });
         });

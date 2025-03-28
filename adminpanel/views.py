@@ -18,10 +18,12 @@ from django.forms.models import model_to_dict
 from django.db.models import Count
 from django.http import HttpResponse
 from django.template.loader import render_to_string
+from django.db.models.functions import TruncDate
 
 from weasyprint import HTML
 
 from customers.forms import CustomerForm
+from customers.models import WalletTransaction
 from products.forms import ProductForm, CategoryForm
 from products.models import Product, Category
 from orders.models import Order, OrderItem, Payment, ReturnRequest
@@ -33,7 +35,166 @@ User = get_user_model()
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def dashboard(request):
-    context = {}
+    orders = Order.objects.prefetch_related('order_items').filter(
+        ~Q(status='pending') & ~Q(status='refunded') & ~Q(status='cancelled')
+    ).annotate(
+        date_of_order=TruncDate('order_date')
+    ).values('date_of_order').annotate(
+        total_sales=Sum(F('order_item__price') * F('order_item__variant') * F('order_item__quantity'))
+    ).order_by('date_of_order')
+
+    top_selling_products = (
+        OrderItem.objects.filter(
+            ~Q(order__status='pending') & ~Q(order__status='refunded') & ~Q(order__status='cancelled')
+        )
+        .values('product__name', 'product__unit')
+        .annotate(total_sales=Sum(F('variant') * F('quantity')))
+        .order_by('-total_sales')
+    )
+
+    top_selling_categories = (
+        OrderItem.objects.filter(
+            ~Q(order__status='pending') & ~Q(order__status='refunded') & ~Q(order__status='cancelled')
+        )
+        .values('product__category__name')
+        .annotate(total_sales=Sum(F('variant') * F('quantity')))
+        .order_by('-total_sales')
+    )
+
+    recent_orders = Order.objects.prefetch_related('order_items', 'payments').filter(
+        ~Q(status='pending') & ~Q(status='cancelled') & ~Q(status='refunded')
+    ).annotate(
+        order_total_amount=ExpressionWrapper(
+            Sum(F('order_item__variant') * F('order_item__quantity') * F('order_item__price')),
+            output_field=DecimalField()
+        ),
+        payment_method=Coalesce(
+            # If there is a Success payment, getting it
+            Subquery(
+                Payment.objects.filter(order=OuterRef('pk'), payment_status='success')
+                .order_by('-payment_date')
+                .values('payment_method')[:1]
+            ),
+            # If there is no Success payment, getting latest payment details
+            Subquery(
+                Payment.objects.filter(order=OuterRef('pk'))
+                .order_by('-payment_date')
+                .values('payment_method')[:1]
+            ),
+        ),
+        payment_status=Coalesce(
+            Subquery(
+                Payment.objects.filter(order=OuterRef('pk'), payment_status='success')
+                .order_by('-payment_date')
+                .values('payment_status')[:1]
+            ),
+            Subquery(
+                Payment.objects.filter(order=OuterRef('pk'))
+                .order_by('-payment_date')
+                .values('payment_status')[:1]
+            ),
+        )
+    ).order_by('-order_date')
+
+    # Handling filters
+    filter_value = request.GET.get('filter')
+    start_date = request.GET.get('start-date')
+    end_date = request.GET.get('end-date')
+
+    today = datetime.datetime.today().date()
+    start_of_week = today - datetime.timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
+    end_of_week = start_of_week + datetime.timedelta(days=6)
+    start_of_month = today.replace(day=1)
+    start_of_year = today.replace(month=1, day=1)
+
+    start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+
+    if filter_value:
+        match filter_value:
+            case "today":
+                orders = orders.filter(order_date__date=today)
+                top_selling_products = top_selling_products.filter(order__order_date__date=today)
+                top_selling_categories = top_selling_categories.filter(order__order_date__date=today)
+                recent_orders = recent_orders.filter(order_date__date=today)
+            case "yesterday":
+                orders = orders.filter(order_date__date=today - datetime.timedelta(days=1))
+                top_selling_products = top_selling_products.filter(order__order_date__date=today - datetime.timedelta(days=1))
+                top_selling_categories = top_selling_categories.filter(order__order_date__date=today - datetime.timedelta(days=1))
+                recent_orders = recent_orders.filter(order_date__date=today - datetime.timedelta(days=1))
+            case "this-week":
+                orders = orders.filter(order_date__date__range=(start_of_week, end_of_week))
+                top_selling_products = top_selling_products.filter(order__order_date__range=(start_of_week, end_of_week))
+                top_selling_categories = top_selling_categories.filter(order__order_date__range=(start_of_week, end_of_week))
+                recent_orders = recent_orders.filter(order_date__date__range=(start_of_week, end_of_week))
+            case "this-month":
+                orders = orders.filter(order_date__date__gte=start_of_month)
+                top_selling_products = top_selling_products.filter(order__order_date__gte=start_of_month)
+                top_selling_categories = top_selling_categories.filter(order__order_date__gte=start_of_month)
+                recent_orders = recent_orders.filter(order_date__date__gte=start_of_month)
+            case "this-year":
+                orders = orders.filter(order_date__date__gte=start_of_year)
+                top_selling_products = top_selling_products.filter(order__order_date__gte=start_of_year)
+                top_selling_categories = top_selling_categories.filter(order__order_date__gte=start_of_year)
+                recent_orders = recent_orders.filter(order_date__date__gte=start_of_year)
+            case "all-time":
+                orders = orders
+                top_selling_products = top_selling_products
+                top_selling_categories = top_selling_categories
+                recent_orders = recent_orders
+        
+    # Custom date range filtering
+    if start_date and end_date:
+        orders = orders.filter(order_date__date__range=(start_date, end_date))
+        top_selling_products = top_selling_products.filter(order__order_date__date__range=(start_date, end_date))
+        top_selling_categories = top_selling_categories.filter(order__order_date__date__range=(start_date, end_date))
+        recent_orders = recent_orders.filter(order_date__date__range=(start_date, end_date))
+    
+    elif start_date:
+        orders = orders.filter(order_date__gte=start_date)
+        top_selling_products = top_selling_products.filter(order__order_date__gte=start_date)
+        top_selling_categories = top_selling_categories.filter(order__order_date__gte=start_date)
+        recent_orders = recent_orders.filter(order_date__gte=start_date)
+    
+    elif end_date:
+        orders = orders.filter(order_date__lte=end_date)
+        top_selling_products = top_selling_products.filter(order__order_date__lte=end_date)
+        top_selling_categories = top_selling_categories.filter(order__order_date__lte=end_date)
+        recent_orders = recent_orders.filter(order_date__lte=end_date)
+
+    # Filter by current week data by default
+    if not filter_value and not start_date and not end_date:
+        orders = orders.filter(order_date__date__range=(start_of_week, end_of_week))
+        top_selling_products = top_selling_products.filter(order__order_date__range=(start_of_week, end_of_week))
+        top_selling_categories = top_selling_categories.filter(order__order_date__range=(start_of_week, end_of_week))
+        recent_orders = recent_orders.filter(order_date__date__range=(start_of_week, end_of_week))
+
+
+    # Perform aggregation
+    reports = recent_orders.aggregate(
+        total_sales=Sum('order_total_amount'),
+        total_orders=Count('order_id', distinct=True),
+        average_order_value=ExpressionWrapper(
+            Coalesce(Sum('order_total_amount'), 0) /
+            Coalesce(Count('order_id', distinct=True), 1),
+            output_field=DecimalField()
+        )
+    )
+
+    total_products_sold = OrderItem.objects.filter(order__in=recent_orders).aggregate(
+        total=Sum(F('quantity') * F('variant'))
+    )['total'] or 0
+
+    reports['total_products_sold'] = total_products_sold
+    
+
+    context = {
+        'orders': orders,
+        'top_selling_products': top_selling_products[:10],
+        'top_selling_categories': top_selling_categories[:10],
+        'recent_orders': recent_orders[:15],
+        'reports': reports,
+    }
     return render(request, 'admin/dashboard.html', context=context)
 
 
@@ -392,6 +553,21 @@ def coupons(request):
 
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def wallet_transactions(request):
+    transactions = WalletTransaction.objects.all().order_by('-created_at')
+
+    paginator = Paginator(transactions, 10)
+    page_number = request.GET.get('page')
+    transactions = paginator.get_page(page_number)
+    
+    context = {
+        'transactions': transactions
+    }
+    return render(request, 'admin/wallet_transactions.html', context=context)
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def reports(request):
     today = datetime.datetime.today().date()
     start_of_week = today - datetime.timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
@@ -423,6 +599,8 @@ def reports(request):
                 order_items = order_items.filter(order__order_date__date__gte=start_of_month)
             case "this-year":
                 order_items = order_items.filter(order__order_date__date__gte=start_of_year)
+            case "all-time":
+                order_items = order_items
 
     # Custom date range filtering
     if start_date and end_date:
@@ -433,6 +611,10 @@ def reports(request):
     elif end_date:
         end_date_obj = datetime.datetime.strptime(end_date, "%Y-%m-%d") + datetime.timedelta(days=1)
         order_items = order_items.filter(order__order_date__lte=end_date_obj)
+
+    # Filter by this-week by default if none is selected
+    if not filter_value and not start_date and not end_date:
+        order_items = order_items.filter(order__order_date__date__range=(start_of_week, end_of_week))
 
     # Perform aggregation
     reports = order_items.aggregate(

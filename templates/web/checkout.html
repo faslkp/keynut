@@ -134,11 +134,19 @@
                             {% endif %}
                             
                         </div>
-                        {% endwith %}
+                        {% if total_price|add:cart.shipping_charge < 1000 %}
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="payment-method" value="cash-on-delivery" id="cashOnDelivery">
                             <label class="form-check-label" for="cashOnDelivery">Cash on Delivery</label>
                         </div>
+                        {% else %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="payment-method" value="cash-on-delivery" id="cashOnDelivery" disabled>
+                            <label class="form-check-label" for="cashOnDelivery">Cash on Delivery</label><br>
+                            <small class="text-danger">Cash on Delivery not available for orders above ₹1000.</small>
+                        </div>
+                        {% endif %}
+                        {% endwith %}
                     </div>
                     <button type="submit" class="btn btn-danger mt-4 px-4" id="place-order-button">Proceed to Payment</button>
                 </div>
