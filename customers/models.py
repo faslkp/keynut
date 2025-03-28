@@ -176,3 +176,11 @@ class WalletTransaction(models.Model):
 
     def __str__(self):
         return f"{self.transaction_type} of {self.amount} in Wallet of {self.wallet.user.username}"
+    
+
+class Subscriber(models.Model):
+    email = models.EmailField(unique=True)
+    subscribed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.email

@@ -1,7 +1,7 @@
 from django.urls import path
 
 from . import views
-from customers.views import cart, add_to_cart, remove_from_cart, apply_coupon, wishlist, toggle_wishlist
+from customers.views import cart, add_to_cart, remove_from_cart, apply_coupon, wishlist, toggle_wishlist, offer_subscibe
 from orders.views import checkout, user_cancel_order, user_return_order, razorpay_callback, checkout_retry
 
 urlpatterns = [
@@ -38,4 +38,5 @@ urlpatterns = [
     path('recover/', views.recover, name='recover'),
     path('register/', views.register, name='register'),
     path('404/', views.four_not_four, name='404'),
+    path('subscribe/', offer_subscibe, name='subscribe'),
 ]

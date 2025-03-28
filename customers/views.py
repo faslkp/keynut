@@ -11,7 +11,7 @@ from django.db.models import F, Q
 from django.utils.timezone import now
 
 from . forms import CustomerForm
-from . models import Wishlist, Cart, CartItem
+from . models import Wishlist, Cart, CartItem, Subscriber
 from products.models import Product, ProductVariant, Category
 from promotions.services import OfferService
 from promotions.models import Coupon
@@ -310,3 +310,36 @@ def apply_coupon(request):
             cart.coupon = None
             cart.save()
     return redirect('cart')
+
+
+def offer_subscibe(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({
+                    'error': True,
+                    'message': 'Please login first.'
+                })
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        email = data.get('email')
+        
+        if email == request.user.email:
+            _, created = Subscriber.objects.get_or_create(email=email)
+            if created:
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Subscribed successfully.'
+                })
+            else:
+                return JsonResponse({
+                    'error': True,
+                    'message': 'Already subscribed!'
+                })
+        else:
+            return JsonResponse({
+                'error': True,
+                'message': 'You cannot subscribe others!'
+            })
+    return JsonResponse({
+        'error': True,
+        'message': 'Invalid request!'
+    })

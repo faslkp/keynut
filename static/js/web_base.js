@@ -1,5 +1,3 @@
-
-
 document.addEventListener('DOMContentLoaded', function () {
 
     // Check the active navbar link and apply it on page load
@@ -56,4 +54,36 @@ document.addEventListener('DOMContentLoaded', function () {
             toggleWishlist(productId, csrftoken);
         });
     });
+
+    // Subscription
+    document.getElementById('subscribe-button').addEventListener('click', function() {
+        email = document.getElementById('subscribe-form').value;
+        messageLabel = document.getElementById('subscribe-message');
+        csrftoken = this.dataset.csrfToken;
+
+        let re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        let valid = re.test(email);
+        if (!valid) {
+            messageLabel.innerText = "Enter valid email!"
+            return;
+        }
+
+        fetch('/subscribe/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({'email': email})
+        }
+        )
+        .then(response => response.json())
+        .then(data => {
+            messageLabel.innerText = data.message;
+        })
+        .catch(
+            messageLabel.innerText = "Something went wrong!"
+        )
+    })
+
 });
