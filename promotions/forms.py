@@ -103,7 +103,8 @@ class CouponForm(forms.ModelForm):
     min_purchase_value = forms.DecimalField(
         label='Minimum Purchase Value', 
         widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter Minimum Purchase Value'}),
-        required=False
+        required=True,
+        initial=0
     )
     max_discount_amount = forms.DecimalField(
         label='Maximum Discount Amount', 

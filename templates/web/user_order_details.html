@@ -83,7 +83,21 @@ Order Details
                                 <img class="img-fluid rounded" src="{{order_item.product.thumbnail.url}}" alt="{{order_item.product.name}}">
                             </a>
                         </div>
-                        <span class="col-md-8 fw-bold">{{ order_item.product.name }}</span>
+                        <span class="col-md-8 fw-bold">
+                            {{ order_item.product.name }}
+                            {% if order.status != 'pending' and order.status != 'confirmed' and order.status != 'processing' and order.status != 'shipped' and order.status != 'out_for_delivery' and order.status != 'cancelled' %}
+                            <p class="star-rating mb-0 fs-4">
+                                {% for i in "12345" %}
+                                    {% if i|add:0 <= order_item.user_rating %}
+                                        <span class="rating-star rating-{{order_item.product.id}} star filled" data-star="{{i}}" data-product="{{order_item.product.id}}" style="cursor: pointer; color: gold;">☆</span>
+                                    {% else %}
+                                        <span class="rating-star rating-{{order_item.product.id}} star filled" data-star="{{i}}" data-product="{{order_item.product.id}}" style="cursor: pointer; color: gray;">☆</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </p>
+                            {% endif %}
+                        </span>
+                        
                     </td>
                     <td class="py-3 px-3">₹{{ order_item.price }}</td>
                     <td class="py-3 px-3">{{ order_item.variant }} {{order_item.product.unit}}</td>
@@ -192,20 +206,86 @@ Order Details
 {% endif %}
 
 <script>
-    document.getElementById('orderCancelReturnForm').addEventListener('submit', function (event) {
-        event.preventDefault();
+    
+document.addEventListener("DOMContentLoaded", function () {
+    if (document.getElementById('orderCancelReturnForm')) {
+        document.getElementById('orderCancelReturnForm').addEventListener('submit', function (event) {
+            event.preventDefault();
 
-        const cancellationNote = document.getElementById('cancellation-return-note').value;
-        const errorMessage = document.getElementById('cancellation-return-error-message');
+            const cancellationNote = document.getElementById('cancellation-return-note').value;
+            const errorMessage = document.getElementById('cancellation-return-error-message');
 
-        if (!cancellationNote || cancellationNote.trim() == '') {
-            errorMessage.innerText = 'Please enter a valid reason.'
-            return;
+            if (!cancellationNote || cancellationNote.trim() == '') {
+                errorMessage.innerText = 'Please enter a valid reason.'
+                return;
+            }
+            
+            this.submit();
+            
+        })
+    }
+    
+
+    // Rating
+    document.querySelectorAll(".rating-star").forEach(star => {  // FIX: Use class selector
+        star.addEventListener("click", function () {
+            const productId = this.dataset.product;
+            const ratingNumber = this.dataset.star;
+
+            const url = "/rating/add/";
+
+            fetch(url, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "X-CSRFToken": getCookie("csrftoken"),  // Ensure CSRF function exists
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    rating: ratingNumber
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    const stars = document.querySelectorAll(`.rating-${productId}`);
+
+                    stars.forEach(s => s.style.color = 'grey');
+                    for (i=0; i < ratingNumber; i++) {
+                        stars[i].style.color = 'gold';
+                    }
+                } else {
+                    alert("Error submitting rating.");
+                }
+            })
+            .catch(error => {
+                alert("Something went wrong: " + error.message);
+            });
+        });
+    });
+});
+
+// CSRF Token Helper Function
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
         }
-        
-        this.submit();
-        
-    })
+    }
+    return cookieValue;
+}
 </script>
 {% endblock profile_content %}
 

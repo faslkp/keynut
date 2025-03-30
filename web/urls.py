@@ -32,6 +32,7 @@ urlpatterns = [
     path('profile/address/<int:pk>/set-default/', views.user_set_address_default, name='user_set_address_default'),
     path('profile/address/<int:pk>/delete/', views.user_delete_address, name='user_delete_address'),
     path('profile/ratings/', views.user_ratings, name='user_ratings'),
+    path('rating/add/', views.add_rating, name='add_rating'),
     path('login/', views.login, name='login'),
     path('google-login/', views.CustomGoogleLoginView.as_view(), name='gl_login'),
     path('logout/', views.logout, name='logout'),

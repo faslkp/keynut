@@ -39,7 +39,12 @@
             
             <div class="d-grid gap-2 mt-3">
                 <a href="{% url 'products' %}" class="btn btn-success">Continue Shopping</a>
-                <a href="{% url 'user_view_order' order.order_id %}" class="btn btn-outline-success">View Order Details</a>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'user_view_order' order.order_id %}" class="btn btn-outline-success w-100">View Order Details</a>
+                    {% if order.status != 'pending' %}
+                    <a href="{% url 'user_order_invoice' order.order_id %}" class="btn btn-outline-success w-100">Download Invoice</a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>

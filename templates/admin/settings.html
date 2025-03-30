@@ -1,0 +1,86 @@
+{% extends "admin/dashboard_base.html" %}
+{% block title %}Dashboard{% endblock title %}
+
+
+{% block page_head %}
+<i class="bi bi-gear me-2"></i>
+Settings
+{% endblock page_head %}
+
+{% block content %}
+
+<!-- Messages -->
+<div class="messages container col-12 mt-3 text-center">
+    {% for message in messages %}
+    <p class="{% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+    {% endfor %}
+</div>
+
+<div class="py-3">
+    <p class="fw-bold">Change password:</p>
+    <form id="passwordForm" method="post" action="" class="mb-5">
+        {% csrf_token %}
+        <div class="row mb-3 flex-column">
+            <div class="col-md-4 mb-2">
+                <input type="password" name="current-password" class="form-control" id="currentPassword" placeholder="Enter current password" required>
+                <small class="error-message text-danger"></small>
+            </div>
+            <div class="col-md-4 mb-2">
+                <input type="password" name="password1" class="form-control" id="password1" placeholder="Enter new password" required>
+                <small class="error-message text-danger"></small>
+            </div>
+            <div class="col-md-4 mb-2">
+                <input type="password" name="password2" class="form-control" id="password2" placeholder="Confirm new password" required>
+                <small class="error-message text-danger"></small>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-danger">Update Password</button>
+    </form>
+</div>
+
+
+
+{% endblock content %}
+
+{% block script %}
+<script>
+    document.getElementById("passwordForm").addEventListener("submit", function (event) {
+        event.preventDefault(); // Prevent form submission if validation fails
+    
+        const currentPassword = document.getElementById("currentPassword");
+        const password1 = document.getElementById("password1");
+        const password2 = document.getElementById("password2");
+        const errorMessages = document.querySelectorAll(".error-message");
+    
+        // Clear previous error messages
+        errorMessages.forEach(msg => msg.textContent = "");
+    
+        let isValid = true;
+        const passwordRegex = /^(?! ).{8,}(?<! )$/; // At least 8 characters, no leading/trailing spaces
+    
+        // Validate Current Password (just check if it's not empty)
+        if (!currentPassword.value.trim()) {
+            currentPassword.nextElementSibling.textContent = "Current password is required.";
+            isValid = false;
+        }
+    
+        // Validate New Password
+        if (!passwordRegex.test(password1.value)) {
+            password1.nextElementSibling.textContent = "Password must be at least 8 characters long and cannot start or end with a space.";
+            isValid = false;
+        }
+    
+        // Validate Confirm Password
+        if (password2.value !== password1.value) {
+            password2.nextElementSibling.textContent = "Passwords do not match.";
+            isValid = false;
+        }
+    
+        // Submit form if all validations pass
+        if (isValid) {
+            this.submit();
+        }
+    });
+    
+</script>
+{% endblock script %}

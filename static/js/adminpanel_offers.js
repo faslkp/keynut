@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
     
-    // Edit category buttons event listeners
+    // Edit offer buttons event listeners
     document.querySelectorAll(".edit-offer").forEach(button => {
         button.addEventListener("click", function (event) {
             
@@ -81,13 +81,12 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    document.getElementById("id_name").value = data.offer.name;
-                    document.getElementById("id_description").value = data.offer.description;
-                    document.getElementById("id_discount").value = data.offer.discount;
-                    document.getElementById("id_start_date").value = data.offer.start_date;
-                    document.getElementById("id_end_date").value = data.offer.end_date;
+                    console.log('populate started');
+                    populateForm(data.data);
+                    console.log('populate finished');
+                    
                 } else {
-                    alert("Something went wrong! Please reload the page and try again.");
+                    alert(data.message);
                 }
             })
             .catch(error => {
@@ -114,15 +113,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     location.reload();
                 }, { once: true });
 
-                // Form Validation
-                let name = document.getElementById("id_name").value.trim();
-                let description = document.getElementById("id_description").value.trim();
-                let discount = document.getElementById("id_discount").value.trim();
-                let start_date = document.getElementById("id_start_date").value.trim();
-                let end_date = document.getElementById("id_end_date").value.trim();
+                
+                let editForm = document.getElementById("offerForm");
+                let editFormData = new FormData(editForm);
 
-                // Validation checks
-                let errors = validateFormData({ name, description, discount, start_date, end_date });
+                let errors = validateFormData(editFormData);
                 if (Object.keys(errors).length > 0) {
                     event.preventDefault();
                     displayErrors(errors);
@@ -133,19 +128,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 this.disabled = true;
                 this.innerText = "Please wait";
 
-                // Prepare form data
-                let formData = new FormData();
-                formData.append("name", name);
-                formData.append("description", description);
-                formData.append("discount", discount);
-                formData.append("start_date", start_date);
-                formData.append("end_date", end_date);
-
-
                 // Ajax request to edit category details
                 fetch(url, {
                     method: "POST",
-                    body: formData,
+                    body: editFormData,
                     credentials: "include", // Ensure session data is included
                     headers: {
                         "X-CSRFToken": getCookie("csrftoken")  // CSRF protection
@@ -176,6 +162,72 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
     });
+
+    function populateForm(data) {
+        for (const field in data) {
+            let input = document.querySelector(`#addOfferModal form [name="${field}"]`);
+            if (input) {
+                if (input.tagName === "SELECT" && input.multiple) {
+                    // Handle Multi-Select Dropdowns (Users, Products, Categories)
+                    Array.from(input.options).forEach(option => {
+                        option.selected = data[field].includes(parseInt(option.value));
+                    });
+                } else if (input.type === "checkbox") {
+                    // Handle Boolean Fields
+                    input.checked = data[field];
+                } else if (input.type === "datetime-local" || input.type === "date") {
+                    // Handle date time fields
+                    let dateObj = new Date(data[field]); // Convert UTC string to Date object
+                    let localDateTime = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000)
+                        .toISOString()
+                        .slice(0, 16);  // Format as "YYYY-MM-DDTHH:MM"
+                    input.value = localDateTime;
+                } else if (input.type === 'file') {
+                    const imageInput = document.getElementById('id_banner_image')
+                    
+                    let existingPreview = document.getElementById("imagePreview");
+                    if (existingPreview) {
+                        existingPreview.remove();
+                    }
+
+                    // Create new preview div
+                    let previewDiv = document.createElement("div");
+                    previewDiv.id = "imagePreview";
+                    previewDiv.style.marginTop = "10px";
+
+                    let imgElement = document.createElement("img");
+                    imgElement.id = "existing_banner"
+                    imgElement.src = data.banner_image;
+                    imgElement.style.maxWidth = "200px";
+                    imgElement.style.border = "1px solid #ccc";
+                    imgElement.style.padding = "5px";
+                    imgElement.style.borderRadius = "5px";
+                    
+                    previewDiv.appendChild(imgElement);
+
+                    // Insert preview div **after** the image input
+                    imageInput.parentNode.insertBefore(previewDiv, imageInput.nextSibling);
+
+                    // Add event listener to update preview on new image selection
+                    imageInput.addEventListener("change", function (event) {
+                        let file = event.target.files[0]; // Get selected file
+                        if (file) {
+                            let reader = new FileReader();
+                            reader.onload = function (e) {
+                                imgElement.src = e.target.result; // Update preview
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                    
+                } else {
+                    // Handle Regular Input Fields
+                    input.value = data[field];
+                    
+                }
+            }
+        }
+    }
     
     // Disable Offer buttons event listeners
     // Select all disable buttons and attach a click event listener
@@ -284,6 +336,98 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+
+    // Remove offer - hard delete
+    // Select all delete buttons and attach a click event listener
+    document.querySelectorAll(".remove-offer").forEach(button => {
+        button.addEventListener("click", function (event) {
+            event.preventDefault();  // Prevent default anchor behavior
+
+            let offerId = this.dataset.offerId;  // Get the offer ID from data attribute
+            let offerName = this.dataset.offerName;  // Get the offer name from data attribute
+
+            // Set confirmation modal details
+            let modalLabel = document.getElementById('disableModalLabel');
+            let modalDesc = document.getElementById('disableModalDesc');
+            modalLabel.innerText = "Confirm deletion";
+            modalDesc.innerHTML = `<span class="text-danger">Are you sure you want to delete ${offerName}?</span><br><span class="text-danger fw-bold">This cannot be undone.</span>`;
+
+            // Get the feedback modal elements
+            const feedbackModalTrigger = document.getElementById('triggerFeedbackModal');
+            let feedbackModalLabel = document.getElementById('feedbackModalLabel');
+            let feedbackModalDesc = document.getElementById('feedbackModalDesc');
+            feedbackModalLabel.innerText = "";
+            feedbackModalDesc.innerText = "";
+
+            // Add reload event to the modal close button
+            document.getElementById("feedbackModalCloseButton").addEventListener("click", function () {
+                location.reload();
+            }, { once: true });
+
+            // Select the confirm button in the modal
+            let confirmButton = document.getElementById('disableConfirmButton');
+            confirmButton.innerText = "Continue"
+            confirmButton.disabled = false
+
+            // Remove any previously attached event listeners to avoid multiple listeners
+            confirmButton.removeEventListener('click', confirmAction);
+
+            // Select modal close button on getting respose
+            modelCloseButton = document.getElementById('disableCloseButton')
+
+            // Attach a new event listener for the current button click
+            function confirmAction() {                
+                // Disabling confirm button to avoid duplicate actions.
+                confirmButton.disabled = true;
+                confirmButton.innerText = "Please wait"
+                
+                let url = `/admin/offers/${offerId}/remove/`;  // Construct the URL
+
+                fetch(url, {
+                    method: "POST",
+                    credentials: 'include',
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken")  // CSRF protection
+                    },
+                    body: JSON.stringify({ action: "remove" })  // Send data if needed
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Request succeeded with response:', data);
+
+                        // Trigger acknowledgement modal
+                        feedbackModalLabel.innerText = "Success";
+                        feedbackModalDesc.innerText = data.message;
+                        feedbackModalTrigger.click();
+                        
+                    } else {
+                        // Close confirim modal and Trigger error modal
+                        feedbackModalLabel.innerText = "Error";
+                        feedbackModalDesc.innerText = data.message;
+                        feedbackModalTrigger.click();
+                    }
+
+                    // Remove the listener after the action is complete
+                    confirmButton.removeEventListener('click', confirmAction);
+                })
+                .catch(error => {
+                    feedbackModalLabel.innerText = "Error";
+                    feedbackModalDesc.innerText = error;
+                    feedbackModalTrigger.click();
+
+                    // Remove the listener after the action is complete (in case of error)
+                    confirmButton.removeEventListener('click', confirmAction);
+                });
+            }
+
+            // Add the confirmAction event listener to the confirm button
+            confirmButton.addEventListener('click', confirmAction);
+        });
+    });
+
+
     // Update add offer modal on Add button click
     document.getElementById('addOfferButton').addEventListener('click', () => {
         document.getElementById('addOfferModalLabel').innerText = "Add New Offer"
@@ -309,6 +453,12 @@ document.addEventListener("DOMContentLoaded", function () {
         let form = document.getElementById("offerForm");
         let formData = new FormData(form); // Collect form data including file inputs
 
+        console.log('before validation');
+        
+        for (let pair of formData.entries()) {
+            console.log(pair[0], pair[1]);  // Should log all form fields including the file
+        }
+
         // Validation checks
         let errors = validateFormData(formData);
         if (Object.keys(errors).length > 0) {
@@ -320,6 +470,11 @@ document.addEventListener("DOMContentLoaded", function () {
         // Disable button to avoid duplicate requests
         this.disabled = true;
         this.innerText = "Please wait";
+
+        console.log('after validation');
+        for (let pair of formData.entries()) {
+            console.log(pair[0], pair[1]);  // Should log all form fields including the file
+        }
 
         // AJAX request
         fetch("/admin/offers/add/", {
@@ -369,9 +524,14 @@ function getCookie(name) {
 // Function to validate form data before submitting
 // Trim all text data
 function trimFormData(formData) {
+    let multiValueFields = ["applicable_products", "applicable_categories"];
+
     for (let [key, value] of formData.entries()) {
         if (typeof value === "string") {
-            formData.set(key, value.trim());
+            // Only trim non-multi-value fields
+            if (!multiValueFields.includes(key)) {
+                formData.set(key, value.trim());
+            }
         }
     }
 }
@@ -386,6 +546,14 @@ function validateFormData(formData) {
     // Validate offer name
     if (!formData.get("name")) {
         errors.name = ["Offer name is required"];
+    }
+
+    // Check if `banner_image` is provided
+    if (!formData.has("banner_image") || !formData.get("banner_image").name) {
+        // Check if this is an edit request (existing image should be allowed)
+        if (!document.getElementById("existing_banner").src) {
+            errors.banner_image = ["Banner image is required"];
+        }
     }
 
     // Validate discount (required and must be a number)

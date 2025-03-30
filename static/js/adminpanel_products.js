@@ -596,6 +596,12 @@ function validateFormData(formData) {
         errors["price"] = ["Enter a valid price."];
     }
 
+    // Validate discount (must be a positive number or zero)
+    let discount = parseFloat(formData.get("discount"));
+    if (isNaN(discount) || discount < 0) {
+        errors["discount"] = ["Enter a valid discount. If no discount, enter '0' (zero)."];
+    }
+
     // Validate category
     if (!formData.get("category")) {
         errors["category"] = ["Please select a category."];
@@ -618,6 +624,10 @@ function validateFormData(formData) {
     let imageFile = formData.get("image");
 
     // Image validation (Only required if adding a new product or replacing an existing image)
+    if (!imageFile || imageFile.size === 0) {
+        errors["image"] = ["Please upload an image."];
+    }
+    
     if (!existingImage || (imageFile && imageFile.size > 0)) {
         if (!imageFile || imageFile.size === 0) {
             errors["image"] = ["Please upload an image."];

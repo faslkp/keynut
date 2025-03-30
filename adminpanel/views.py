@@ -24,17 +24,21 @@ from weasyprint import HTML
 
 from customers.forms import CustomerForm
 from customers.models import WalletTransaction
-from products.forms import ProductForm, CategoryForm
-from products.models import Product, Category
+from products.forms import ProductForm, CategoryForm, VariantForm
+from products.models import Product, ProductVariant, Category
 from orders.models import Order, OrderItem, Payment, ReturnRequest
 from promotions.models import Offer, Coupon
 from promotions.forms import OfferForm, CouponForm
+from orders.views import cancel_old_pending_orders
 
 User = get_user_model()
 
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def dashboard(request):
+    # Cancel all pending orders before 3 days
+    cancel_old_pending_orders()
+
     orders = Order.objects.prefetch_related('order_items').filter(
         ~Q(status='pending') & ~Q(status='refunded') & ~Q(status='cancelled')
     ).annotate(
@@ -232,6 +236,32 @@ def products(request):
 
     context.update({'products': products, 'categories': categories, 'form': form})
     return render(request, 'admin/products.html', context=context)
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def product_variants(request):
+    variants = ProductVariant.objects.all().order_by('quantity')
+
+    sortby = request.GET.get('sortby')
+    if sortby:
+        variants = variants.order_by(sortby)
+    
+    q = request.GET.get('q')
+    if q:
+        variants = variants.filter(quantity__iexact=q)
+
+    paginator = Paginator(variants, 10)
+    page_number = request.GET.get('page')
+    variants = paginator.get_page(page_number)
+
+    form = VariantForm()
+
+    context = {
+        'variants': variants,
+        'form': form,
+    }
+    return render(request, 'admin/product_variants.html', context=context)
 
 
 @login_required(login_url='admin_login')
@@ -556,6 +586,22 @@ def coupons(request):
 def wallet_transactions(request):
     transactions = WalletTransaction.objects.all().order_by('-created_at')
 
+    # Sort, filter, search
+    sortby = request.GET.get('sortby')
+    filter_status = request.GET.get('status')
+    q = request.GET.get('q')
+
+    if sortby:
+        if sortby.startswith('-'):
+            field_name = sortby.lstrip('-')
+            transactions = transactions.order_by(Lower(field_name).desc())
+        else:
+            transactions = transactions.order_by(sortby)
+    if filter_status:
+        transactions = transactions.filter(status=filter_status)
+    if q:
+        transactions = transactions.filter(Q(wallet__user__first_name__icontains=q) | Q(wallet__user__last_name__icontains=q) | Q(order__order_id__icontains=q) | Q(transaction_id__icontains=q) | Q(amount__iexact=q))
+
     paginator = Paginator(transactions, 10)
     page_number = request.GET.get('page')
     transactions = paginator.get_page(page_number)
@@ -564,6 +610,38 @@ def wallet_transactions(request):
         'transactions': transactions
     }
     return render(request, 'admin/wallet_transactions.html', context=context)
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def ledger_book(request):
+    transactions = Payment.objects.filter(payment_status='success').order_by('-payment_date')
+
+    # Sort, filter, search
+    sortby = request.GET.get('sortby')
+    filter_type = request.GET.get('type')
+    q = request.GET.get('q')
+
+    if sortby:
+        if sortby.startswith('-'):
+            field_name = sortby.lstrip('-')
+            transactions = transactions.order_by(Lower(field_name).desc())
+        else:
+            transactions = transactions.order_by(sortby)
+    if filter_type:
+        transactions = transactions.filter(payment_type=filter_type)
+    if q:
+        transactions = transactions.filter(Q(user__first_name__icontains=q) | Q(user__last_name__icontains=q) | Q(order__order_id__icontains=q) | Q(transaction_id__icontains=q) | Q(amount__iexact=q))
+        
+
+    paginator = Paginator(transactions, 10)
+    page_number = request.GET.get('page')
+    transactions = paginator.get_page(page_number)
+
+    context = {
+        'transactions': transactions
+    }
+    return render(request, 'admin/ledger_book.html', context=context)
 
 
 @login_required(login_url='admin_login')
@@ -709,6 +787,28 @@ def reports(request):
         'order_items': order_items
     }
     return render(request, 'admin/reports.html', context=context)
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def settings(request):
+    if request.method == 'POST':
+        current_password = request.POST.get('current-password')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+        if current_password and password1 and password2:
+            if password1 == password2:
+                if request.user.check_password(current_password):
+                    request.user.set_password(password1)
+                    request.user.save()
+                    messages.success(request, "Password updated successfully.")
+                else:
+                    messages.error(request, "The current password you entered is incorrect.")
+            else:
+                messages.error(request, "New password and confirm password do not match.")
+        else:
+            messages.error(request, "All fields are required!")
+    return render(request, 'admin/settings.html')
 
 
 @user_passes_test(lambda user: not user.is_authenticated, login_url='dashboard',redirect_field_name=None)

@@ -193,7 +193,6 @@ def cart(request):
     return render(request, 'web/cart.html', context=context)
 
 
-@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def add_to_cart(request):
     # Handling not logged in user - redirect to product page after login
     if not request.user.is_authenticated:

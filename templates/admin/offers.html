@@ -2,7 +2,10 @@
 {% load static %}
 {% block title %}Offers{% endblock title %}
 
-{% block page_head %}Offers{% endblock page_head %}
+{% block page_head %}
+<i class="bi bi-cash-coin me-2"></i>
+Offers
+{% endblock page_head %}
 
 {% block content %}
 <!-- Offers Page Content -->
@@ -107,6 +110,9 @@
                                         <i class="bi bi-arrow-counterclockwise"></i>
                                     </a>
                                     {% endif %}
+                                    <a href="" data-offer-id="{{offer.id}}" data-offer-name="{{offer.name}}" class="remove-offer btn btn-sm btn-link text-danger p-0" title="Remove" data-bs-toggle="modal" data-bs-target="#disableModal">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
                                 </div>
                             </td>
                         </tr>

@@ -7,21 +7,93 @@ My Ratings
 {% block profile_content %}
 
 <div class="wrapper">
+    {% for rating in ratings %}
     <div class="row p-3 d-flex align-items-center gap-3 mb-3" style="box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;">
         <div class="col-3 col-md-1">
-            <a href="">
-                <img src="" alt="">
+            <a href="{% url 'product_details' rating.product.slug %}">
+                <img src="{{rating.product.thumbnail.url}}" class="img-fluid rounded-2" alt="{{rating.product.name}}">
             </a>
         </div>
-        <div class="col-9 col-md-8">
-            <h5 class="fw-bold m-0">Snickers</h5>
+        <div class="col-9 col-md-7">
+            <h5 class="fw-bold m-0">{{rating.product.name}}</h5>
         </div>
-        <div class="col-12 col-md-2">
-            <div class="star-rating fs-4 m-0">
-                ★★★★☆
-            </div>
+        <div class="col-12 col-md-3">
+            <p class="star-rating fs-4 m-0 fw-bold">
+                {% for i in "12345" %}
+                    {% if i|add:0 <= rating.rating %}
+                        <span class="rating-star rating-{{rating.product.id}} star filled" data-star="{{i}}" data-product="{{rating.product.id}}" style="cursor: pointer; color: gold;">☆</span>
+                    {% else %}
+                        <span class="rating-star rating-{{rating.product.id}} star filled" data-star="{{i}}" data-product="{{rating.product.id}}" style="cursor: pointer; color: gray;">☆</span>
+                    {% endif %}
+                {% endfor %}
+            </p>
         </div>
     </div>
+    {% endfor %}
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Rating
+        document.querySelectorAll(".rating-star").forEach(star => {  // FIX: Use class selector
+            star.addEventListener("click", function () {
+                const productId = this.dataset.product;
+                const ratingNumber = this.dataset.star;
+
+                const url = "/rating/add/";
+
+                fetch(url, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "X-CSRFToken": getCookie("csrftoken"),  // Ensure CSRF function exists
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        rating: ratingNumber
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        const stars = document.querySelectorAll(`.rating-${productId}`);
+                        
+                        stars.forEach(s => s.style.color = 'grey');
+                        for (i=0; i < ratingNumber; i++) {
+                            stars[i].style.color = 'gold';
+                        }
+                    } else {
+                        alert("Error submitting rating.");
+                    }
+                })
+                .catch(error => {
+                    alert("Something went wrong: " + error.message);
+                });
+            });
+        });
+    });
+
+    // CSRF Token Helper Function
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith(name + "=")) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
 
 {% endblock profile_content %}

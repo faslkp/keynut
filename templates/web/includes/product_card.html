@@ -25,7 +25,14 @@
             <h5 class="card-title">{{product.name}}</h5>
             <p class="card-text">₹{{product.discount_price|floatformat:2}}{% if product.price != product.discount_price %}<span class="text-muted ms-3"><del>₹{{product.price|floatformat:2}}</del></span>{% endif %}</p>
             <div class="star-rating">
-                ★★★★☆ (12)
+                {% for i in "12345" %}
+                    {% if i|add:0 <= product.average_rating %}
+                        <span class="star filled">★</span>
+                    {% else %}
+                        <span class="star">☆</span>
+                    {% endif %}
+                {% endfor %}
+                <span class="star text-secondary">({{ product.rating_count }})</span>
             </div>
         </div>
         </a>

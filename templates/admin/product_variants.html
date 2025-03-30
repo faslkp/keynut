@@ -1,14 +1,14 @@
 {% extends "admin/dashboard_base.html" %}
 {% load static %}
-{% block title %}Categories{% endblock title %}
+{% block title %}Product Variants{% endblock title %}
 
 {% block page_head %}
-<i class="bi bi-boxes me-2"></i>
-Categories
+<i class="bi bi-layers me-2"></i>
+Product Variants
 {% endblock page_head %}
 
 {% block content %}
-<!-- Categories Page Content -->
+<!-- Product Variants Page Content -->
 <div class="container-fluid py-4">
     <!-- Page Header with Controls -->
     <div class="row mb-4 align-items-center justify-content-between">
@@ -19,21 +19,8 @@ Categories
                     <i class="bi bi-chevron-down ms-2"></i>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="?sortby=name">Name (A-Z)</a></li>
-                    <li><a class="dropdown-item" href="?sortby=-name">Name (Z-A)</a></li>
-                </ul>
-            </div>
-            
-            <div class="dropdown">
-                <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-funnel-fill me-1"></i>
-                    <span>Filter</span>
-                    <i class="bi bi-chevron-down ms-2"></i>
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="?filter=">All Categories</a></li>
-                    <li><a class="dropdown-item" href="?filter=active">Active Categories Only</a></li>
-                    <li><a class="dropdown-item" href="?filter=deleted">Deleted Categories Only</a></li>
+                    <li><a class="dropdown-item" href="?sortby=quantity">Value (Smallest first)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=-quantity">Value (Largest first)</a></li>
                 </ul>
             </div>
 
@@ -44,7 +31,7 @@ Categories
                     </span>
                     <input type="text" name="q" class="form-control border-start-0 bg-light" placeholder="Search" aria-label="Search">
                 </div>
-                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'admin_categories' %}" title="Clear">
+                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'admin_product_variants' %}" title="Clear">
                     <i class="bi bi-x-circle"></i>
                 </a>
             </form>
@@ -52,46 +39,32 @@ Categories
         
         <div class="col-12 col-md-auto">
             <div class="">
-                <button id="addCategoryButton" class="btn btn-danger d-flex align-items-center" type="button" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
-                    <span>Add New Category</span>
+                <button id="addVariantButton" class="btn btn-danger d-flex align-items-center" type="button" data-bs-toggle="modal" data-bs-target="#addVariantModal">
+                    <span>Add New Variant</span>
                 </button>
             </div>
         </div>
     </div>
     
-    <!-- Categories Table -->
+    <!-- Variants Table -->
     <div class="card">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="py-3 px-3 border-0 w-75">Name</th>
-                            <th class="py-3 px-3 border-0">Status</th>
+                            <th class="py-3 px-3 border-0 w-75">Unit Value</th>
                             <th class="py-3 px-3 border-0">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         
-                        {% for category in categories %}
+                        {% for variant in variants %}
                         <tr>
-                            <td class="py-3 px-3 w-75">{{ category.name }}</td>
-                            <td class="py-3 px-3" id="active-status-{{category.id}}">{% if category.is_deleted %}Disabled{% else %}Active{% endif %}</td>
+                            <td class="py-3 px-3 w-100">{{ variant.quantity }}</td>
                             <td class="py-3 px-3">
                                 <div class="d-flex gap-2">
-                                    <a href="" data-category-id="{{category.id}}" data-category-name="{{category.name}}" class="edit-category btn btn-sm btn-link text-primary p-0" title="Edit" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    {% if category.is_deleted %}
-                                    <a href="" data-category-id="{{category.id}}" data-category-name="{{category.name}}" data-is-deleted="{{category.is_deleted}}" class="delete-category btn btn-sm btn-link text-success p-0" title="Restore" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                                        <i class="bi bi-arrow-counterclockwise"></i>
-                                    </a>
-                                    {% else %}
-                                    <a href="" data-category-id="{{category.id}}" data-category-name="{{category.name}}" data-is-deleted="{{category.is_deleted}}" class="delete-category btn btn-sm btn-link text-danger p-0" title="Disable" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                                        <i class="bi bi-slash-circle"></i>
-                                    </a>
-                                    {% endif %}
-                                    <a href="" data-category-id="{{category.id}}" data-category-name="{{category.name}}" class="remove-category btn btn-sm btn-link text-danger p-0" title="Remove" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                    <a href="" data-variant-id="{{variant.id}}" data-variant-quantity="{{variant.quantity}}" class="delete-variant btn btn-sm btn-link text-danger p-0" title="Delete" data-bs-toggle="modal" data-bs-target="#deleteModal">
                                         <i class="bi bi-trash"></i>
                                     </a>
                                 </div>
@@ -108,13 +81,13 @@ Categories
     <!-- Pagination -->
     <div class="d-flex justify-content-between align-items-center mt-4">
         <div class="text-muted">
-            Page <span class="fw-medium">{{ categories.number }}</span> of <span class="fw-medium">{{ categories.paginator.num_pages }}</span> pages
+            Page <span class="fw-medium">{{ variants.number }}</span> of <span class="fw-medium">{{ variants.paginator.num_pages }}</span> pages
         </div>
-        <nav aria-label="categories pagination">
+        <nav aria-label="variants pagination">
             <ul class="pagination mb-0">
-                {% if categories.has_previous %}
+                {% if variants.has_previous %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" data-page="{{ categories.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
+                    <a class="page-link pagination-link" data-page="{{ variants.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
                         <i class="bi bi-chevron-left"></i>
                     </a>
                 </li>
@@ -127,12 +100,12 @@ Categories
                 {% endif %}
 
                 <li class="page-item active">
-                    <a class="page-link">{{ categories.number }}</a>
+                    <a class="page-link">{{ variants.number }}</a>
                 </li>
 
-                {% if categories.has_next %}
+                {% if variants.has_next %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" data-page="{{ categories.next_page_number }}" aria-label="Next" style="cursor: pointer;">
+                    <a class="page-link pagination-link" data-page="{{ variants.next_page_number }}" aria-label="Next" style="cursor: pointer;">
                         <i class="bi bi-chevron-right"></i>
                     </a>
                 </li>
@@ -189,16 +162,16 @@ Categories
     </div>
 </div>
 
-<!-- Add Category Modal -->
-<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+<!-- Add Variant Modal -->
+<div class="modal fade" id="addVariantModal" tabindex="-1" aria-labelledby="addVariantModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addCategoryModalLabel"></h5>
+                <h5 class="modal-title" id="addVariantModalLabel">Add New Variant</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <form action="" method="post" id="categoryForm" enctype="multipart/form-data">
+            <form action="" method="post" id="variantForm" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-body">
                     
@@ -220,7 +193,7 @@ Categories
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" id="addCategorySubmitButton" class="btn btn-primary">Save</button>
+                    <button type="submit" id="addVariantSubmitButton" class="btn btn-primary">Save</button>
                 </div>
             </form>
         </div>
@@ -231,6 +204,5 @@ Categories
 {% endblock content %}
 
 {% block script %}
-<!-- Categories page specific JS file -->
-<script src="{% static 'js/adminpanel_categories.js' %}"></script>
+<script src="{% static 'js/adminpanel_variants.js' %}"></script>
 {% endblock script %}

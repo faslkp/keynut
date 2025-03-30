@@ -217,7 +217,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Update button data
                         if (isDeleted == "True") {
                             button.dataset.isDeleted = "False"
-                            button.innerHTML = "<i class='bi bi-trash'></i>"
+                            button.innerHTML = "<i class='bi bi-slash-circle'></i>"
                             button.classList.remove('text-success');
                             button.classList.add('text-danger');
                         } else {
@@ -251,6 +251,97 @@ document.addEventListener("DOMContentLoaded", function () {
             confirmButton.addEventListener('click', confirmAction);
         });
     });
+
+    // Remove Category - hard delete
+    // Select all delete buttons and attach a click event listener
+    document.querySelectorAll(".remove-category").forEach(button => {
+        button.addEventListener("click", function (event) {
+            event.preventDefault();  // Prevent default anchor behavior
+
+            let categoryId = this.dataset.categoryId;  // Get the category ID from data attribute
+            let categoryName = this.dataset.categoryName;  // Get the category name from data attribute
+
+            // Set confirmation modal details
+            let modalLabel = document.getElementById('deleteModalLabel');
+            let modalDesc = document.getElementById('deleteModalDesc');
+            modalLabel.innerText = "Confirm deletion";
+            modalDesc.innerHTML = `<span class="text-danger">Are you sure you want to delete ${categoryName}?</span><br><span class="text-danger fw-bold">This cannot be undone.</span>`;
+
+            // Get the feedback modal elements
+            const feedbackModalTrigger = document.getElementById('triggerFeedbackModal');
+            let feedbackModalLabel = document.getElementById('feedbackModalLabel');
+            let feedbackModalDesc = document.getElementById('feedbackModalDesc');
+            feedbackModalLabel.innerText = "";
+            feedbackModalDesc.innerText = "";
+
+            // Add reload event to the modal close button
+            document.getElementById("feedbackModalCloseButton").addEventListener("click", function () {
+                location.reload();
+            }, { once: true });
+
+            // Select the confirm button in the modal
+            let confirmButton = document.getElementById('deleteConfirmButton');
+            confirmButton.innerText = "Continue"
+            confirmButton.disabled = false
+
+            // Remove any previously attached event listeners to avoid multiple listeners
+            confirmButton.removeEventListener('click', confirmAction);
+
+            // Select modal close button on getting respose
+            modelCloseButton = document.getElementById('deleteCloseButton')
+
+            // Attach a new event listener for the current button click
+            function confirmAction() {                
+                // Disabling confirm button to avoid duplicate actions.
+                confirmButton.disabled = true;
+                confirmButton.innerText = "Please wait"
+                
+                let url = `/admin/categories/${categoryId}/remove/`;  // Construct the URL
+
+                fetch(url, {
+                    method: "POST",
+                    credentials: 'include',
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken")  // CSRF protection
+                    },
+                    body: JSON.stringify({ action: "remove" })  // Send data if needed
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Request succeeded with response:', data);
+
+                        // Trigger acknowledgement modal
+                        feedbackModalLabel.innerText = "Success";
+                        feedbackModalDesc.innerText = data.message;
+                        feedbackModalTrigger.click();
+                        
+                    } else {
+                        // Close confirim modal and Trigger error modal
+                        feedbackModalLabel.innerText = "Error";
+                        feedbackModalDesc.innerText = data.message;
+                        feedbackModalTrigger.click();
+                    }
+
+                    // Remove the listener after the action is complete
+                    confirmButton.removeEventListener('click', confirmAction);
+                })
+                .catch(error => {
+                    feedbackModalLabel.innerText = "Error";
+                    feedbackModalDesc.innerText = error;
+                    feedbackModalTrigger.click();
+
+                    // Remove the listener after the action is complete (in case of error)
+                    confirmButton.removeEventListener('click', confirmAction);
+                });
+            }
+
+            // Add the confirmAction event listener to the confirm button
+            confirmButton.addEventListener('click', confirmAction);
+        });
+    });
+
 
     // Update add category modal on Add button click
     document.getElementById('addCategoryButton').addEventListener('click', () => {

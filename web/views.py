@@ -2,6 +2,8 @@ import random
 import datetime
 import tempfile
 import re
+import uuid
+import json
 
 from django.shortcuts import render, redirect
 from django.contrib.auth import login as authlogin, logout as authlogout, authenticate, get_user_model
@@ -20,11 +22,12 @@ from allauth.socialaccount.providers.oauth2.views import OAuth2LoginView
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from weasyprint import HTML
 
-from products.models import Product, Category
+from products.models import Product, Category, Rating
 from customers.models import Address, Wishlist, Wallet, WalletTransaction
 from customers.forms import AddressForm
 from orders.models import Order, OrderItem, Payment
 from promotions.models import Offer
+from orders.views import cancel_old_pending_orders
 
 User = get_user_model()
 
@@ -143,13 +146,17 @@ def product_details(request, slug):
         return redirect('404')
 
     # Check if in wishlist
-    in_wishlist = Wishlist.objects.filter(user=request.user, product=product).exists()
+    in_wishlist = False
+    if request.user.is_authenticated:
+        in_wishlist = Wishlist.objects.filter(user=request.user, product=product).exists()
 
     # Getting related products to display
     related_products = Product.objects.select_related('category').filter(~Q(slug=slug)).order_by('-relevance')[:4]
 
-    product_offers = product.offers.all()
-    category_offers = product.category.offers.all()
+    current_time = timezone.now()
+
+    product_offers = product.offers.filter(is_active=True, start_date__lte=current_time, end_date__gte=current_time)
+    category_offers = product.category.offers.filter(is_active=True, start_date__lte=current_time, end_date__gte=current_time)
     all_offers = product_offers | category_offers
 
     context.update({
@@ -199,7 +206,7 @@ def user_change_password(request):
         password2 = request.POST.get('password2')
         if current_password and password1 and password2:
             if password1 == password2:
-                if request.user.check_password(password1):
+                if request.user.check_password(current_password):
                     request.user.set_password(password1)
                     request.user.save()
                     messages.success(request, "Password updated successfully.")
@@ -337,6 +344,9 @@ def user_delete_address(request, pk):
 @login_required(login_url='login')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_orders(request):
+    # Cancel all pending orders before 3 days
+    cancel_old_pending_orders()
+
     order_items = OrderItem.objects.filter(
         order__user=request.user).select_related('order').prefetch_related('order__payments').annotate(
         retry_payment=Case(
@@ -389,9 +399,19 @@ def user_view_order(request, order_id):
 
     payment = Payment.objects.filter(
         Q(order=order) & (Q(payment_status='success') | Q(payment_method='cash-on-delivery'))).first()
-    print(payment)
+    
     if not order:
         return redirect('404')
+
+    # Get product IDs from order items for getting user's rating
+    product_ids = order.order_items.values_list('product_id', flat=True)
+
+    # Fetch user's ratings as a dictionary {product_id: rating}
+    user_ratings = {r.product_id: r.rating for r in Rating.objects.filter(product_id__in=product_ids, user=request.user)}
+
+    # Attach user rating to each order item
+    for item in order.order_items.all():
+        item.user_rating = user_ratings.get(item.product.id, None)
 
     context = {
         'order': order,
@@ -400,7 +420,7 @@ def user_view_order(request, order_id):
     return render(request, 'web/user_order_details.html', context=context)
 
 
-@login_required(login_url='404')
+@login_required(login_url='login')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_order_invoice(request, order_id):
     order = Order.objects.filter(order_id=order_id, user=request.user).first()
@@ -426,6 +446,45 @@ def user_order_invoice(request, order_id):
 
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
+def add_rating(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        product_id = data.get('product_id')
+        rating = int(data.get('rating'))
+
+        if rating < 1 or rating > 5:
+            return JsonResponse({
+                'error': True,
+                'message': "Invalid rating!"
+            })
+
+        product = Product.objects.filter(id=product_id).first()
+        
+        if not product:
+            return JsonResponse({
+                'error': True,
+                'message': "Product not found!"
+            })
+        
+        new_rating, _ = Rating.objects.update_or_create(
+            user=request.user,
+            product=product,
+            defaults={'rating': rating}
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': "Rating added."
+        })
+
+    return JsonResponse({
+        'error': True,
+        'message': "Invalid request!"
+    })
+
+
+@login_required(login_url='404')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def wallet(request):
     wallet, created = Wallet.objects.get_or_create(user=request.user)
     transactions = wallet.transactions.all().order_by('-created_at')
@@ -439,7 +498,11 @@ def wallet(request):
 @login_required(login_url='login')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_ratings(request):
-    return render(request, 'web/user_ratings.html')
+    ratings = Rating.objects.select_related('product').filter(user=request.user)
+    context = {
+        'ratings': ratings
+    }
+    return render(request, 'web/user_ratings.html', context=context)
 
 
 @never_cache
@@ -837,6 +900,7 @@ def register(request):
                                 WalletTransaction.objects.create(
                                     wallet=referrer_wallet,
                                     transaction_type='referral',
+                                    transaction_id=uuid.uuid4(),
                                     amount=100,
                                     status='success',
                                     notes=f"Received on referring {user.first_name}"
@@ -848,6 +912,7 @@ def register(request):
                                 WalletTransaction.objects.create(
                                     wallet=user_wallet,
                                     transaction_type='referral',
+                                    transaction_id=uuid.uuid4(),
                                     amount=50,
                                     status='success',
                                     notes=f"Referred by {referred_by.first_name}"

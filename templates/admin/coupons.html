@@ -2,7 +2,9 @@
 {% load static %}
 {% block title %}Coupons{% endblock title %}
 
-{% block page_head %}Coupons{% endblock page_head %}
+{% block page_head %}
+<i class="bi bi-tag me-2"></i>
+Coupons{% endblock page_head %}
 
 {% block content %}
 <!-- Coupons Page Content -->
@@ -106,14 +108,17 @@
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     {% if coupon.is_active %}
-                                    <a href="" data-coupon-id="{{coupon.id}}" data-coupon-name="{{coupon.name}}" data-is-active="{{coupon.is_active}}" class="disable-coupon btn btn-sm btn-link text-danger p-0" title="Disable" data-bs-toggle="modal" data-bs-target="#disableModal">
+                                    <a href="" data-coupon-id="{{coupon.id}}" data-coupon-name="{{coupon.code}}" data-is-active="{{coupon.is_active}}" class="disable-coupon btn btn-sm btn-link text-danger p-0" title="Disable" data-bs-toggle="modal" data-bs-target="#disableModal">
                                         <i class="bi bi-slash-circle"></i>
                                     </a>
                                     {% else %}
-                                    <a href="" data-coupon-id="{{coupon.id}}" data-coupon-name="{{coupon.name}}" data-is-active="{{coupon.is_active}}" class="disable-coupon btn btn-sm btn-link text-success p-0" title="Enable" data-bs-toggle="modal" data-bs-target="#disableModal">
+                                    <a href="" data-coupon-id="{{coupon.id}}" data-coupon-name="{{coupon.code}}" data-is-active="{{coupon.is_active}}" class="disable-coupon btn btn-sm btn-link text-success p-0" title="Enable" data-bs-toggle="modal" data-bs-target="#disableModal">
                                         <i class="bi bi-arrow-counterclockwise"></i>
                                     </a>
                                     {% endif %}
+                                    <a href="" data-coupon-id="{{coupon.id}}" data-coupon-name="{{coupon.code}}" class="remove-coupon btn btn-sm btn-link text-danger p-0" title="Remove" data-bs-toggle="modal" data-bs-target="#disableModal">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
                                 </div>
                             </td>
                         </tr>

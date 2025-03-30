@@ -2,9 +2,11 @@ import os
 import uuid
 
 from django.db import models
+from django.db.models import Avg, Count
 from django.utils.text import slugify
 from django.core.files.base import ContentFile
 from django.apps import apps
+from django.conf import settings
 
 from decimal import Decimal
 from PIL import Image
@@ -16,7 +18,6 @@ class Category(models.Model):
     slug = models.SlugField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
-    is_disabled = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
@@ -71,6 +72,8 @@ class Product(models.Model):
     stock = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     variants = models.ManyToManyField(ProductVariant)
     relevance = models.IntegerField(default=0)
+    average_rating = models.FloatField(default=0.0)
+    rating_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     is_listed = models.BooleanField(default=True)
@@ -90,6 +93,13 @@ class Product(models.Model):
             return False
         Wishlist = apps.get_model('customers', 'Wishlist')
         return Wishlist.objects.filter(user=user, product=self).exists()
+    
+    def update_rating(self):
+        """Recalculate and update the average rating."""
+        rating_data = self.ratings.aggregate(avg_rating=Avg('rating'), count=Count('rating'))
+        self.average_rating = rating_data['avg_rating'] or 0
+        self.rating_count = rating_data['count']
+        self.save()
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -145,4 +155,25 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+class Rating(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ratings')
+    rating = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('product', 'user')
+
+    def save(self, *args, **kwargs):
+        """Save the rating and update product's average rating."""
+        super().save(*args, **kwargs)
+        self.product.update_rating()
+    
+    def delete(self, *args, **kwargs):
+        """Delete rating and update product's average rating."""
+        super().delete(*args, **kwargs)
+        self.product.update_rating()
+
+    def __str__(self):
+        return f"Rating of {self.user.first_name} on {self.product.name}"
 

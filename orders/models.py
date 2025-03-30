@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 
 from products.models import Product
+from promotions.models import Coupon
 
 User = get_user_model()
 
@@ -52,6 +53,7 @@ class Order(models.Model):
     notes = models.TextField(blank=True)
     shipping_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     order_level_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    coupon = models.ForeignKey(Coupon, on_delete=models.PROTECT, null=True, blank=True)
 
     def __str__(self):
         return f"Order ID: {self.order_id} - {self.status}"
@@ -94,6 +96,12 @@ class OrderItem(models.Model):
 
 
 class Payment(models.Model):
+    PAYMENT_TYPES = [
+        ('payment', 'Payment'),
+        ('refund', 'Refund'),
+        ('wallet_topup', 'Wallet Top-Up'),
+        ('adjustment', 'Adjustment'),
+    ]
     PAYMENT_CHOICES = [
         ('pending', 'Pending'),
         ('initiated', 'Initiated'),
@@ -106,13 +114,16 @@ class Payment(models.Model):
         ('razorpay', 'RazorPay'),
         ('wallet', 'Wallet')
     ]
-    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='payments', related_query_name='payment')
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, null=True, blank=True, related_name='payments', related_query_name='payment')
+    user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name='payments', related_query_name='payment')
+    payment_type = models.CharField(max_length=50, choices=PAYMENT_TYPES)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     payment_date = models.DateTimeField(auto_now_add=True)
     payment_method = models.CharField(max_length=50, choices=PAYMENT_METHODS)
     payment_status = models.CharField(max_length=50, choices=PAYMENT_CHOICES, default='pending')
     transaction_id = models.CharField(max_length=50, blank=True)
     payment_provider_order_id = models.CharField(max_length=100, blank=True)
+    notes = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
         return f"₹{self.amount} | Order ID: {self.order.order_id} | Via: {self.payment_method} | {self.payment_status}"

@@ -1,18 +1,18 @@
 {% extends "admin/dashboard_base.html" %}
 {% load static %}
-{% block title %}Return Requests{% endblock title %}
+{% block title %}Ledger Book{% endblock title %}
 
 {% block script_top %}
 <meta name="csrf-token" content="{{ csrf_token }}">
 {% endblock script_top %}
 
 {% block page_head %}
-<i class="bi bi-arrow-return-left me-2"></i>
-Return Requests
+<i class="bi bi-file-earmark-spreadsheet me-2"></i>
+Ledger Book
 {% endblock page_head %}
 
 {% block content %}
-<!-- Return Requests Page Content -->
+<!-- Ledger Book Page Content -->
 <div class="container-fluid py-4">
     <!-- Page Header with Controls -->
     <div class="row mb-4 align-items-center justify-content-between">
@@ -23,22 +23,23 @@ Return Requests
                     <i class="bi bi-chevron-down ms-2"></i>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="?sortby=-created_at">Date (Newest)</a></li>
-                    <li><a class="dropdown-item" href="?sortby=created_at">Date (Oldest)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=-payment_date">Date (Newest)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=payment_date">Date (Oldest)</a></li>
                 </ul>
             </div>
             
             <div class="dropdown">
                 <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-funnel-fill me-1"></i>
-                    <span>Request Status</span>
+                    <span>Payment Type</span>
                     <i class="bi bi-chevron-down ms-2"></i>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="?status=">All</a></li>
-                    <li><a class="dropdown-item" href="?status=Pending">Pending</a></li>
-                    <li><a class="dropdown-item" href="?status=Accepted">Accepted</a></li>
-                    <li><a class="dropdown-item" href="?status=Rejected">Rejected</a></li>
+                    <li><a class="dropdown-item" href="?type=">All</a></li>
+                    <li><a class="dropdown-item" href="?type=payment">Payment</a></li>
+                    <li><a class="dropdown-item" href="?type=refund">Refund</a></li>
+                    <li><a class="dropdown-item" href="?type=wallet_topup">Wallet Top-Up</a></li>
+                    <li><a class="dropdown-item" href="?type=adjustment">Adjustment</a></li>
                 </ul>
             </div>
 
@@ -49,7 +50,7 @@ Return Requests
                     </span>
                     <input type="text" name="q" class="form-control border-start-0 bg-light" placeholder="Search" aria-label="Search">
                 </div>
-                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'admin_returns' %}" title="Clear">
+                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'admin_ledger_book' %}" title="Clear">
                     <i class="bi bi-x-circle"></i>
                 </a>
             </form>
@@ -57,63 +58,43 @@ Return Requests
         
     </div>
     
-    <!-- Requests Table -->
+    <!-- Transactions Table -->
     <div class="card">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="py-3 px-3 border-0">Order ID</th>
+                            <th class="py-3 px-3 border-0">Date</th>
+                            <th class="py-3 px-3 border-0">Tnx. ID</th>
                             <th class="py-3 px-3 border-0">User</th>
-                            <th class="py-3 px-3 border-0">Request Date</th>
-                            <th class="py-3 px-3 border-0">Payment Details</th>
-                            <th class="py-3 px-3 border-0">Reason</th>
-                            <th class="py-3 px-3 border-0">Request Status</th>
+                            <th class="py-3 px-3 border-0">Related Order</th>
+                            <th class="py-3 px-3 border-0">Type</th>
+                            <th class="py-3 px-3 border-0">Notes</th>
+                            <th class="py-3 px-3 border-0">Amount</th>
                         </tr>
                     </thead>
                     <tbody>
                         
-                        {% for return_request in return_requests %}
+                        {% for transaction in transactions %}
                         <tr class="align-middle">
+                            <td class="py-3 px-3">{{ transaction.payment_date }}</td>
+                            <td class="py-3 px-3">{{ transaction.transaction_id }}</td>
+                            <td class="py-3 px-3">{{ transaction.user.first_name }}</td>
                             <td class="py-3 px-3">
                                 <a class="btn-view-order text-decoration-none text-primary" href="#" 
-                                    data-order-id="{{return_request.order.order_id}}"
+                                    data-order-id="{{transaction.order.order_id}}"
                                     data-bs-toggle="modal" data-bs-target="#orderDetailsModal">
-                                    {{ return_request.order.order_id }}
+                                    {{ transaction.order.order_id }}
                                 </a>
                             </td>
-                            <td class="py-3 px-3">{{ return_request.order.user.first_name }}</td>
-                            <td class="py-3 px-3">{{ return_request.created_at }}</td>
-                            <td class="py-3 px-3">
-                                ₹{{ return_request.order_total_amount|floatformat:2 }}
-                                <br>
-                                {% for key, value in payment_methods.items %}
-                                    {% if key == return_request.payment_method %}
-                                        {{ value }}
-                                    {% endif %}
-                                {% endfor %}
-                            </td>
-                            <td class="py-3 px-3">
-                                {{return_request.reason}}
-                            </td>
-                            <td class="py-3 px-3">
-                                <div class=" d-flex gap-1">
-                                    <select class="form-select status-dropdown" id="status-{{ return_request.id }}">
-                                        <option value="" selected disabled>{{ return_request.get_status_display }}</option>
-                                            {% for status in status_choices %}
-                                                {% if status.0 != return_request.status %}
-                                                    <option value="{{ status.0 }}">
-                                                        {{ status.1 }}
-                                                    </option>
-                                                {% endif %}
-                                            {% endfor %}
-                                    </select>
-                                    <button class="update-status-btn btn btn-outline-danger p-1" data-request-id="{{ return_request.id }}">
-                                        Update
-                                    </button>
-                                </div>
-                            </td>
+                            <td class="py-3 px-3">{{ transaction.get_payment_type_display }}</td>
+                            <td class="py-3 px-3">{{ transaction.notes }}</td>
+                            {% if transaction.payment_type == 'payment' or transaction.payment_type == 'wallet_topup' %}
+                                <td class="py-3 px-3 text-success">+{{ transaction.amount }}</td>
+                            {% else %}
+                                <td class="py-3 px-3 text-danger">-{{ transaction.amount }}</td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                         
@@ -126,13 +107,13 @@ Return Requests
     <!-- Pagination -->
     <div class="d-flex justify-content-between align-items-center mt-4">
         <div class="text-muted">
-            Page <span class="fw-medium">{{ return_requests.number }}</span> of <span class="fw-medium">{{ return_requests.paginator.num_pages }}</span> pages
+            Page <span class="fw-medium">{{ transactions.number }}</span> of <span class="fw-medium">{{ transactions.paginator.num_pages }}</span> pages
         </div>
         <nav aria-label="orders pagination">
             <ul class="pagination mb-0">
-                {% if return_requests.has_previous %}
+                {% if transactions.has_previous %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" data-page="{{ return_requests.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
+                    <a class="page-link pagination-link" data-page="{{ transactions.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
                         <i class="bi bi-chevron-left"></i>
                     </a>
                 </li>
@@ -145,12 +126,12 @@ Return Requests
                 {% endif %}
 
                 <li class="page-item active">
-                    <a class="page-link">{{ return_requests.number }}</a>
+                    <a class="page-link">{{ transactions.number }}</a>
                 </li>
 
-                {% if return_requests.has_next %}
+                {% if transactions.has_next %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" data-page="{{ return_requests.next_page_number }}" aria-label="Next" style="cursor: pointer;">
+                    <a class="page-link pagination-link" data-page="{{ transactions.next_page_number }}" aria-label="Next" style="cursor: pointer;">
                         <i class="bi bi-chevron-right"></i>
                     </a>
                 </li>
@@ -166,27 +147,6 @@ Return Requests
     </div>
 </div>
 
-
-<!-- Hidden link to trigger the Feedback modal -->
-<a id="triggerFeedbackModal" href="#" data-bs-toggle="modal" data-bs-target="#feedbackModal" style="display:none;"></a>
-
-<!-- Feedback Modal -->
-<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="feedbackModalLabel"></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p id="feedbackModalDesc"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" id="feedbackModalCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Order Details Modal -->
 <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
@@ -273,7 +233,6 @@ Return Requests
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <!-- <button type="submit" id="orderDetailsSubmitButton" class="btn btn-primary">Save</button> -->
             </div>
         </div>
     </div>
@@ -283,6 +242,5 @@ Return Requests
 {% endblock content %}
 
 {% block script %}
-<!-- Products page specific JS file -->
-<script src="{% static 'js/adminpanel_returns.js' %}"></script>
+<script src="{% static 'js/adminpanel_ledger.js' %}"></script>
 {% endblock script %}

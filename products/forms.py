@@ -33,7 +33,8 @@ class ProductForm(forms.ModelForm):
 
     discount = forms.DecimalField(
         widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter discount percentage', 'step': '1.00'}),
-        required=True
+        required=True,
+        initial=0
     )
 
     category = forms.ModelChoiceField(
@@ -87,3 +88,14 @@ class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
         fields = ['name']
+
+
+class VariantForm(forms.ModelForm):
+    quantity = forms.DecimalField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter variant quantity'}),
+        required=True
+    )
+
+    class Meta:
+        model = ProductVariant
+        fields = ['quantity']

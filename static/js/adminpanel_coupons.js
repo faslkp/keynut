@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const couponName = this.dataset.couponName
 
             // Construct URL
-            const url = `/admin/offers/${couponId}/edit/`
+            const url = `/admin/coupons/${couponId}/edit/`
 
             // Update form with current data
             fetch(url, {
@@ -81,13 +81,9 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    document.getElementById("id_code").value = data.offer.name;
-                    document.getElementById("id_description").value = data.offer.description;
-                    document.getElementById("id_discount").value = data.offer.discount;
-                    document.getElementById("id_start_date").value = data.offer.start_date;
-                    document.getElementById("id_end_date").value = data.offer.end_date;
+                    populateForm(data.data);
                 } else {
-                    alert("Something went wrong! Please reload the page and try again.");
+                    alert(data.message);
                 }
             })
             .catch(error => {
@@ -115,14 +111,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 }, { once: true });
 
                 // Form Validation
-                let name = document.getElementById("id_name").value.trim();
-                let description = document.getElementById("id_description").value.trim();
-                let discount = document.getElementById("id_discount").value.trim();
-                let start_date = document.getElementById("id_start_date").value.trim();
-                let end_date = document.getElementById("id_end_date").value.trim();
+                let editForm = document.getElementById("couponForm");
+                let editFormData = new FormData(editForm);
 
-                // Validation checks
-                let errors = validateFormData({ name, description, discount, start_date, end_date });
+                let errors = validateFormData(editFormData);
                 if (Object.keys(errors).length > 0) {
                     event.preventDefault();
                     displayErrors(errors);
@@ -133,19 +125,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 this.disabled = true;
                 this.innerText = "Please wait";
 
-                // Prepare form data
-                let formData = new FormData();
-                formData.append("name", name);
-                formData.append("description", description);
-                formData.append("discount", discount);
-                formData.append("start_date", start_date);
-                formData.append("end_date", end_date);
-
-
                 // Ajax request to edit category details
                 fetch(url, {
                     method: "POST",
-                    body: formData,
+                    body: editFormData,
                     credentials: "include", // Ensure session data is included
                     headers: {
                         "X-CSRFToken": getCookie("csrftoken")  // CSRF protection
@@ -176,6 +159,34 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
     });
+
+    function populateForm(data) {
+        for (const field in data) {
+            let input = document.querySelector(`#addCouponModal form [name="${field}"]`);
+            if (input) {
+                if (input.tagName === "SELECT" && input.multiple) {
+                    // Handle Multi-Select Dropdowns (Users, Products, Categories)
+                    Array.from(input.options).forEach(option => {
+                        option.selected = data[field].includes(parseInt(option.value));
+                    });
+                } else if (input.type === "checkbox") {
+                    // Handle Boolean Fields
+                    input.checked = data[field];
+                } else if (input.type === "datetime-local" || input.type === "date") {
+                    // Handle date time fields
+                    let dateObj = new Date(data[field]); // Convert UTC string to Date object
+                    let localDateTime = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000)
+                        .toISOString()
+                        .slice(0, 16);  // Format as "YYYY-MM-DDTHH:MM"
+                    input.value = localDateTime;
+                } else {
+                    // Handle Regular Input Fields
+                    input.value = data[field];
+                }
+            }
+        }
+    }
+    
     
     // Disable Coupon buttons event listeners
     // Select all disable buttons and attach a click event listener
@@ -217,7 +228,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 confirmButton.disabled = true;
                 confirmButton.innerText = "Please wait"
                 
-                let url = `/admin/offers/${couponId}/disable/`;  // Construct the URL
+                let url = `/admin/coupons/${couponId}/disable/`;  // Construct the URL
 
                 fetch(url, {
                     method: "POST",
@@ -284,6 +295,96 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    // Remove coupon - hard delete
+    // Select all delete buttons and attach a click event listener
+    document.querySelectorAll(".remove-coupon").forEach(button => {
+        button.addEventListener("click", function (event) {
+            event.preventDefault();  // Prevent default anchor behavior
+
+            let couponId = this.dataset.couponId;  // Get the coupon ID from data attribute
+            let couponName = this.dataset.couponName;  // Get the coupon name from data attribute
+
+            // Set confirmation modal details
+            let modalLabel = document.getElementById('disableModalLabel');
+            let modalDesc = document.getElementById('disableModalDesc');
+            modalLabel.innerText = "Confirm deletion";
+            modalDesc.innerHTML = `<span class="text-danger">Are you sure you want to delete ${couponName}?</span><br><span class="text-danger fw-bold">This cannot be undone.</span>`;
+
+            // Get the feedback modal elements
+            const feedbackModalTrigger = document.getElementById('triggerFeedbackModal');
+            let feedbackModalLabel = document.getElementById('feedbackModalLabel');
+            let feedbackModalDesc = document.getElementById('feedbackModalDesc');
+            feedbackModalLabel.innerText = "";
+            feedbackModalDesc.innerText = "";
+
+            // Add reload event to the modal close button
+            document.getElementById("feedbackModalCloseButton").addEventListener("click", function () {
+                location.reload();
+            }, { once: true });
+
+            // Select the confirm button in the modal
+            let confirmButton = document.getElementById('disableConfirmButton');
+            confirmButton.innerText = "Continue"
+            confirmButton.disabled = false
+
+            // Remove any previously attached event listeners to avoid multiple listeners
+            confirmButton.removeEventListener('click', confirmAction);
+
+            // Select modal close button on getting respose
+            modelCloseButton = document.getElementById('disableCloseButton')
+
+            // Attach a new event listener for the current button click
+            function confirmAction() {                
+                // Disabling confirm button to avoid duplicate actions.
+                confirmButton.disabled = true;
+                confirmButton.innerText = "Please wait"
+                
+                let url = `/admin/coupons/${couponId}/remove/`;  // Construct the URL
+
+                fetch(url, {
+                    method: "POST",
+                    credentials: 'include',
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken")  // CSRF protection
+                    },
+                    body: JSON.stringify({ action: "remove" })  // Send data if needed
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Request succeeded with response:', data);
+
+                        // Trigger acknowledgement modal
+                        feedbackModalLabel.innerText = "Success";
+                        feedbackModalDesc.innerText = data.message;
+                        feedbackModalTrigger.click();
+                        
+                    } else {
+                        // Close confirim modal and Trigger error modal
+                        feedbackModalLabel.innerText = "Error";
+                        feedbackModalDesc.innerText = data.message;
+                        feedbackModalTrigger.click();
+                    }
+
+                    // Remove the listener after the action is complete
+                    confirmButton.removeEventListener('click', confirmAction);
+                })
+                .catch(error => {
+                    feedbackModalLabel.innerText = "Error";
+                    feedbackModalDesc.innerText = error;
+                    feedbackModalTrigger.click();
+
+                    // Remove the listener after the action is complete (in case of error)
+                    confirmButton.removeEventListener('click', confirmAction);
+                });
+            }
+
+            // Add the confirmAction event listener to the confirm button
+            confirmButton.addEventListener('click', confirmAction);
+        });
+    });
+
     // Update add Coupon modal on Add button click
     document.getElementById('addCouponButton').addEventListener('click', () => {
         document.getElementById('addCouponModalLabel').innerText = "Add New Coupon"
@@ -307,7 +408,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Get form data
         let form = document.getElementById("couponForm");
-        let formData = new FormData(form); // Collect form data including file inputs
+        let formData = new FormData(form);
 
         // Validation checks
         let errors = validateFormData(formData);
@@ -369,9 +470,14 @@ function getCookie(name) {
 // Function to validate form data before submitting
 // Trim all text data
 function trimFormData(formData) {
+    let multiValueFields = ["products", "categories", "users"];
+
     for (let [key, value] of formData.entries()) {
         if (typeof value === "string") {
-            formData.set(key, value.trim());
+            // Only trim non-multi-value fields
+            if (!multiValueFields.includes(key)) {
+                formData.set(key, value.trim());
+            }
         }
     }
 }

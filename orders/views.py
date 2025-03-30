@@ -1,4 +1,6 @@
 import json
+import uuid
+import datetime
 
 from django.shortcuts import render, redirect
 from django.db import transaction
@@ -9,8 +11,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
-
-import razorpay
+from django.utils import timezone
 
 from customers.models import Address, Cart, CartItem, Wallet, WalletTransaction
 from products.models import Product
@@ -71,7 +72,7 @@ def checkout(request):
             pin = request.POST.get('pin')
             city = request.POST.get('city')
             state = request.POST.get('state')
-            save_address = request.POST.get('save_address') == 'yes'
+            save_address = request.POST.get('save-address') == 'yes'
 
             if save_address:
                 selected_address = Address.objects.filter(
@@ -97,7 +98,8 @@ def checkout(request):
                         landmark=landmark,
                         pin=pin,
                         city=city,
-                        state=state
+                        state=state,
+                        is_default=not Address.objects.filter(user=request.user).exists()
                     )
             
             # If not saving address, get a temporary address object
@@ -178,7 +180,8 @@ def checkout(request):
                 user = request.user,
                 delivery_address = order_address,
                 shipping_charge = shipping_charge,
-                order_level_discount=cart_level_discount
+                order_level_discount=cart_level_discount,
+                coupon=cart.coupon
             )
 
             # Apply OfferService for each cart item and create order items
@@ -233,6 +236,7 @@ def checkout(request):
 
             payment = Payment.objects.create(
                 order=order,
+                user=request.user,
                 amount=order_total_amount,
                 payment_method=payment_method
             )
@@ -250,6 +254,7 @@ def checkout(request):
                 wallet_transaction = WalletTransaction.objects.create(
                     wallet=wallet,
                     transaction_type='payment',
+                    transaction_id=uuid.uuid4(),
                     amount=order_total_amount,
                     status='success',
                     notes=f"Payment for order {order.order_id}",
@@ -429,8 +434,10 @@ def user_cancel_order(request):
                 WalletTransaction.objects.create(
                     wallet=wallet,
                     transaction_type='refund',
+                    transaction_id=uuid.uuid4(),
                     amount=order.total_amount + order.shipping_charge,
                     status='success',
+                    order=order,
                     notes=f"Refund for order {order.order_id}"
                 )
 
@@ -520,3 +527,11 @@ def process_return_request(request):
             return JsonResponse({'error': True, "message": str(e)})
 
     return JsonResponse({'error': True, "message": "Invalid request"})
+
+
+def cancel_old_pending_orders():
+    """Automatically cancels pending orders older than 3 days."""
+    threshold_date = timezone.now() - datetime.timedelta(days=3)
+    Order.objects.filter(status="pending", order_date__lte=threshold_date).update(status="cancelled")
+
+

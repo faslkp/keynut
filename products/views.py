@@ -9,8 +9,8 @@ from django.core.exceptions import ValidationError
 
 from decimal import Decimal
 
-from .models import Product, ProductVariant, Category
-from .forms import ProductForm, CategoryForm
+from .models import Product, ProductVariant, Category, Rating
+from .forms import ProductForm, VariantForm, CategoryForm
 
 
 @login_required(login_url='admin_login')
@@ -70,6 +70,7 @@ def edit_product(request, pk):
             product = Product.objects.filter(pk=pk).first()
             if not product:
                 return JsonResponse({"error": True, "message": "Product not found!"}, status=404)
+            
             form = ProductForm(request.POST, request.FILES, instance=product)
             if not form.is_valid():
                 return JsonResponse({
@@ -250,12 +251,11 @@ def edit_category(request, pk):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
 def delete_category(request, pk):
+    '''Soft deleting category. It will be still displayed in admin panel, not in user side.'''
     if request.method == "POST":
         try:
-            print("post received")
             category = Category.objects.filter(pk=pk).first()
             if category:
-                print(category)
                 category.is_deleted = not category.is_deleted
                 category.save()
 
@@ -267,4 +267,89 @@ def delete_category(request, pk):
             return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)
         
     return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+def remove_category(request, pk):
+    '''Hard deleting category. It will be removed from the database.'''
+    if request.method == "POST":
+        try:
+            category = Category.objects.filter(pk=pk).first()
+            if category:
+                if category.products.exists():
+                    return JsonResponse({
+                        "error" : True,
+                        "message" : f"Category {category.name} cannot be deleted as there are products added under this category."
+                    })
+
+                else:
+                    category.delete()
+
+                    return JsonResponse({
+                        "success" : True,
+                        "message" : f"Category {category.name} has deleted successfully."
+                    })
+        except json.JSONDecodeError:
+            return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)
+        
+    return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+def add_product_variant(request):
+    if request.method == 'POST':
+        quantity = request.POST.get('quantity')
+        if ProductVariant.objects.filter(quantity=quantity).exists():
+            return JsonResponse({
+                'error': True,
+                'message': "Entered variant already exists."
+            })
+        
+        form = VariantForm(request.POST)
+        if form.is_valid():
+            variant = form.save()
+
+            return JsonResponse({
+                'success': True,
+                'message': f"Product variant {variant.quantity} added successfully."
+            })
+        
+        else:
+            return JsonResponse({
+                'error': True,
+                'message': "Invalid data received. Please enter valid details."
+            })
+
+    return JsonResponse({
+        'error': True,
+        'message': "Invalid request!"
+    })
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+def delete_product_variant(request, pk):
+    if request.method == 'POST':
+        variant = ProductVariant.objects.filter(pk=pk).first()
+
+        if variant:
+            variant.delete()
+            return JsonResponse({
+                'success': True,
+                'message': f"Product variant {variant.quantity} deleted successfully."
+            })
+        
+        else:
+            return JsonResponse({
+                'error': True,
+                'message': "Requested variant does not exists."
+            })
+
+    return JsonResponse({
+        'error': True,
+        'message': "Invalid request!"
+    })
+
 

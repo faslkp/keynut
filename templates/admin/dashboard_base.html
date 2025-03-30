@@ -82,6 +82,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{% url 'admin_ledger_book' %}" class="nav-link">
+                        <i class="bi bi-file-earmark-spreadsheet"></i>
+                        Ledger Book
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{% url 'admin_customers' %}" class="nav-link">
                         <i class="bi bi-people"></i>
                         Customers
@@ -122,7 +128,6 @@
                                 <i class="bi bi-list"></i>
                             </button>
                             <div class="topbar-title">
-                                <i class="bi bi-grid me-2"></i>
                                 {% block page_head %}{% endblock %}
                             </div>
                         </div>

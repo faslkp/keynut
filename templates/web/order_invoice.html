@@ -75,7 +75,7 @@
                 {% for item in order.order_items.all %}
                 <tr>
                     <td>{{ item.product.name }} - {{item.variant}} {{item.product.unit}}</td>
-                    <td>₹{{ item.product.price }}</td>
+                    <td>₹{{ item.price }}</td>
                     <td>{{ item.quantity }}</td>
                     <td class="text-end">₹{{ item.total_amount|floatformat:2 }}</td>
                 </tr>
@@ -98,20 +98,20 @@
 
         <div class="payment-summary mt-3">
             <div class="d-flex mb-1">
-                <p class="w-75 text-end mb-0">Sub Total:</p>
-                <p class="w-25 text-end mb-0">₹{{ order.total_amount|floatformat:2 }}</p>
+                <p class="w-75 text-end mb-0">Sub Total (Before discount):</p>
+                <p class="w-25 text-end mb-0">₹{{order.total_amount|add:order.total_discount|add:order.order_level_discount|floatformat:2}}</p>
             </div>
             <div class="d-flex mb-1">
                 <p class="w-75 text-end mb-0">Shipping:</p>
-                <p class="w-25 text-end mb-0">₹0</p>
+                <p class="w-25 text-end mb-0">₹{{order.shipping_charge|floatformat:2}}</p>
             </div>
             <div class="d-flex mb-1">
                 <p class="w-75 text-end mb-0">Discount/Promotion:</p>
-                <p class="w-25 text-end mb-0">-₹0</p>
+                <p class="w-25 text-end mb-0">-₹{{order.total_discount|add:order.order_level_discount|floatformat:2}}</p>
             </div>
             <div class="d-flex mb-1">
                 <p class="w-75 text-end mb-0 fw-bold">Total Amount:</p>
-                <p class="w-25 text-end mb-0 fw-bold">₹{{ order.total_amount|floatformat:2 }}</p>
+                <p class="w-25 text-end mb-0 fw-bold">₹{{order.total_amount|add:order.shipping_charge|floatformat:2}}</p>
             </div>
         </div>
 

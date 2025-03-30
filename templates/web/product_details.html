@@ -43,8 +43,15 @@
         <div class="col-12 col-md-6 py-4">
             <h2 class="mb-2" style="font-size: 1.75rem;">{{product.name}}</h2>
             <!-- <p class="badge bg-success text-white">In Stock</p> -->
-            <div class="mb-2">
-                <span class="text-warning">★★★★☆</span> <span class="text-muted">(50 Reviews)</span>
+            <div class="star-rating mb-2">
+                {% for i in "12345" %}
+                    {% if i|add:0 <= product.average_rating %}
+                        <span class="star filled">★</span>
+                    {% else %}
+                        <span class="star">☆</span>
+                    {% endif %}
+                {% endfor %}
+                <span class="star text-secondary">({{ product.rating_count }})</span>
             </div>
             <div class="d-flex align-items-center mb-3">
                 <p class="fw-bold mb-0" style="font-size: 1.5rem;">₹{{product.discount_price|floatformat:2}}</p>

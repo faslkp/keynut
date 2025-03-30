@@ -165,7 +165,7 @@ class WalletTransaction(models.Model):
     ]
     wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions')
     transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
-    transaction_id = models.UUIDField(unique=True, default=uuid.uuid4())
+    transaction_id = models.UUIDField(unique=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=10, default='pending', choices=STATUS_TYPES)
     notes = models.CharField(max_length=255, null=True, blank=True)
