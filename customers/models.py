@@ -1,6 +1,7 @@
-import uuid
+import random
+import string
 
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 
@@ -184,3 +185,40 @@ class Subscriber(models.Model):
 
     def __str__(self):
         return self.email
+
+
+class Message(models.Model):
+    STATUS_CHOICES = [
+        ('new', 'New'),
+        ('open', 'Open'),
+        ('resolved', 'Resolved'),
+        ('pending', 'Pending'),
+    ]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    message = models.TextField()
+    acknowledge_number = models.CharField(max_length=20,blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
+
+    def __str__(self):
+        return f"Query from {self.name} on {self.created_at}"
+
+    def save(self, *args, **kwargs):
+        if not self.acknowledgement_number:
+            random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))  # 4-char alphanumeric
+    
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding  # Checks if it's a new instance
+        
+        with transaction.atomic():
+            super().save(*args, **kwargs)  # Save the object normally
+
+            if is_new and not self.acknowledge_number:  # Generate ack number only for new orders
+                id_part = f"{self.id:04d}"  # Ensures 4-digit enquiry ID
+                random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))  # 4-char alphanumeric
+
+                self.acknowledge_number = f"ACK-{id_part}-{random_str}"
+                super().save(update_fields=['acknowledge_number'])  # Update only ack number

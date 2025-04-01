@@ -19,14 +19,14 @@ Address Book
     </thead>
     <tbody>
     {% for address in addresses %}
-    <tr>
+    <tr class="address-instance">
         <td class="p-3">
         <p class="fw-bold mb-1">
             {{address.name}}
             {% if address.is_default %}
-            <a class="ms-3 text-success text-decoration-none title="Default address"><i class="bi bi-check-circle-fill"></i> <small class="ms-1">Default</small></a>
+            <a class="ms-3 text-success text-decoration-none" title="Default address"><i class="bi bi-check-circle-fill"></i> <small class="ms-1">Default</small></a>
             {% else %}
-            <a href="{% url 'user_set_address_default' address.id %}" class="ms-3 text-secondary" title="Mark as default"><i class="bi bi-check-circle"></i></a>
+            <a href="{% url 'user_set_address_default' address.id %}" class="ms-3 text-secondary mark-as-default" title="Mark as default"><i class="bi bi-check-circle"></i></a>
             {% endif %}
         </p>
         <p class="mb-1">{{address.address_line_1}}, {{address.address_line_2}}, {{address.city}}, {{address.state}}, {{address.pin}}</p>

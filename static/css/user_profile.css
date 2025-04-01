@@ -24,10 +24,14 @@
 .main-content {
     padding: 2rem;
 }
-
-
 .breadcrumb {
     font-size: 0.875rem;
+}
+a.mark-as-default {
+    display: none;
+}
+.address-instance:hover a.mark-as-default {
+    display: inline-block;
 }
 
 

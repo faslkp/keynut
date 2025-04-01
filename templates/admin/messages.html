@@ -1,0 +1,224 @@
+{% extends "admin/dashboard_base.html" %}
+{% load static %}
+{% block title %}Messages{% endblock title %}
+
+{% block script_top %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock script_top %}
+
+{% block page_head %}
+<i class="bi bi-envelope me-2"></i>
+Messages
+{% endblock page_head %}
+
+{% block content %}
+<!-- Messages Page Content -->
+<div class="container-fluid py-4">
+    <!-- Page Header with Controls -->
+    <div class="row mb-4 align-items-center justify-content-between">
+        <div class="col-12 col-md-auto mb-3 mb-md-0 d-flex flex-column flex-md-row gap-3">
+            <div class="dropdown" style="min-width: fit-content;">
+                <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span>Sort by</span>
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?sortby=-created_at">Date (Newest)</a></li>
+                    <li><a class="dropdown-item" href="?sortby=created_at">Date (Oldest)</a></li>
+                </ul>
+            </div>
+            
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-funnel-fill me-1"></i>
+                    <span>Request Status</span>
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?status=">All</a></li>
+                    <li><a class="dropdown-item" href="?status=new">New</a></li>
+                    <li><a class="dropdown-item" href="?status=open">Open</a></li>
+                    <li><a class="dropdown-item" href="?status=pending">Pending</a></li>
+                    <li><a class="dropdown-item" href="?status=resolved">Resolved</a></li>
+                </ul>
+            </div>
+
+            <form action="" class="d-flex flex-column flex-sm-row gap-2">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="q" class="form-control border-start-0 bg-light" placeholder="Search" aria-label="Search">
+                </div>
+                <a class="clear btn btn-warning w-auto align-self-start" href="{% url 'admin_messages' %}" title="Clear">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </form>
+        </div>
+        
+    </div>
+    
+    <!-- Messages Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="py-3 px-3 border-0">Date</th>
+                            <th class="py-3 px-3 border-0">Name</th>
+                            <th class="py-3 px-3 border-0">Email</th>
+                            <th class="py-3 px-3 border-0">Phone</th>
+                            <th class="py-3 px-3 border-0">Message</th>
+                            <th class="py-3 px-3 border-0">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        {% for message in all_messages %}
+                        <tr class="align-middle">
+                            <td class="py-3 px-3">{{ message.created_at }}</td>
+                            <td class="py-3 px-3">{{ message.name }}</td>
+                            <td class="py-3 px-3">{{ message.email }}</td>
+                            <td class="py-3 px-3">{{ message.phone }}</td>
+                            <td class="py-3 px-3">
+                                <a class="
+                                    btn-view-message text-decoration-none text-primary
+                                    {% if message.status == 'new' %}fw-bold{% endif %}
+                                    " href="#" 
+                                    data-message-id="{{message.id}}"
+                                    id="message-{{message.id}}"
+                                    data-bs-toggle="modal" data-bs-target="#messageDetailsModal">
+                                    {{ message.message|truncatewords:10 }}
+                                </a>
+                            </td>
+                            <td class="py-3 px-3">
+                                <div class=" d-flex gap-1">
+                                    <select class="form-select status-dropdown" id="status-{{ message.id }}">
+                                        <option value="" selected disabled>{{ message.get_status_display }}</option>
+                                            {% for status in status_choices %}
+                                                {% if status.0 != message.status %}
+                                                    <option value="{{ status.0 }}">
+                                                        {{ status.1 }}
+                                                    </option>
+                                                {% endif %}
+                                            {% endfor %}
+                                    </select>
+                                    <button class="update-status-btn btn btn-outline-danger p-1" data-message-id="{{ message.id }}">
+                                        Update
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted">
+            Page <span class="fw-medium">{{ all_messages.number }}</span> of <span class="fw-medium">{{ all_messages.paginator.num_pages }}</span> pages
+        </div>
+        <nav aria-label="orders pagination">
+            <ul class="pagination mb-0">
+                {% if all_messages.has_previous %}
+                <li class="page-item">
+                    <a class="page-link pagination-link" data-page="{{ all_messages.previous_page_number }}" aria-label="Previous" style="cursor: pointer;">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Previous">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <a class="page-link">{{ all_messages.number }}</a>
+                </li>
+
+                {% if all_messages.has_next %}
+                <li class="page-item">
+                    <a class="page-link pagination-link" data-page="{{ all_messages.next_page_number }}" aria-label="Next" style="cursor: pointer;">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+
+
+<!-- Hidden link to trigger the Feedback modal -->
+<a id="triggerFeedbackModal" href="#" data-bs-toggle="modal" data-bs-target="#feedbackModal" style="display:none;"></a>
+
+<!-- Feedback Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feedbackModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="feedbackModalDesc"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="feedbackModalCloseButton" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="messageDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageDetailsModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-12 col-md-12">
+                        <dvi class="mb-3">
+                            <p class="mb-2 text-secondary">Date: <span class="message-date text-dark"></span></p>
+                            <p class="mb-2 text-secondary">User: <span class="message-user text-dark"></span></p>
+                            <p class="mb-2 text-secondary">Name: <span class="message-name text-dark"></span></p>
+                            <p class="mb-2 text-secondary">Email: <span class="message-email text-dark"></span></p>
+                            <p class="mb-2 text-secondary">Phone: <span class="message-phone text-dark"></span></p>
+                        </dvi>
+                    </div>
+                    <div class="col-12">
+                        <p class="m-0 text-secondary">Message:</p>
+                        <p class="message-message"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock content %}
+
+{% block script %}
+<!-- Products page specific JS file -->
+<script src="{% static 'js/adminpanel_messages.js' %}"></script>
+{% endblock script %}

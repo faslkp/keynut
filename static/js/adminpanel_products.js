@@ -622,11 +622,6 @@ function validateFormData(formData) {
     // Check if form is in edit mode (by detecting existing image)
     let existingImage = document.getElementById("image-preview"); // Assume this contains the image URL if editing
     let imageFile = formData.get("image");
-
-    // Image validation (Only required if adding a new product or replacing an existing image)
-    if (!imageFile || imageFile.size === 0) {
-        errors["image"] = ["Please upload an image."];
-    }
     
     if (!existingImage || (imageFile && imageFile.size > 0)) {
         if (!imageFile || imageFile.size === 0) {

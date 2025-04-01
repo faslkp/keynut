@@ -1,0 +1,160 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Contact Us{% endblock title %}
+
+{% block stylesheet %}
+{% endblock stylesheet %}
+
+{% block header-nav %}
+{% include "web/includes/header-nav.html" %}
+{% endblock%}
+
+{% block content %}
+
+<!-- Messages -->
+<div class="messages container col-12 mt-5 mb-2 text-center">
+    {% for message in messages %}
+    <p class="{% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+    {% endfor %}
+</div>
+
+<!-- Content Section -->
+<section class="container pt-3 pb-5">
+    
+    <!-- Breadcrupb -->
+    <nav class="mb-5" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+         <li class="breadcrumb-item active" aria-current="page">Contact</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <div class="col-12 col-md-4">
+            <div class="top">
+                <h4 class="mb-3">
+                    <i class="bi bi-telephone me-3 text-danger"></i>
+                    Call To Us
+                </h4>
+                <p>We are available 24 hours, 7 days a week</p>
+                <p>Phone: <a href="tel:918921435356" class="text-danger">+91 8921 43 53 56</a></p>
+            </div>
+            <hr class="my-5">
+            <div class="bottom">
+                <h4 class="mb-3">
+                    <i class="bi bi-envelope me-3 text-danger"></i>
+                    Write To Us
+                </h4>
+                <p>Fill out the contact form or send an
+                    email to us and we will contact you
+                    within 24 hours.</p>
+                <p>Email: <a href="mailto:support@keynut.com" class="text-danger">support@keynut.com</a></p>
+            </div>
+        </div>
+        <div class="col-12 col-md-8 ps-5">
+            <h4 class="mb-4">
+                <i class="bi bi-envelope-paper me-3 text-danger"></i>
+                Contact Form
+            </h4>
+            <form id="messageForm" method="post" action="" class="mb-5">
+                {% csrf_token %}
+                <div class="row mb-3">
+                    <div class="col-md-4 mb-2">
+                        <label for="name" class="form-label">Your Name</label>
+                        <input type="text" name="name" class="form-control" id="name" value="{% if request.user.is_authenticated %}{{request.user.first_name}} {{request.user.last_name}}{% endif %}" placeholder="Enter full name" required>
+                        <small class="error-message text-danger"></small>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" id="email" value="{% if request.user.is_authenticated %}{{request.user.email}}{% endif %}" placeholder="Enter email address" required>
+                        <small class="error-message text-danger"></small>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="tel" name="phone" class="form-control" id="phone" value="{% if request.user.phone %}{{request.user.phone}}{% endif %}" placeholder="Enter phone number" required>
+                        <small class="error-message text-danger"></small>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea name="message" class="form-control" id="message" rows="5" placeholder="Enter message in detail." required></textarea>
+                        <small class="error-message text-danger"></small>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-danger">Submit</button>
+            </form>
+        </div>
+    </div>
+    
+</section>
+{% endblock content %}
+
+{% block footer %}
+{% include "web/includes/footer.html" %}
+{% endblock %}
+
+{% block script %}
+<script>
+    // Form validation - Profile
+    document.getElementById("messageForm").addEventListener("submit", function (event) {
+        event.preventDefault(); // Prevent form submission if validation fails
+
+        const nameInput = document.getElementById("name");
+        const emailInput = document.getElementById("email");
+        const phoneInput = document.getElementById("phone");
+        const messageInput = document.getElementById("message");
+        const nameRegex = /^[A-Za-z. ]+$/; // Allows letters, spaces, and dots
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Standard email format
+        const phoneRegex = /^[+0-9]([0-9]+(\s[0-9]+)*){6,14}$/; // Accepts digits, +, spaces, (), -
+
+        const nameError = nameInput.nextElementSibling;
+        const emailError = emailInput.nextElementSibling;
+        const phoneError = phoneInput.nextElementSibling;
+        const messageError = messageInput.nextElementSibling;
+
+        let isValid = true;
+
+        // Validate First Name
+        if (!nameRegex.test(nameInput.value.trim())) {
+            nameError.textContent = "Name can only contain letters, spaces, and dots.";
+            isValid = false;
+        } else {
+            nameError.textContent = "";
+        }
+
+        // Validate Email
+        if (!emailRegex.test(emailInput.value.trim())) {
+            emailError.textContent = "Please enter a valid email address.";
+            isValid = false;
+        } else {
+            emailError.textContent = "";
+        }
+
+        // Validate Phone Number
+        if (!phoneRegex.test(phoneInput.value.trim())) {
+            phoneError.textContent = "Please enter a valid phone number.";
+            isValid = false;
+        } else {
+            phoneError.textContent = "";
+        }
+
+        // Validate message
+        if (!messageInput.value.trim()) {
+            messageError.textContent = "Please enter your message.";
+        } else {
+            // Split the message into words and check if it has at least 3 words
+            const wordCount = messageInput.value.trim().split(/\s+/).length;
+            if (wordCount < 3) {
+                messageError.textContent = "Please enter at least 3 words in your message.";
+            }
+        }
+
+
+        if (isValid) {
+            this.submit(); // Submit form if valid
+        }
+    });
+</script>
+{% endblock script %}

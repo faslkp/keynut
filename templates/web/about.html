@@ -1,0 +1,83 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}About Us{% endblock title %}
+
+{% block stylesheet %}
+{% endblock stylesheet %}
+
+{% block header-nav %}
+{% include "web/includes/header-nav.html" %}
+{% endblock%}
+
+{% block content %}
+
+<!-- Messages -->
+<div class="messages container col-12 mt-5 mb-2 text-center">
+    {% for message in messages %}
+    <p class="{% if message.tags == 'success' %}text-success{% else %}text-danger{% endif %}">{{message}}</p>
+    {% endfor %}
+</div>
+
+<!-- Content Section -->
+<section class="container pt-3 pb-5">
+    <!-- Breadcrupb -->
+    <nav class="mb-4" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+         <li class="breadcrumb-item active" aria-current="page">About</li>
+        </ol>
+    </nav>
+    
+    <div class="row align-items-center">
+        <div class="col-12 col-md-6">
+            <p>
+                Launched in 2015, Keynut is India’s premier online shopping
+                marketplace for Nuts, Dates, and Dry Fruits. Supported by wide
+                range of tailored marketing, data and service solutions. Keynut
+                has more than 10,000 product variants and 300 brands. We
+                serves 3 million customers across the region.
+            </p>
+            <p>
+                Keynut has more than 33,000 monthly orders, growing at a
+                very fast. Keynut offers a diverse assortment in categories
+                ranging from highly premium to budget friendly.
+            </p>
+        </div>
+        <div class="col-12 col-md-6">
+            <img src="{% static 'images/keynut.png' %}" alt="Keynut-logo" class="img-fluid">
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="container">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <i class="bi bi-truck"></i>
+                    <p>Free and Fast Delivery on all orders over ₹1000</p>
+                </div>
+                <div class="col-md-4">
+                    <i class="bi bi-headset"></i>
+                    <p>24/7 Customer Service</p>
+                </div>
+                <div class="col-md-4">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    <p>Money Back Guarantee in 30 days</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    
+    
+    
+</section>
+{% endblock content %}
+
+{% block footer %}
+{% include "web/includes/footer.html" %}
+{% endblock %}
+
+{% block script %}
+{% endblock script %}

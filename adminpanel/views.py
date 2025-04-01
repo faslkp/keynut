@@ -2,6 +2,7 @@ import random
 import datetime
 import csv
 import tempfile
+import json
 
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, authenticate, login as authlogin, logout as authlogout
@@ -23,7 +24,7 @@ from django.db.models.functions import TruncDate
 from weasyprint import HTML
 
 from customers.forms import CustomerForm
-from customers.models import WalletTransaction
+from customers.models import WalletTransaction, Message
 from products.forms import ProductForm, CategoryForm, VariantForm
 from products.models import Product, ProductVariant, Category
 from orders.models import Order, OrderItem, Payment, ReturnRequest
@@ -475,6 +476,21 @@ def return_requests(request):
             ),
         ).order_by('-created_at')
 
+    sortby = request.GET.get('sortby')
+    filter_status = request.GET.get('status')
+    q = request.GET.get('q')
+
+    if sortby:
+        return_requests = return_requests.order_by(sortby)
+
+    if filter_status:
+        return_requests = return_requests.filter(status=filter_status)
+
+    if q:
+        return_requests = return_requests.filter(
+            Q(order__order_id__icontains=q) | Q(order__user__email__icontains=q) |
+            Q(order__user__first_name__icontains=q) | Q(order__user__last_name__icontains=q))
+        
     # Pagination
     paginator = Paginator(return_requests, 10)
     page_number = request.GET.get('page')
@@ -488,6 +504,94 @@ def return_requests(request):
         'payment_methods': payment_methods,
     }
     return render(request, 'admin/return_requests.html', context=context)
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def customer_messages(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            message_id = data.get("message_id")
+            new_status = data.get("status")
+
+            if not new_status:
+                return JsonResponse({
+                    'error': True,
+                    'message': "Nothing to update!"
+                })
+
+            message = Message.objects.filter(id=message_id).first()
+            if message:
+                message.status = new_status
+                message.save(update_fields=["status"])
+
+                return JsonResponse({
+                    'success': True,
+                    'message': "Message status updated successfully."
+                })
+            else:
+                return JsonResponse({
+                    'error': True,
+                    'message': "Message not found!"
+                })
+        
+        except Exception as e:
+            return JsonResponse({'error': True, "message": str(e)})
+
+    all_messages = Message.objects.all().order_by('-created_at')
+
+    sortby = request.GET.get('sortby')
+    filter_status = request.GET.get('status')
+    q = request.GET.get('q')
+
+    if sortby:
+        all_messages = all_messages.order_by(sortby)
+
+    if filter_status:
+        all_messages = all_messages.filter(status=filter_status)
+
+    if q:
+        all_messages = all_messages.filter(
+            Q(name__icontains=q) | Q(email__icontains=q) | Q(message__icontains=q) | 
+            Q(user__first_name__icontains=q) | Q(user__last_name__icontains=q))
+
+    paginator = Paginator(all_messages, 10)
+    page_number = request.GET.get('page')
+    all_messages = paginator.get_page(page_number)
+
+    status_choices = Message.STATUS_CHOICES
+    context = {
+        'all_messages': all_messages,
+        'status_choices': status_choices,
+    }
+    return render(request, 'admin/messages.html', context=context)
+
+
+@login_required(login_url='admin_login')
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+def view_customer_message(request, pk):
+    message = Message.objects.filter(pk=pk).first()
+
+    message.status = 'open'
+    message.save()
+
+    if not message:
+        return JsonResponse({
+            'error': True,
+            'message': 'Message not found!'
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Message details fetched successfully.',
+        'message_date': message.created_at,
+        'message_user': message.user.email if message.user else None,
+        'message_name': message.name,
+        'message_email': message.email,
+        'message_phone': message.phone,
+        'message_message': message.message
+    })
 
 
 @login_required(login_url='admin_login')

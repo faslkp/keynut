@@ -26,7 +26,11 @@
         <!-- Sidebar Filters -->
         <div class="col-12 col-md-3 mb-4 mb-md-0">
             <div class="filter-sidebar p-3 bg-light rounded">
-                <h4 class="mb-3" style="font-size: 1.5rem;">Sort by</h4>
+                <div class="mb-3 d-flex justify-content-between">
+                    <h4 class="" style="font-size: 1.5rem;">Sort by</h4>
+                    <a href="{% url 'products' %}" id="clear-filters" class="btn btn-link" style="font-size: 1rem; text-decoration:none;">Clear All</a>
+                </div>
+                
                 <div class="form-check mb-2">
                     <input class="form-check-input" name="sortby" type="radio" name="sort" id="relevance" checked>
                     <label class="form-check-label" for="relevance">Relevance</label>

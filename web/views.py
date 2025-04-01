@@ -23,7 +23,7 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from weasyprint import HTML
 
 from products.models import Product, Category, Rating
-from customers.models import Address, Wishlist, Wallet, WalletTransaction
+from customers.models import Address, Wishlist, Wallet, WalletTransaction, Message
 from customers.forms import AddressForm
 from orders.models import Order, OrderItem, Payment
 from promotions.models import Offer
@@ -43,14 +43,15 @@ def index(request):
     new_arrivals = Product.objects.filter(is_listed=True, is_deleted=False, category__is_deleted=False).order_by('-created_at')[:4]
 
     offers = Offer.objects.filter(is_active=True, start_date__lte=timezone.now(), end_date__gte=timezone.now()).order_by('?')
-    
+    print(offers)
     context.update({
         'categories': categories, 
         'flash_sales': flash_sales,
         'best_selling': best_selling,
         'new_arrivals': new_arrivals,
-        'main_offer':offers[0],
-        'second_offer': offers[1]
+        'top_banner_offer':offers[1] if offers and len(offers) >= 2 else None,
+        'main_offer':offers[0] if offers else None,
+        'second_offer': offers[2] if offers and len(offers) >= 3 else None
     })
     return render(request, 'web/index.html', context=context)
 
@@ -62,9 +63,16 @@ def products(request):
     sortby = request.GET.get('sort')
     selected_categories = request.GET.getlist('category')
     selected_prices = request.GET.getlist('price')
+    ref = request.GET.get('ref')
     
+    if ref:
+        current_time = timezone.now()
 
-    products = Product.objects.filter(is_deleted=False, is_listed=True, category__is_deleted=False).order_by('-relevance')
+        active_offers = Offer.objects.filter(is_active=True, start_date__lte=current_time, end_date__gte=current_time)
+
+        products = Product.objects.filter((Q(offers__in=active_offers) | Q(category__offers__in=active_offers)), is_deleted=False, is_listed=True, category__is_deleted=False)
+    else:
+        products = Product.objects.filter(is_deleted=False, is_listed=True, category__is_deleted=False).order_by('-relevance')
     
     # Handle Filters
     query = Q()
@@ -187,7 +195,9 @@ def user_profile(request):
             request.user.username = email
             request.user.is_verified = False
             request.user.save()
-            messages.success(request, "Email updated successfully.")
+            messages.success(request, "Email updated successfully. Please login again with updated email.")
+            authlogout(request)
+            return redirect('login')
         elif phone:
             request.user.phone = phone
             request.user.save()
@@ -444,6 +454,21 @@ def user_order_invoice(request, order_id):
         return response
 
 
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
+def user_ratings(request):
+    ratings = Rating.objects.select_related('product').filter(user=request.user)
+
+    paginator = Paginator(ratings, 10)
+    page_number = request.GET.get('page')
+    ratings = paginator.get_page(page_number)
+
+    context = {
+        'ratings': ratings
+    }
+    return render(request, 'web/user_ratings.html', context=context)
+
+
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def add_rating(request):
@@ -486,23 +511,18 @@ def add_rating(request):
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def wallet(request):
-    wallet, created = Wallet.objects.get_or_create(user=request.user)
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
     transactions = wallet.transactions.all().order_by('-created_at')
+
+    paginator = Paginator(transactions, 10)
+    page_number = request.GET.get('page')
+    transactions = paginator.get_page(page_number)
+
     context = {
         'wallet': wallet,
         'transactions': transactions,
     }
     return render(request, 'web/user_wallet.html', context=context)
-
-
-@login_required(login_url='login')
-@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
-def user_ratings(request):
-    ratings = Rating.objects.select_related('product').filter(user=request.user)
-    context = {
-        'ratings': ratings
-    }
-    return render(request, 'web/user_ratings.html', context=context)
 
 
 @never_cache
@@ -950,3 +970,30 @@ class CustomGoogleLoginView(OAuth2LoginView):
 
 def four_not_four(request):
     return render(request, 'web/404.html')
+
+
+def about(request):
+    return render(request, 'web/about.html')
+
+
+def contact(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        phone = request.POST.get('phone')
+        message = request.POST.get('message')
+
+        if not name or not email or not phone or not message:
+            messages.error(request, "All fields are required.")
+            return redirect('contact')
+        
+        new_enquiry = Message.objects.create(
+            user = request.user if request.user.is_authenticated else None,
+            name = name,
+            email = email,
+            phone = phone,
+            message = message
+        )
+        messages.success(request, f"We have received your message with acknowledge number {new_enquiry.acknowledge_number}. Please note it down so you can refer in future communications.")
+
+    return render(request, 'web/contact.html')

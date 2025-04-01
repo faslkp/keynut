@@ -7,7 +7,6 @@ from orders.views import checkout, user_cancel_order, user_return_order, razorpa
 urlpatterns = [
     path('', views.index, name='index'),
     path('products/', views.products, name='products'),
-    path('deals/', views.products, name='deals'),
     path('products/<str:slug>/', views.product_details, name='product_details'),
     path('wishlist/', wishlist, name='wishlist'),
     path('wishlist/<int:product_id>/toggle/', toggle_wishlist, name='toggle_wishlist'),
@@ -40,4 +39,6 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('404/', views.four_not_four, name='404'),
     path('subscribe/', offer_subscibe, name='subscribe'),
+    path('about/', views.about, name='about'),
+    path('contact/', views.contact, name='contact'),
 ]

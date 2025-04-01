@@ -4,8 +4,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // Update order status
     document.querySelectorAll(".update-status-btn").forEach(button => {
         button.addEventListener("click", function () {
-            let requestId = this.dataset.requestId;
-            let newStatus = document.getElementById(`status-${requestId}`).value;
+            let messageId = this.dataset.messageId;
+            let newStatus = document.getElementById(`status-${messageId}`).value;
             let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content'); // Get CSRF token
 
             // Get the feedback modal elements
@@ -15,14 +15,14 @@ document.addEventListener("DOMContentLoaded", function () {
             feedbackModalLabel.innerText = "";
             feedbackModalDesc.innerText = "";
 
-            fetch("/admin/returns/update-status/", {
+            fetch("/admin/messages/update-status/", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "X-CSRFToken": csrfToken // Include CSRF token
                 },
                 body: JSON.stringify({
-                    request_id: requestId, 
+                    message_id: messageId, 
                     status: newStatus 
                 })
             })
@@ -32,6 +32,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     feedbackModalLabel.innerText = "Success";
                     feedbackModalDesc.innerText = data.message;
                     feedbackModalTrigger.click();
+                    if (newStatus != 'new') {
+                        document.getElementById(`message-${messageId}`).classList.remove('fw-bold')
+                    } else {
+                        document.getElementById(`message-${messageId}`).classList.add('fw-bold')
+                    }
                 } else {
                     feedbackModalLabel.innerText = "Error";
                     feedbackModalDesc.innerText = data.message;
@@ -94,38 +99,33 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // View order event listeners 
-    document.querySelectorAll(".btn-view-order").forEach(button => {
+    // View message event listeners 
+    document.querySelectorAll(".btn-view-message").forEach(button => {
         button.addEventListener("click", function (event) {
             // Setting up Update Status button and disabling to wait for fetching product data
-            document.getElementById('orderDetailsModalLabel').innerText = "Order Details"
+            document.getElementById('messageDetailsModalLabel').innerText = "Message"
 
             // Getting order details fields
-            const orderIdSpan = document.querySelector('.order-id');
-            const orderDateSpan = document.querySelector('.order-date');
-            const orderAddressSpan = document.querySelector('.delivery-address');
-            const orderSubTotalSpan = document.querySelector('.subtotal');
-            const orderTotalSpan = document.querySelector('.order-total');
-            const orderItemsSpan = document.querySelector('.order-items-table');
-            const paymentsSpan = document.querySelector('.payments-table');
-            const orderStatusSpan = document.querySelector('.order-status');
+            const messageDate = document.querySelector('.message-date');
+            const messageUser = document.querySelector('.message-user');
+            const messageName = document.querySelector('.message-name');
+            const messageEmail = document.querySelector('.message-email');
+            const messagePhone = document.querySelector('.message-phone');
+            const messageMessage = document.querySelector('.message-message');
 
             // Clear existing values
-            orderIdSpan.innerText = "";
-            orderDateSpan.innerText = "";
-            orderAddressSpan.innerText = "";
-            orderStatusSpan.innerText = "";
-            orderSubTotalSpan.innerText = "";
-            orderTotalSpan.innerText = "";
-            orderItemsSpan.innerHTML = "";
-            paymentsSpan.innerHTML = "";
-            
+            messageDate.innerText = "";
+            messageUser.innerText = "";
+            messageName.innerText = "";
+            messageEmail.innerText = "";
+            messagePhone.innerText = "";
+            messageMessage.innerText = "";
 
             // Get userID
-            const orderId = this.dataset.orderId
+            const messageId = this.dataset.messageId
 
             // Construct URL
-            const url = `/admin/orders/${orderId}/view/`
+            const url = `/admin/messages/${messageId}/view/`
 
             // Fetch product data
             fetch(url, {
@@ -147,48 +147,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (!data) throw new Error("No data received from the server");
 
                 // Adding order details to modal
-                orderIdSpan.innerText = data.order_id
-                orderDateSpan.innerText = data.order_date.split("T")[0]
-                orderStatusSpan.innerText = data.status
-                orderSubTotalSpan.innerText = `₹${parseFloat(data.total_amount).toFixed(2)}`
-                orderTotalSpan.innerText = `₹${parseFloat(data.total_amount).toFixed(2)}`
+                messageDate.innerText = data.message_date;
+                messageUser.innerText = data.message_user;
+                messageName.innerText = data.message_name;
+                messageEmail.innerText = data.message_email;
+                messagePhone.innerText = data.message_phone;
+                messageMessage.innerText = data.message_message;
 
-                orderAddressSpan.innerText = `${data.address.name}, ${data.address.address_line_1}, ${data.address.address_line_2}, ${data.address.city}, ${data.address.state}, ${data.address.pin}, ${data.address.phone}, `
-                
-                data.status_choices.forEach(choice => {
-                    if (choice[0] == data.status) {
-                        orderStatusSpan.innerText = choice[1]
-                    }
-                });
-
-                // const orderItems = JSON.parse(data.order_items)
-                data.order_items.forEach(item => {
-                    
-                    // Create a new table row
-                    const newRow = document.createElement("tr");
-                    newRow.innerHTML = `
-                        <td class="py-2 px-3">${item.product__name} - ${item.variant} ${item.product__unit}</td>
-                        <td class="py-2 px-3">₹${item.product__price}</td>
-                        <td class="py-2 px-3">${item.quantity}</td>
-                        <td class="py-2 px-3">₹${parseFloat(item.total_amount).toFixed(2)}</td>
-                    `;
-
-                    // Append the new row to the tbody
-                    orderItemsSpan.appendChild(newRow);
-                });
-                
-                data.payments.forEach(payment => {
-                    const newPaymentRow = document.createElement("tr");
-                    newPaymentRow.innerHTML = `
-                        <td class="py-2 px-3">${payment.payment_date.replace('T', ' ').split('.')[0]}</td>
-                        <td class="py-2 px-3">₹${parseFloat(payment.amount).toFixed(2)}</td>
-                        <td class="py-2 px-3">${payment.payment_method}<br>(${payment.payment_status})</td>
-                        <td class="py-2 px-3">${payment.transaction_id}</td>
-                    `;
-
-                    // Append the new row to the tbody
-                    paymentsSpan.appendChild(newPaymentRow);
-                })
+                document.getElementById(`message-${messageId}`).classList.remove('fw-bold')
             })
             .catch(error => {
                 console.log("Error occured. " + error)

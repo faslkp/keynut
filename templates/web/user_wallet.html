@@ -51,5 +51,41 @@ Wallet
     {% endif %}
 </div>
 
+<!-- Pagination -->
+<nav aria-label="Page navigation" class="d-flex justify-content-between align-items-center mt-4">
+    <div class="text-muted">
+        Page <span class="fw-medium">{{ transactions.number }}</span> of <span class="fw-medium">{{ transactions.paginator.num_pages }}</span> pages
+    </div>
+    <ul class="pagination justify-content-center align-items-center mb-0">
+        {% if transactions.has_previous %}
+        <li class="page-item">
+            <a class="page-link pagination-link" href="?page={{ transactions.previous_page_number }}" tabindex="-1" style="cursor: pointer;">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link" tabindex="-1">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+        <li class="page-item active"><a class="page-link">{{ transactions.number }}</a></li>
+        {% if transactions.has_next %}
+        <li class="page-item">
+            <a class="page-link pagination-link" href="?page={{ transactions.next_page_number }}" style="cursor: pointer;">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+
 {% endblock profile_content %}
 

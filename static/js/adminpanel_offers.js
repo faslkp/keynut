@@ -584,8 +584,6 @@ function validateFormData(formData) {
 
     if (!startDate) {
         errors.start_date = ["Start date is required"];
-    } else if (startDate < today) {
-        errors.start_date = ["Start date cannot be before today"];
     }
 
     if (!endDate) {

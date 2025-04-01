@@ -89,9 +89,9 @@ Order Details
                             <p class="star-rating mb-0 fs-4">
                                 {% for i in "12345" %}
                                     {% if i|add:0 <= order_item.user_rating %}
-                                        <span class="rating-star rating-{{order_item.product.id}} star filled" data-star="{{i}}" data-product="{{order_item.product.id}}" style="cursor: pointer; color: gold;">☆</span>
+                                        <span class="rating-star rating-{{order_item.id}} star filled" data-star="{{i}}" data-product="{{order_item.product.id}}" data-item-id="{{order_item.id}}" style="cursor: pointer; color: gold;">☆</span>
                                     {% else %}
-                                        <span class="rating-star rating-{{order_item.product.id}} star filled" data-star="{{i}}" data-product="{{order_item.product.id}}" style="cursor: pointer; color: gray;">☆</span>
+                                        <span class="rating-star rating-{{order_item.id}} star filled" data-star="{{i}}" data-product="{{order_item.product.id}}" data-item-id="{{order_item.id}}" style="cursor: pointer; color: gray;">☆</span>
                                     {% endif %}
                                 {% endfor %}
                             </p>
@@ -231,6 +231,7 @@ document.addEventListener("DOMContentLoaded", function () {
         star.addEventListener("click", function () {
             const productId = this.dataset.product;
             const ratingNumber = this.dataset.star;
+            const itemId = this.dataset.itemId
 
             const url = "/rating/add/";
 
@@ -254,7 +255,7 @@ document.addEventListener("DOMContentLoaded", function () {
             })
             .then(data => {
                 if (data.success) {
-                    const stars = document.querySelectorAll(`.rating-${productId}`);
+                    const stars = document.querySelectorAll(`.rating-${itemId}`);
 
                     stars.forEach(s => s.style.color = 'grey');
                     for (i=0; i < ratingNumber; i++) {

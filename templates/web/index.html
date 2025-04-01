@@ -4,7 +4,9 @@
 {% block title %}Home{% endblock title %}
 
 {% block top-banner %}
+{% if top_banner_offer %}
 {% include "web/includes/top-banner.html" %}
+{% endif %}
 {% endblock%}
 
 {% block header-nav %}
@@ -44,7 +46,7 @@
                     <div class="container">
                         <h1>{{main_offer.name}}</h1>
                         <p class="mx-auto" style="max-width: 70%">{{main_offer.description}}</p>
-                        <a href="{% url 'deals' %}" class="btn btn-light btn-lg">Shop Now</a>
+                        <a href="{% url 'products' %}?ref=deals" class="btn btn-light btn-lg">Shop Now</a>
                     </div>
                 </div>
                 {% else %}
@@ -103,7 +105,7 @@
     </div>
 </section>
 
-<!-- Deal of the Day -->
+<!-- Deal of the Day Banner -->
 <section class="deal-of-day py-5" 
     {% if second_offer %}
     style="background: url({{second_offer.banner_image.url}}) no-repeat center/cover;"
@@ -115,7 +117,7 @@
         <h3 class="section-title py-1 px-2 fs-5 bg-dark text-white rounded-2 d-inline-block">Deal of the Day</h3>
         <h1>Enhance Your Bite Experience{% if second_offer %} with {{second_offer.name}}{% endif %}</h1>
         <p class="fs-4">One Bite! That's enough to get in love.</p>
-        <a href="{% url 'deals' %}" class="btn btn-light btn-lg">Buy Now</a>
+        <a href="{% url 'products' %}?ref=deals" class="btn btn-light btn-lg">Buy Now</a>
     </div>
 </section>
 
@@ -139,7 +141,7 @@
         <div class="row text-center">
             <div class="col-md-4">
                 <i class="bi bi-truck"></i>
-                <p>Free and Fast Delivery on all orders over ₹500</p>
+                <p>Free and Fast Delivery on all orders over ₹1000</p>
             </div>
             <div class="col-md-4">
                 <i class="bi bi-headset"></i>

@@ -2,8 +2,12 @@
     <div class="container">
         <div class="row">
             <div class="col-12 text-center">
-                <a href="{% url 'products' %}?sort=relevance" class="fw-bold text-light me-3">Ramazan Sale</a>
-                <span>Get 15% OFF on Ramazan special products!</span>
+                <a href="{% url 'products' %}?ref=deals" class="fw-bold text-light me-3">{{top_banner_offer.name}}</a>
+                {% if top_banner_offer.discount_type == 'flat'%}
+                <span>Get flat {{top_banner_offer.discount_value|floatformat:0}} OFF on selected products!</span>
+                {% else %}
+                <span>Get {{top_banner_offer.discount_value|floatformat:0}}% OFF on selected products!</span>
+                {% endif %}
             </div>
         </div>
     </div>
