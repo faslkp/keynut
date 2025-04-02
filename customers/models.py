@@ -63,12 +63,13 @@ class Cart(models.Model):
         
         # Apply cart-level coupon if applicable
         cart_level_discount = self.calculate_cart_level_coupon_discount(total_cart_value)
-        final_cart_value = total_cart_value - cart_level_discount
+        final_cart_value = max(0, total_cart_value - cart_level_discount)
         
         total_discount = total_items_level_discount + cart_level_discount
         print('total dicount:', total_discount)
         print('cart level discount:', cart_level_discount)
         print('items level discount:', total_items_level_discount)
+        print('cart value:', final_cart_value)
         return final_cart_value, total_discount, cart_level_discount
     
 

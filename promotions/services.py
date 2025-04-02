@@ -1,9 +1,11 @@
 from django.utils import timezone
+from django.apps import apps
 
 from decimal import Decimal
 
 from products.models import Product
 from promotions.models import Offer, Coupon
+
 
 
 class OfferService:
@@ -132,6 +134,7 @@ class OfferService:
         if not coupon.is_active:
             raise ValueError("The coupon is no longer active.")
         
+        # Validate coupon validity dates
         if not (coupon.start_date <= timezone.now() <= coupon.end_date):
             raise ValueError("This coupon is not valid at this time.")
         
@@ -147,3 +150,10 @@ class OfferService:
             effective_amount = self.variant_quantity * self.quantity * self.original_price
             if coupon.min_purchase_value and effective_amount < coupon.min_purchase_value:
                 raise ValueError("This coupon requires a minimum purchase of ₹{:.2f}.".format(coupon.min_purchase_value))
+        
+        # Check single use per user coupons
+        from orders.models import Order
+        if coupon.single_use_per_user:
+            order = Order.objects.filter(user=self.user, coupon=coupon).first()
+            if order:
+                raise ValueError(f"This coupon is already used in {order.order_id}.")

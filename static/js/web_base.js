@@ -55,6 +55,64 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // Add to cart button on product card
+    const addToCartButtons = document.querySelectorAll('.add-to-cart');
+    
+    if (addToCartButtons.length === 0) {
+        return; // Exit if there are no wishlist buttons on the page
+    }
+
+    async function addToCart(productId, csrftoken, button) {
+        const url = `/cart/${productId}/add/`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                },
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                button.innerText = 'Added to cart ✅';
+
+                // Store original styles before changing
+                if (!button.dataset.originalBg) {
+                    button.dataset.originalBg = button.style.backgroundColor;
+                    button.dataset.originalBorder = button.style.border;
+                }
+
+                // Change to success color
+                button.style.backgroundColor = 'rgb(25, 135, 84)'; // Success background
+                button.style.border = '3px solid rgba(25, 135, 84, 1)'; // Success border
+
+                // Revert back after 10 seconds
+                setTimeout(() => {
+                    button.style.backgroundColor = button.dataset.originalBg; // Restore original background
+                    button.style.border = button.dataset.originalBorder; // Restore original border
+                    button.innerText = 'Add to cart'; // Reset text if needed
+                }, 3000);
+            } else {
+                alert(data.message || 'Something went wrong');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    addToCartButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            console.log('adding to cart button');
+            
+            const productId = this.dataset.productId;
+            const csrftoken = this.dataset.csrfToken;
+            addToCart(productId, csrftoken, this);
+        });
+    });
+
+
     // Subscription
     document.getElementById('subscribe-button').addEventListener('click', function() {
         email = document.getElementById('subscribe-form').value;

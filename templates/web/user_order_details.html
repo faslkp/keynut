@@ -16,6 +16,9 @@ Order Details
             {% if payment.payment_method %}
             <p class="">Payment Method: <span class="fw-bold">{{payment.get_payment_method_display}}</span></p>
             {% endif %}
+            {% if order.coupon %}
+            <p class="">Coupon Applied: <span class="fw-bold">{{order.coupon.code}}</span></p>
+            {% endif %}
             <p class="mb-0">Order Status: 
                 <span class="fw-bold
                     {% if order.status == 'pending' %}text-secondary{% endif %}

@@ -253,6 +253,64 @@ def add_to_cart(request):
     return redirect('cart')
 
 
+def add_to_cart_card(request, pk):
+    # Handling not logged in user - redirect to product page after login
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'error': True,
+            'message': 'Please login to add products to cart.'
+        })
+    
+    if request.method == 'POST':
+        product = Product.objects.filter(pk=pk, is_listed=True, is_deleted=False, category__is_deleted=False).first()
+        
+        variant = product.variants.filter(quantity=1).first() or product.variants.all().order_by('quantity').first()
+        
+        if product and variant:
+            if variant.quantity <= product.stock:
+                # Get or create cart
+                user_cart, created = Cart.objects.get_or_create(user=request.user)
+
+                # Get or create the product with the given variant
+                cart_item, created = CartItem.objects.get_or_create(
+                    cart=user_cart,
+                    product=product,
+                    variant=variant,
+                    defaults={"quantity": 1}  # Set quantity if creating new
+                )
+
+                # If item already exists, update quantity
+                if not created:
+                    cart_item.quantity = F("quantity") + 1
+                    cart_item.save(update_fields=["quantity"])
+                
+                # Ensure the quantity does not exceed 10 - this case is needed if product already exists in cart
+                cart_item.refresh_from_db()  # Fetch the updated value from DB
+                if cart_item.quantity > 10:
+                    cart_item.quantity = 10
+                    cart_item.save(update_fields=["quantity"])
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': f"{product.name} - {variant.quantity} {product.unit} added to cart successfully."
+                })
+            else:
+                return JsonResponse({
+                    'error': True,
+                    'message': f"Oops! Looks like some items just got snapped up by other shoppers. We currently have only {product.stock} {product.unit} left in stock. Please update your variant and quantity to proceed. Thanks for understanding!"
+                })
+        else:
+            return JsonResponse({
+                'error': True,
+                'message': "Something went wrong. Please open product details and then add to cart."
+            })
+    else:
+        return JsonResponse({
+            'error': True,
+            'message': "Invalid request!"
+        })
+
+
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def remove_from_cart(request, pk):

@@ -129,9 +129,8 @@ def checkout(request):
         
         # Handling cash on delivery and wallet eligibility
         # Getting cart total, shipping charge and cart level discount
-        cart_total,_,_ = cart.total_price()
+        cart_total,_,cart_level_discount = cart.total_price()
         shipping_charge = cart.shipping_charge()
-        _,_,cart_level_discount = cart.total_price()
 
         # Checking cash on delivery eligibility
         if payment_method == 'cash-on-delivery' and (cart_total + shipping_charge) >= 1000:
@@ -198,20 +197,15 @@ def checkout(request):
 
                 # Calculate Final Price
                 final_price, applied_discount = offer_service.calculate_final_price()
-
-                # Getting per unit discount amount
-                discount_amount_per_unit = product.price - final_price
-                print(f"Discount amount per unit: {discount_amount_per_unit}")
-                print(f"Applied discount: {applied_discount}")
                 
                 # Create order item
                 order_item = OrderItem(
                     order=order,
                     product=product,
                     variant=variant_quantity,
-                    price=final_price,
+                    price=final_price / (int(variant_quantity) * quantity),
                     quantity=quantity,
-                    discount_amount=discount_amount_per_unit
+                    discount_amount=applied_discount
                 )
                 order_items.append(order_item)
 
@@ -298,7 +292,7 @@ def checkout(request):
         'saved_addresses': saved_addresses,
         'cart': cart,
     })
-    if cart.total_price()[0] > 0:
+    if cart.cart_items.exists():
         return render(request, 'web/checkout.html', context=context)
     else:
         return redirect('cart')
