@@ -101,9 +101,9 @@ def products(request):
             if key in price_filter_options:
                 min_price, max_price = price_filter_options[key]
                 if max_price is None:
-                    price_query |= Q(discount_price__gte=min_price)
+                    price_query |= Q(price__gte=min_price)
                 else:
-                    price_query |= Q(discount_price__gte=min_price, discount_price__lte=max_price)
+                    price_query |= Q(price__gte=min_price, price__lte=max_price)
         query &= price_query
     
     # Apply combined filter
@@ -766,7 +766,7 @@ def recover(request):
 
 @user_passes_test(lambda user: not user.is_authenticated, login_url='/',redirect_field_name=None)
 def register(request):
-    referral_key = request.GET.get('ref')
+    referral_key = request.GET.get('ref', '')
     context = {
         'stage': "primary",
         'referral_key': referral_key
@@ -892,20 +892,13 @@ def register(request):
                 if generated_timestamp:
                     generated_timestamp = datetime.datetime.fromisoformat(generated_timestamp)
                     if (datetime.datetime.now() - generated_timestamp).seconds > 300:
-                        print("OTP expired...")
                         del request.session['generated_otp']
                         messages.error(request, "Your OTP has expired. Please click Resend OTP to get new one.")
                 
                 if user_entered_otp == request.session.get('generated_otp'):
-                    print("OTP matching...")
                     user = User.objects.filter(username=email).first()
                     if user:
-                        user.is_verified = True
-                        user.save()
-                        user.backend = 'django.contrib.auth.backends.ModelBackend'
-                        authlogin(request, user)
-
-                        # Handling referral key
+                        # Handling referral
                         if user.referral_key:
                             re_pattern = rf"^ref-(.*)-{re.escape(user.username)}$"  # Pattern to match referral key
                             match = re.match(re_pattern, user.referral_key)
@@ -937,10 +930,18 @@ def register(request):
                                     status='success',
                                     notes=f"Referred by {referred_by.first_name}"
                                 )
+
                                 messages.success(request, "You have been referred by a friend. You both have received Keynut bonus in your wallet.")
                             else:
                                 messages.error(request, "Invalid referral key!")
 
+                        user.is_verified = True
+                        user.referral_key = uuid.uuid4() # Adding the refferal key
+                        user.save()
+
+                        user.backend = 'django.contrib.auth.backends.ModelBackend'
+                        authlogin(request, user)
+                        
                         return redirect('index')
                 else:
                     context.update({'stage': 'otp', 'email': email})

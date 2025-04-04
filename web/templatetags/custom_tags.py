@@ -18,5 +18,12 @@ def get_index(value, index):
         return value[index]
     except (IndexError, TypeError):
         return None
-    
+
+
+@register.filter
+def get_item(dictionary, key):
+    """Returns dictionary value for a given key"""
+    return dictionary.get(key, key)  # Default to key if not found
+
+
 

@@ -1,4 +1,5 @@
 {% extends "web/base.html" %}
+{% load static %}
 
 {% load static %}
 {% load socialaccount %}
@@ -12,7 +13,7 @@
     <!-- Banner Section -->
     <section class="row align-items-center mb-5">
         <div class="col-md-6">
-            <img src="https://picsum.photos/seed/shopping-cart/600/400" alt="Shopping Cart" class="img-fluid rounded" style="max-height: 25rem;">
+            <img src="{% static 'images/login-side-image.png' %}" alt="Shopping Cart" class="img-fluid rounded" style="max-height: 30rem;">
         </div>
         <div class="col-md-6 text-center text-md-start">
             <div class="top">

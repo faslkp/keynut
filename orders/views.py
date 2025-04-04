@@ -231,6 +231,7 @@ def checkout(request):
             payment = Payment.objects.create(
                 order=order,
                 user=request.user,
+                payment_type='payment',
                 amount=order_total_amount,
                 payment_method=payment_method
             )
@@ -385,6 +386,14 @@ def update_order_status(request):
             if order:
                 order.status = new_status
                 order.save(update_fields=["status"])
+                
+                # Bulk update order items
+                order_items = list(order.order_items.all())
+                for item in order_items:
+                    item.status = new_status
+                
+                OrderItem.objects.bulk_update(order_items, ['status'])
+
 
                 return JsonResponse({
                     'success': True,
@@ -402,8 +411,8 @@ def update_order_status(request):
     return JsonResponse({'error': True, "message": "Invalid request"})
 
 
-@login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+@login_required(login_url='404')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_cancel_order(request):
     if request.method == 'POST':
         order_id = request.POST.get('order-id')
@@ -453,27 +462,27 @@ def user_cancel_order(request):
     return redirect('404')
 
 
-@login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
+@login_required(login_url='404')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_return_order(request):
     if request.method == 'POST':
-        order_id = request.POST.get('order-id')
+        order_item_id = request.POST.get('order-item-id')
         return_reason = request.POST.get('return-reason')
 
-        order = Order.objects.filter(order_id=order_id, user=request.user).first()
-        if not order:
+        order_item = OrderItem.objects.filter(id=order_item_id, order__user=request.user).first()
+        if not order_item:
             return redirect('404')
         
         ReturnRequest.objects.create(
-            order=order,
+            order_item=order_item,
             reason=return_reason
         )
-        order.status = 'return_requested'
-        order.save()
+        order_item.status = 'return_requested'
+        order_item.save()
 
-        messages.success(request, f"We have received your return request for order {order.order_id}. Once the request is approved, you will receive an email with instructions on how to return.")
+        messages.success(request, f"We have received your return request for {order_item.product.name} order. Once the request is approved, you will receive an email with instructions on how to return.")
                 
-        return redirect(reverse('user_view_order', kwargs={'order_id':order.order_id}))
+        return redirect(reverse('user_view_order', kwargs={'order_id':order_item.order.order_id}))
     
     return redirect('404')
 
@@ -493,19 +502,66 @@ def process_return_request(request):
                     'message': "Nothing to update!"
                 })
 
-            return_request = ReturnRequest.objects.filter(id=request_id).first()
+            return_request = ReturnRequest.objects.select_related('order_item', 'order_item__order').filter(id=request_id).first()
             if return_request:
-                return_request.status = new_status
-                return_request.save(update_fields=["status"])
+                # Update stock and refund if return is received
+                if new_status == 'received':
+                    with transaction.atomic():
+                        return_request.status = new_status
+                        return_request.order_item.status = 'return_received'
 
-                # Update order status
-                if new_status == 'approved':
-                    return_request.order.status = 'return_approved'
-                    return_request.order.save(update_fields=["status"])
+                        # Refunding amount to wallet
+                        payment = return_request.order_item.order.payments.filter(payment_status='success').first()
+                        
+                        if payment:
+                            wallet, _ = Wallet.objects.get_or_create(user=return_request.order_item.order.user)
+                            wallet.balance += return_request.order_item.total_amount
+                            wallet.save(update_fields=["balance"])
+
+                            WalletTransaction.objects.create(
+                                wallet=wallet,
+                                transaction_type='refund',
+                                transaction_id=uuid.uuid4(),
+                                amount=return_request.order_item.total_amount,
+                                status='success',
+                                order=return_request.order_item.order,
+                                notes=f"Refund for returned {return_request.order_item.product} - {return_request.order_item.variant} {return_request.order_item.product.unit} (Qty:{return_request.order_item.quantity}) from order {return_request.order_item.order.order_id}"
+                            )
+                            
+                        # Updating stock
+                        return_request.order_item.product.stock += return_request.order_item.variant * return_request.order_item.quantity
+                        return_request.order_item.product.save()
+
+                        return_request.order_item.status = 'refunded'
+                        return_request.order_item.save(update_fields=["status"])
+
+                        # Update order status if there is no other order items
+                        if not return_request.order_item.order.order_items.exclude(id=return_request.order_item.id).exists():
+                            return_request.order_item.order.status = 'refunded'
+                            return_request.order_item.order.save()
+                        
+                        return_request.status = 'refunded'
+                        return_request.save(update_fields=["status"])
+
+                        return JsonResponse({
+                            'success': True,
+                            'message': "Return status and stock updated. Order item amount has been refunded to user's wallet."
+                        })
+
+                # Handling other statuses
+                elif new_status == 'approved':
+                    with transaction.atomic():
+                        return_request.status = new_status
+                        return_request.save(update_fields=["status"])
+                        return_request.order_item.status = 'return_approved'
+                        return_request.order_item.save(update_fields=["status"])
                 
                 elif new_status == 'rejected':
-                    return_request.order.status = 'return_rejected'
-                    return_request.order.save(update_fields=["status"])
+                    with transaction.atomic():
+                        return_request.status = new_status
+                        return_request.save(update_fields=["status"])
+                        return_request.order_item.status = 'return_rejected'
+                        return_request.order_item.save(update_fields=["status"])
 
                 return JsonResponse({
                     'success': True,
@@ -526,6 +582,24 @@ def process_return_request(request):
 def cancel_old_pending_orders():
     """Automatically cancels pending orders older than 3 days."""
     threshold_date = timezone.now() - datetime.timedelta(days=3)
-    Order.objects.filter(status="pending", order_date__lte=threshold_date).update(status="cancelled")
+    orders_to_cancel = Order.objects.filter(status="pending", order_date__lte=threshold_date)
 
+    with transaction.atomic():
+        products_to_update = {}
+
+        for order in orders_to_cancel:
+            for item in order.order_items.all():
+                if item.product in products_to_update:
+                    products_to_update[item.product] += item.variant * item.quantity  # Correct stock restoration
+                else:
+                    products_to_update[item.product] = item.variant * item.quantity
+
+        # Bulk update all affected products in one go
+        for product, quantity in products_to_update.items():
+            product.stock += quantity
+
+        Product.objects.bulk_update(products_to_update.keys(), ["stock"])
+
+        # Bulk update order status after stock adjustments
+        orders_to_cancel.update(status="cancelled")
 

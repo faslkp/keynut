@@ -48,18 +48,7 @@ Order Details
             {% if order.status == 'pending' or order.status == 'confirmed' or order.status == 'processing' %}
                 <a href="#" class="cancel-order-btn btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">Cancel Order</a>
             {% endif %}
-
-            {% if order.status == 'delivered' %}
-                <a href="#" class="return-order-btn btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#returnOrderModal">Return Order</a>
-            {% endif %}
         </div>
-
-        {% if order.status == 'return_approved' %}
-        <p class="text-danger">
-            Please pack your items in original package or any safe packages. 
-            Remember to include copy of your invoice in the package so we can process returns faster.
-        </p>
-        {% endif %}
     </div>
     <div class="">
         <p class="text-dark fw-bold">Order Items:</p>
@@ -74,6 +63,7 @@ Order Details
                     <th class="py-3 px-3 border-0">Variant</th>
                     <th class="py-3 px-3 border-0">Quantity</th>
                     <th class="py-3 px-3 border-0">Amount</th>
+                    <th class="py-3 px-0 border-0"></th>
                 </tr>
             </thead>
             <tbody>
@@ -106,7 +96,29 @@ Order Details
                     <td class="py-3 px-3">{{ order_item.variant }} {{order_item.product.unit}}</td>
                     <td class="py-3 px-3">{{ order_item.quantity }}</td>
                     <td class="py-3 px-3">₹{{ order_item.total_amount|floatformat:2 }}</td>
+                    {% if order_item.status == 'delivered' or order_item.status == 'return_requested' or order_item.status == 'return_approved' or order_item.status == 'return_rejected' or order_item.status == 'refunded' %}
+                    <td class="py-3 px-0">
+                        {% if order_item.status == 'delivered' %}
+                            <a href="#" data-order-item-id="{{order_item.id}}" class="return-order-btn btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#returnOrderModal">Return Item</a>
+                        {% endif %}
+                        {% if order_item.status == 'return_requested' or order_item.status == 'return_approved' or order_item.status == 'return_rejected' or order_item.status == 'refunded' %}
+                            <span class="text-danger fw-bold">{{order_item.get_status_display}}</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
                 </tr>
+
+                {% if order_item.status == 'return_approved' %}
+                <tr>
+                    <td colspan="6">
+                        <p class="text-danger">
+                            Please pack your items in original package or any safe packages. 
+                            Remember to include copy of your invoice in the package so we can process returns faster.
+                        </p>
+                    </td>
+                </tr>
+                {% endif %}
+
                 {% endfor %}
             </tbody>
         </table>
@@ -160,7 +172,7 @@ Order Details
                 <h5 class="modal-title" id="cancelOrderModalLabel">Cancel Order Confirmation</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{% url 'user_cancel_order' %}" method="post" id="orderCancelReturnForm">
+            <form action="{% url 'user_cancel_order' %}" method="post" id="orderCancelForm">
                 {% csrf_token %}
                 <div class="modal-body">
                     <p id="cancelOrderModalDesc">Are you sure want to cancel this order? This cannot be undone.</p>
@@ -179,7 +191,7 @@ Order Details
 </div>
 {% endif %}
 
-{% if order.status == 'delivered' %}
+
 <!-- Return Order Confirmation Modal -->
 <div class="modal fade" id="returnOrderModal" tabindex="-1" aria-labelledby="returnOrderModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -191,7 +203,7 @@ Order Details
             <form action="{% url 'user_return_order' %}" method="post" id="orderCancelReturnForm">
                 {% csrf_token %}
                 <div class="modal-body">
-                    <input type="hidden" id="cancel-order-id" name="order-id" value="{{order.order_id}}">
+                    <input type="hidden" id="cancel-order-id" name="order-item-id" value="">
                     <label for="cancellation-note" class="form-label">Reason for return</label>
                     <input type="text" id="cancellation-return-note" name="return-reason" class="form-control" placeholder="Please mention reason for returning this order." required>
                     <small id="cancellation-return-error-message" class="error-message text-danger"></small>
@@ -206,13 +218,18 @@ Order Details
         </div>
     </div>
 </div>
-{% endif %}
 
 <script>
     
 document.addEventListener("DOMContentLoaded", function () {
-    if (document.getElementById('orderCancelReturnForm')) {
-        document.getElementById('orderCancelReturnForm').addEventListener('submit', function (event) {
+    document.querySelectorAll('.return-order-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            document.getElementById('cancel-order-id').value = this.dataset.orderItemId;
+        })
+    });
+
+    if (document.getElementById('orderCancelForm')) {
+        document.getElementById('orderCancelForm').addEventListener('submit', function (event) {
             event.preventDefault();
 
             const cancellationNote = document.getElementById('cancellation-return-note').value;

@@ -70,7 +70,7 @@ Ledger Book
                             <th class="py-3 px-3 border-0">User</th>
                             <th class="py-3 px-3 border-0">Related Order</th>
                             <th class="py-3 px-3 border-0">Type</th>
-                            <th class="py-3 px-3 border-0">Notes</th>
+                            <th class="py-3 px-3 border-0">Payment Method</th>
                             <th class="py-3 px-3 border-0">Amount</th>
                         </tr>
                     </thead>
@@ -89,7 +89,7 @@ Ledger Book
                                 </a>
                             </td>
                             <td class="py-3 px-3">{{ transaction.get_payment_type_display }}</td>
-                            <td class="py-3 px-3">{{ transaction.notes }}</td>
+                            <td class="py-3 px-3">{{ transaction.get_payment_method_display }}</td>
                             {% if transaction.payment_type == 'payment' or transaction.payment_type == 'wallet_topup' %}
                                 <td class="py-3 px-3 text-success">+{{ transaction.amount }}</td>
                             {% else %}

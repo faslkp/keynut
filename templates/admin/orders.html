@@ -1,5 +1,7 @@
 {% extends "admin/dashboard_base.html" %}
 {% load static %}
+{% load custom_tags %}
+
 {% block title %}Orders{% endblock title %}
 
 {% block script_top %}
@@ -132,15 +134,13 @@ Orders
                                 <div class=" d-flex gap-1">
                                     <select class="form-select status-dropdown" id="status-{{ order.id }}">
                                         <option value="" selected disabled>{{ order.get_status_display }}</option>
-                                        {% if order.status != 'cancelled' and order.status != 'refunded' and order.status != 'return_rejected' and order.status != 'return_approved' and order.status != 'return_requested' %}
-                                            {% for status in status_choices %}
-                                                {% if status.0 != order.status %}
-                                                    <option value="{{ status.0 }}">
-                                                        {{ status.1 }}
-                                                    </option>
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
+                                        {% for status in order.get_next_statuses %}
+                                            {% if status != order.status %}
+                                                <option value="{{ status }}">
+                                                    {{ status_choices|get_item:status }}
+                                                </option>
+                                            {% endif %}
+                                        {% endfor %}
                                     </select>
                                     <button class="update-status-btn btn btn-outline-danger p-1" data-order-id="{{ order.id }}">
                                         Update

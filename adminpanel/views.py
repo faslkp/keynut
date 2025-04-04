@@ -391,10 +391,7 @@ def orders(request):
     page_number = request.GET.get('page')
     orders = paginator.get_page(page_number)
 
-    # getting order status choices
-    disabled_statuses = ["return_requested", "return_approved", "return_rejected", "refunded", "cancelled"]
-    # Exclude the disabled statuses from STATUS_CHOICES
-    status_choices = [choice for choice in Order.STATUS_CHOICES if choice[0] not in disabled_statuses]
+    status_choices = dict(Order.STATUS_CHOICES)
 
     payment_methods = dict(Payment.PAYMENT_METHODS)
 
@@ -412,7 +409,7 @@ def orders(request):
 def view_order_details(request, order_id):
     order = Order.objects.filter(order_id=order_id).first()
     order_items = OrderItem.objects.filter(order=order).values(
-        'product__name', 'product__price', 'product__unit', 'variant', 'quantity'
+        'product__name', 'product__price', 'product__unit', 'variant', 'quantity', 'status'
     )
     payments = Payment.objects.filter(order=order).values(
         'payment_date', 'amount', 'payment_status', 'payment_method', 'transaction_id'
@@ -454,22 +451,22 @@ def view_order_details(request, order_id):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def return_requests(request):
-    return_requests = ReturnRequest.objects.select_related('order').prefetch_related(
-        'order__order_items').annotate(
-            order_total_amount=ExpressionWrapper(
-                Sum(F('order__order_item__variant') * F('order__order_item__quantity') * F('order__order_item__price')),
+    return_requests = ReturnRequest.objects.select_related(
+        'order_item').annotate(
+            item_total_amount=ExpressionWrapper(
+                Sum(F('order_item__variant') * F('order_item__quantity') * F('order_item__price')),
                 output_field=DecimalField()
             ),
             payment_method=Coalesce(
                 # If there is a Success payment, getting it
                 Subquery(
-                    Payment.objects.filter(order=F('order'), payment_status='Success')
+                    Payment.objects.filter(order=OuterRef('order_item__order'), payment_status='success')
                     .order_by('-payment_date')
                     .values('payment_method')[:1]
                 ),
                 # If there is no Success payment, getting latest payment details
                 Subquery(
-                    Payment.objects.filter(order=F('order'))
+                    Payment.objects.filter(order=OuterRef('order_item__order'))
                     .order_by('-payment_date')
                     .values('payment_method')[:1]
                 ),
@@ -497,7 +494,8 @@ def return_requests(request):
     return_requests = paginator.get_page(page_number)
     
     payment_methods = dict(Payment.PAYMENT_METHODS)
-    status_choices = ReturnRequest.RETURN_STATUS_CHOICES
+    status_choices = dict(ReturnRequest.RETURN_STATUS_CHOICES)
+    
     context = {
         'return_requests': return_requests,
         'status_choices': status_choices,
@@ -719,7 +717,7 @@ def wallet_transactions(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def ledger_book(request):
-    transactions = Payment.objects.filter(payment_status='success').order_by('-payment_date')
+    transactions = Payment.objects.filter(~Q(payment_method='wallet') & Q(payment_status='success')).order_by('-payment_date')
 
     # Sort, filter, search
     sortby = request.GET.get('sortby')

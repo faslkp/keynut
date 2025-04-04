@@ -12,7 +12,7 @@ from promotions.models import Coupon
 
 class Customer(AbstractUser):
     phone = models.CharField(max_length=15, null=True, blank=True)
-    referral_key = models.CharField(max_length=10, unique=True, blank=True)
+    referral_key = models.CharField(max_length=10, blank=True)
     is_verified = models.BooleanField(default=False)
     is_blocked = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)

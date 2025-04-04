@@ -51,6 +51,7 @@ Wallet
     {% endif %}
 </div>
 
+{% if transactions %}
 <!-- Pagination -->
 <nav aria-label="Page navigation" class="d-flex justify-content-between align-items-center mt-4">
     <div class="text-muted">
@@ -86,6 +87,7 @@ Wallet
         {% endif %}
     </ul>
 </nav>
+{% endif %}
 
 {% endblock profile_content %}
 

@@ -6,6 +6,7 @@ My Orders
 
 {% block profile_content %}
 
+{% if order_items %}
 <div class="wrapper">
     
     {% for order_item in order_items %}
@@ -91,5 +92,16 @@ My Orders
         {% endif %}
     </ul>
 </nav>
+
+{% else %}
+<div class="wrapper">
+    <div class="my-5 py-5">
+        <p class="text-center text-dark fs-5">You have not yet ordered anything. Place an order and get in love with one bite!</p>
+        <div class="text-center mt-4">
+            <a href="{% url 'products' %}" class="btn btn-danger me-3">Shop Now</a>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 {% endblock profile_content %}

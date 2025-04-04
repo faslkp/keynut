@@ -39,9 +39,9 @@ class Order(models.Model):
         ('out_for_delivery', 'Out for Delivery'),
         ('delivered', 'Delivered'),
         ('return_requested', 'Return Requested'),
-        ('return_approved', 'Returned Approved'),
-        ('return_rejected', 'Returned Rejected'),
-        ('return_received', 'Returned Recieved'),
+        ('return_approved', 'Return Approved'),
+        ('return_rejected', 'Return Rejected'),
+        ('return_received', 'Return Recieved'),
         ('refunded', 'Refunded'),
         ('cancelled', 'Cancelled'),
     ]
@@ -77,6 +77,15 @@ class Order(models.Model):
     @property
     def total_discount(self):
         return sum(item.discount_amount for item in self.order_items.all())
+    
+    def get_next_statuses(self):
+        """Returns only the allowed next statuses dynamically"""
+        order_statuses = [choice for choice, value in self.STATUS_CHOICES]
+        if self.status in order_statuses:
+            current_index = order_statuses.index(self.status)
+            print(order_statuses[current_index+1:5])
+            return order_statuses[current_index + 1:6]
+        return []
 
 
 class OrderItem(models.Model):
@@ -86,9 +95,10 @@ class OrderItem(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField()
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=Order.STATUS_CHOICES, default='pending')
 
     def __str__(self):
-        return f"{self.product.name} in Order {self.order.id}"
+        return f"{self.product.name} in Order {self.order.order_id}"
     
     @property
     def total_amount(self):
@@ -132,15 +142,25 @@ class Payment(models.Model):
 class ReturnRequest(models.Model):
     RETURN_STATUS_CHOICES = [
         ('pending', 'Pending'),
-        ('approved', 'Approved'),
         ('rejected', 'Rejected'),
+        ('approved', 'Approved'),
+        ('received', 'Received'),
+        ('refunded', 'Refunded'),
     ]
-    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='returns', related_query_name='return')
+    order_item = models.ForeignKey(OrderItem, on_delete=models.PROTECT, related_name='returns', related_query_name='return')
     reason = models.TextField()
     note = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=RETURN_STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def get_next_statuses(self):
+        """Returns only the allowed next statuses dynamically"""
+        statuses = [choice for choice, value in self.RETURN_STATUS_CHOICES]
+        if self.status in statuses:
+            current_index = statuses.index(self.status)
+            return statuses[current_index + 1:4]
+        return []
+
     def __str__(self):
-        return f"Return for Order {self.order.order_id} - Status: {self.status}"
+        return f"Return for {self.order_item.product.name} {self.order_item.variant} {self.order_item.product.unit} (Qty:{self.order_item.quantity}) in order {self.order_item.order.order_id} - Status: {self.status}"

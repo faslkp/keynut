@@ -1,5 +1,7 @@
 {% extends "admin/dashboard_base.html" %}
 {% load static %}
+{% load custom_tags %}
+
 {% block title %}Return Requests{% endblock title %}
 
 {% block script_top %}
@@ -65,6 +67,7 @@ Return Requests
                     <thead class="bg-light">
                         <tr>
                             <th class="py-3 px-3 border-0">Order ID</th>
+                            <th class="py-3 px-3 border-0">Item</th>
                             <th class="py-3 px-3 border-0">User</th>
                             <th class="py-3 px-3 border-0">Request Date</th>
                             <th class="py-3 px-3 border-0">Payment Details</th>
@@ -75,18 +78,23 @@ Return Requests
                     <tbody>
                         
                         {% for return_request in return_requests %}
-                        <tr class="align-middle">
+                        <tr class="align-middle {% if return_request.status == 'pending' %}fw-bold{% endif %}">
                             <td class="py-3 px-3">
                                 <a class="btn-view-order text-decoration-none text-primary" href="#" 
-                                    data-order-id="{{return_request.order.order_id}}"
+                                    data-order-id="{{return_request.order_item.order.order_id}}"
                                     data-bs-toggle="modal" data-bs-target="#orderDetailsModal">
-                                    {{ return_request.order.order_id }}
+                                    {{ return_request.order_item.order.order_id }}
                                 </a>
                             </td>
-                            <td class="py-3 px-3">{{ return_request.order.user.first_name }}</td>
+                            <td class="py-3 px-3">
+                                {{ return_request.order_item.product.name }} 
+                                {{return_request.order_item.variant}} {{return_request.order_item.product.unit}} 
+                                Qty: {{ return_request.order_item.quantity }}
+                            </td>
+                            <td class="py-3 px-3">{{ return_request.order_item.order.user.first_name }}</td>
                             <td class="py-3 px-3">{{ return_request.created_at }}</td>
                             <td class="py-3 px-3">
-                                ₹{{ return_request.order_total_amount|floatformat:2 }}
+                                ₹{{ return_request.item_total_amount|floatformat:2 }}
                                 <br>
                                 {% for key, value in payment_methods.items %}
                                     {% if key == return_request.payment_method %}
@@ -101,10 +109,10 @@ Return Requests
                                 <div class=" d-flex gap-1">
                                     <select class="form-select status-dropdown" id="status-{{ return_request.id }}">
                                         <option value="" selected disabled>{{ return_request.get_status_display }}</option>
-                                            {% for status in status_choices %}
-                                                {% if status.0 != return_request.status %}
-                                                    <option value="{{ status.0 }}">
-                                                        {{ status.1 }}
+                                            {% for status in return_request.get_next_statuses %}
+                                                {% if status != return_request.status %}
+                                                    <option value="{{ status }}">
+                                                        {{ status_choices|get_item:status }}
                                                     </option>
                                                 {% endif %}
                                             {% endfor %}

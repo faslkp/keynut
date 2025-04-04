@@ -176,6 +176,17 @@ document.addEventListener("DOMContentLoaded", function () {
                         <td class="py-2 px-3">${item.quantity}</td>
                         <td class="py-2 px-3">₹${parseFloat(item.total_amount).toFixed(2)}</td>
                     `;
+                    if (item.status == 'refunded') {
+                        newRow.innerHTML += '<td class="py-2 px-0 text-danger">Refunded</td>'
+                    } else if (item.status == 'return_requested') {
+                        newRow.innerHTML += '<td class="py-2 px-0 text-danger">Return Requested</td>'
+                    } else if (item.status == 'return_rejected') {
+                        newRow.innerHTML += '<td class="py-2 px-0 text-danger">Return Rejected</td>'
+                    } else if (item.status == 'return_approved') {
+                        newRow.innerHTML += '<td class="py-2 px-0 text-danger">Return Approved</td>'
+                    } else if (item.status == 'return_received') {
+                        newRow.innerHTML += '<td class="py-2 px-0 text-danger">Return Received</td>'
+                    }
 
                     // Append the new row to the tbody
                     orderItemsSpan.appendChild(newRow);

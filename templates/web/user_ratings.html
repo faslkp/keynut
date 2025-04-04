@@ -6,6 +6,17 @@ My Ratings
 
 {% block profile_content %}
 
+{% if not ratings %}
+<div class="wrapper">
+    <div class="my-5 py-5">
+        <p class="text-center text-dark fs-5">You have not yet ordered anything. Place an order and get in love with one bite!</p>
+        <div class="text-center mt-4">
+            <a href="{% url 'products' %}" class="btn btn-danger me-3">Shop Now</a>
+        </div>
+    </div>
+</div>
+{% else %}
+
 <div class="wrapper">
     {% for rating in ratings %}
     <div class="row p-3 d-flex align-items-center gap-3 mb-3" style="box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;">
@@ -131,5 +142,6 @@ My Ratings
         return cookieValue;
     }
 </script>
+{% endif %}
 
 {% endblock profile_content %}
