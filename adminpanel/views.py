@@ -796,15 +796,14 @@ def reports(request):
 
     # Perform aggregation
     reports = order_items.aggregate(
-        total_sales=Sum(F('variant') * F('quantity') * F('price')),
-        total_orders=Count('order', distinct=True),
-        total_products_sold=Sum(F('quantity') * F('variant')),
-        average_order_value=ExpressionWrapper(
-            Coalesce(Sum(F('variant') * F('quantity') * F('price')), 0) /
-            Coalesce(Count('order', distinct=True), 1),
-            output_field=DecimalField()
-        )
+        total_sales=Coalesce(Sum(F('variant') * F('quantity') * F('price')), Value(0), output_field=DecimalField()),
+        total_orders=Coalesce(Count('order', distinct=True), Value(0), output_field=IntegerField()),
+        total_products_sold=Coalesce(Sum(F('quantity') * F('variant')), Value(0), output_field=DecimalField())
     )
+
+    average_order_value = reports["total_sales"] / reports["total_orders"] if reports["total_orders"] > 0 else 0
+
+    reports['average_order_value'] = average_order_value
 
     # Handle download
     download = request.GET.get('download')
