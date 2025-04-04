@@ -9,6 +9,40 @@
                     <i class="bi bi-send" id="subscribe-button" data-csrf-token="{{csrf_token}}"></i>
                 </div>
                 <small id="subscribe-message"></small>
+
+                <script>
+                // Subscription
+                document.getElementById('subscribe-button').addEventListener('click', function() {
+                    email = document.getElementById('subscribe-form').value;
+                    messageLabel = document.getElementById('subscribe-message');
+                    csrftoken = this.dataset.csrfToken;
+
+                    let re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    let valid = re.test(email);
+                    if (!valid) {
+                        messageLabel.innerText = "Enter valid email!"
+                        return;
+                    }
+
+                    fetch('/subscribe/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken,
+                        },
+                        body: JSON.stringify({'email': email})
+                    }
+                    )
+                    .then(response => response.json())
+                    .then(data => {
+                        messageLabel.innerText = data.message;
+                    })
+                    .catch(
+                        messageLabel.innerText = "Something went wrong!"
+                    )
+                })
+                </script>
+
                 {% if request.user.is_authenticated %}
                 <div class="referral mt-3">
                     <p class="text-white mb-1 fw-bold">Refer and earn ₹100 for you and ₹50 for your friend!</p>
