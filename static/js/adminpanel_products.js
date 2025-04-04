@@ -620,26 +620,29 @@ function validateFormData(formData) {
     }
 
     // Check if form is in edit mode (by detecting existing image)
-    let existingImage = document.getElementById("image-preview"); // Assume this contains the image URL if editing
+    let existingImage = document.getElementById("image-preview");
     let imageFile = formData.get("image");
+    let allowedExtensions = ["jpg", "jpeg", "png", "webp"];
+    console.log(imageFile.size == 0);
     
-    if (!existingImage || (imageFile && imageFile.size > 0)) {
-        if (!imageFile || imageFile.size === 0) {
-            errors["image"] = ["Please upload an image."];
-        } else {
-            // If a file is selected, check format and size
-            let allowedExtensions = ["jpg", "jpeg", "png", "webp"];
-            let fileName = imageFile.name.toLowerCase();
-            let fileExtension = fileName.split(".").pop();
+    if (existingImage.src == '' && imageFile.size == 0) {
+        errors["image"] = ["Please upload an image."];
+    } 
+    
+    if (imageFile.size > 0) {
+        // If a file is selected, check format and size
+        let fileName = imageFile.name.toLowerCase();
+        let fileExtension = fileName.split(".").pop();
 
-            if (!allowedExtensions.includes(fileExtension)) {
-                errors["image"] = ["Invalid image format. Allowed: jpg, jpeg, png, webp."];
-            }
-            if (imageFile.size > 5 * 1024 * 1024) { // 5MB limit
-                errors["image"] = ["Image size must be less than 5MB."];
-            }
+        if (!allowedExtensions.includes(fileExtension)) {
+            errors["image"] = ["Invalid image format. Allowed: jpg, jpeg, png, webp."];
+        }
+        if (imageFile.size > 5 * 1024 * 1024) { // 5MB limit
+            errors["image"] = ["Image size must be less than 5MB."];
         }
     }
+    console.log("Selected file size:", imageFile ? imageFile.size : "No file selected");
+
 
     // Validate cropped image (only if a new image is uploaded)
     let croppedImage = document.getElementById("cropped_image_data").value;

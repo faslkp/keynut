@@ -96,6 +96,7 @@ if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
         'PORT': os.environ.get('DB_PORT', ''),
     })
 
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 # Default User Model
 AUTH_USER_MODEL = 'customers.Customer'

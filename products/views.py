@@ -6,6 +6,7 @@ from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.exceptions import ValidationError
+from django.conf import settings
 
 from decimal import Decimal
 
