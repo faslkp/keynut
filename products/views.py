@@ -158,7 +158,7 @@ def unlist_product(request, pk):
 
             return JsonResponse({
                 "success" : True,
-                "message" : f"Customer {product.name} has {"listed" if product.is_listed else "unlisted"} successfully."
+                "message" : f"Customer {product.name} has {'listed' if product.is_listed else 'unlisted'} successfully."
             })
         except json.JSONDecodeError:
             return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)
@@ -261,7 +261,7 @@ def delete_category(request, pk):
 
             return JsonResponse({
                 "success" : True,
-                "message" : f"Category {category.name} has {"deleted" if category.is_deleted else "restored"} successfully."
+                "message" : f"Category {category.name} has {'deleted' if category.is_deleted else 'restored'} successfully."
             })
         except json.JSONDecodeError:
             return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)

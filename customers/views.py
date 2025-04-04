@@ -32,7 +32,7 @@ def add_customer(request):
             user.save()
             return JsonResponse({
                 "success": True,
-                "message": f"Customer {request.POST["first_name"]} added successfully."
+                "message": f"Customer {request.POST['first_name']} added successfully."
             })
         else:
             return JsonResponse({
@@ -102,8 +102,8 @@ def cutomer_blocking(request, pk):
             # Send notification email to customer
             try:
                 send_mail(
-                    subject=f"Your Keynut account has been {"blocked" if user.is_blocked else "unblocked"}.",
-                    message=f"Your Keynut account has been {"blocked" if user.is_blocked else "unblocked"} by administrator{" in regarding to the violation of terms and conditions. Please contact support@keynut.com for further assistance" if user.is_blocked else "."}",
+                    subject=f"Your Keynut account has been {'blocked' if user.is_blocked else 'unblocked'}.",
+                    message=f"Your Keynut account has been {'blocked' if user.is_blocked else 'unblocked'} by administrator{' in regarding to the violation of terms and conditions. Please contact support@keynut.com for further assistance.' if user.is_blocked else '.'}",
                     from_email="teamkepe@gmail.com",  # Your email address
                     recipient_list=[user.email],
                     fail_silently=False,
@@ -111,12 +111,12 @@ def cutomer_blocking(request, pk):
             except:
                 return JsonResponse({
                     "success" : True,
-                    "message" : f"Customer {user.first_name} has {"blocked" if user.is_blocked else "unblocked"} successfully. But, notification email was not sent to the customer due some technical issues."
+                    "message" : f"Customer {user.first_name} has {'blocked' if user.is_blocked else 'unblocked'} successfully. But, notification email was not sent to the customer due some technical issues."
                 })
 
             return JsonResponse({
                 "success" : True,
-                "message" : f"Customer {user.first_name} has {"blocked" if user.is_blocked else "unblocked"} successfully."
+                "message" : f"Customer {user.first_name} has {'blocked' if user.is_blocked else 'unblocked'} successfully."
             })
         except json.JSONDecodeError:
             return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)

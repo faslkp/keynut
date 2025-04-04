@@ -438,7 +438,7 @@ def user_order_invoice(request, order_id):
     if not order:
         return redirect('404')
     
-    invoice_number = f"IN-{order.id:06d}-{order.order_date.strftime("%y%m%d")}"
+    invoice_number = f"IN-{order.id:06d}-{order.order_date.strftime('%y%m%d')}"
     
     html_string = render_to_string("web/order_invoice.html", {"order": order, 'invoice_number': invoice_number})
 

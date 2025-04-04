@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model, authenticate, login as authlogin
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.core.mail import send_mail
-from django.db.models import F, Q, Subquery, OuterRef, Sum, DecimalField
+from django.db.models import F, Q, Subquery, OuterRef, Sum, DecimalField, Value, IntegerField
 from django.db.models.expressions import ExpressionWrapper
 from django.db.models.functions import Coalesce
 from django.db.models.functions import Lower
@@ -177,20 +177,18 @@ def dashboard(request):
 
     # Perform aggregation
     reports = recent_orders.aggregate(
-        total_sales=Sum('order_total_amount'),
-        total_orders=Count('order_id', distinct=True),
-        average_order_value=ExpressionWrapper(
-            Coalesce(Sum('order_total_amount'), 0) /
-            Coalesce(Count('order_id', distinct=True), 1),
-            output_field=DecimalField()
-        )
+        total_sales=Coalesce(Sum('order_total_amount'), Value(0), output_field=DecimalField()),
+        total_orders=Coalesce(Count('order_id', distinct=True), Value(0), output_field=IntegerField())
     )
 
+    average_order_value = reports["total_sales"] / reports["total_orders"] if reports["total_orders"] > 0 else 0
+
     total_products_sold = OrderItem.objects.filter(order__in=recent_orders).aggregate(
-        total=Sum(F('quantity') * F('variant'))
+        total=Sum(ExpressionWrapper(F('quantity') * F('variant'), output_field=DecimalField()))
     )['total'] or 0
 
     reports['total_products_sold'] = total_products_sold
+    reports['average_order_value'] = average_order_value
     
 
     context = {
