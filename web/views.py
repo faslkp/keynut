@@ -834,7 +834,7 @@ def register(request):
                         'email': email,
                     })
             else:
-                messages.error(request, "This email is already registered with us! Please verify email.")
+                messages.error(request, "This email is already registered with us! Please check entered email or login with credentials.")
                 context.update({
                     'first_name': first_name,
                     'last_name': last_name,
@@ -901,41 +901,41 @@ def register(request):
                         # Handling referral
                         if user.referral_key:
                             referred_by = None
-                            
+
                             re_pattern = rf"^ref-(.*)-{re.escape(user.username)}$"  # Pattern to match referral key
                             match = re.match(re_pattern, user.referral_key)
                             if match:
                                 referral_key = match.group(1)
                                 referred_by = User.objects.filter(referral_key=referral_key).first()
 
-                            if referred_by:
-                                referrer_wallet, _ = Wallet.objects.get_or_create(user=referred_by)
-                                referrer_wallet.balance += 100
-                                referrer_wallet.save()
-                                WalletTransaction.objects.create(
-                                    wallet=referrer_wallet,
-                                    transaction_type='referral',
-                                    transaction_id=uuid.uuid4(),
-                                    amount=100,
-                                    status='success',
-                                    notes=f"Received on referring {user.first_name}"
-                                )
+                                if referred_by:
+                                    referrer_wallet, _ = Wallet.objects.get_or_create(user=referred_by)
+                                    referrer_wallet.balance += 100
+                                    referrer_wallet.save()
+                                    WalletTransaction.objects.create(
+                                        wallet=referrer_wallet,
+                                        transaction_type='referral',
+                                        transaction_id=uuid.uuid4(),
+                                        amount=100,
+                                        status='success',
+                                        notes=f"Received on referring {user.first_name}"
+                                    )
 
-                                user_wallet, _ = Wallet.objects.get_or_create(user=user)
-                                user_wallet.balance += 50
-                                user_wallet.save()
-                                WalletTransaction.objects.create(
-                                    wallet=user_wallet,
-                                    transaction_type='referral',
-                                    transaction_id=uuid.uuid4(),
-                                    amount=50,
-                                    status='success',
-                                    notes=f"Referred by {referred_by.first_name}"
-                                )
+                                    user_wallet, _ = Wallet.objects.get_or_create(user=user)
+                                    user_wallet.balance += 50
+                                    user_wallet.save()
+                                    WalletTransaction.objects.create(
+                                        wallet=user_wallet,
+                                        transaction_type='referral',
+                                        transaction_id=uuid.uuid4(),
+                                        amount=50,
+                                        status='success',
+                                        notes=f"Referred by {referred_by.first_name}"
+                                    )
 
-                                messages.success(request, "You have been referred by a friend. You both have received Keynut bonus in your wallet.")
-                            else:
-                                messages.error(request, "Invalid referral key!")
+                                    messages.success(request, "You have been referred by a friend. You both have received Keynut bonus in your wallet.")
+                                else:
+                                    messages.error(request, "Invalid referral key!")
 
                         user.is_verified = True
                         user.save()
