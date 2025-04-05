@@ -57,8 +57,11 @@ class Cart(models.Model):
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-
     def total_price(self):
+        """Calculate total cart value, total discount, and total cart level discount.
+        
+        Cart level coupons are applied here.
+        """
         total_cart_value, total_items_level_discount = map(sum, zip(*(item.total_price() for item in self.cart_items.all())))
         
         # Apply cart-level coupon if applicable
@@ -66,14 +69,10 @@ class Cart(models.Model):
         final_cart_value = max(0, total_cart_value - cart_level_discount)
         
         total_discount = total_items_level_discount + cart_level_discount
-        print('total dicount:', total_discount)
-        print('cart level discount:', cart_level_discount)
-        print('items level discount:', total_items_level_discount)
-        print('cart value:', final_cart_value)
         return final_cart_value, total_discount, cart_level_discount
     
-
     def calculate_cart_level_coupon_discount(self, total_price):
+        """Calculate cart level coupon discount"""
         if not self.coupon or not self.coupon.apply_to_total_order:
             return 0
 
@@ -99,11 +98,10 @@ class Cart(models.Model):
         
         return discount
 
-
     def shipping_charge(self):
+        """Calculate shipping charge"""
         cart_total = self.total_price()[0]  # Get total price without discount
         return 40 if cart_total < 1000 else 0
-
 
     def __str__(self):
         return f"Cart of {self.user.username}"
@@ -116,8 +114,8 @@ class CartItem(models.Model):
     quantity = models.IntegerField(default=1)  # Number of packets
     added_at = models.DateTimeField(auto_now_add=True)
 
-
     def total_price(self):
+        """Calculate total amount of a cart item and its discount."""
         # Check if the total required quantity is within stock and then calculate total price
         if self.variant.quantity * self.quantity <= self.product.stock:
             offer_service = OfferService(
@@ -136,7 +134,6 @@ class CartItem(models.Model):
             return final_price, disount
         else:
             return 0, 0
-
 
     def __str__(self):
         return f"{self.quantity} x {self.variant.quantity}kg of {self.product.name} in {self.cart.user.username}'s cart"
@@ -175,7 +172,6 @@ class WalletTransaction(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
-
     def __str__(self):
         return f"{self.transaction_type} of {self.amount} in Wallet of {self.wallet.user.username}"
     
@@ -205,13 +201,10 @@ class Message(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
 
     def __str__(self):
-        return f"Query from {self.name} on {self.created_at}"
-
-    def save(self, *args, **kwargs):
-        if not self.acknowledgement_number:
-            random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))  # 4-char alphanumeric
+        return f"Query from {self.name} on {self.created_at}"    
     
     def save(self, *args, **kwargs):
+        """Generate and save acknowledge number for new messages."""
         is_new = self._state.adding  # Checks if it's a new instance
         
         with transaction.atomic():

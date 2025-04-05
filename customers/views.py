@@ -8,7 +8,6 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.contrib import messages
 from django.db.models import F, Q
-from django.utils.timezone import now
 
 from . forms import CustomerForm
 from . models import Wishlist, Cart, CartItem, Subscriber
@@ -22,9 +21,9 @@ User = get_user_model()
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
 def add_customer(request):
+    """Add new customer from admin panel."""
     if request.POST:
         form = CustomerForm(request.POST)
-        print(form)
         if form.is_valid:
             user = form.save(commit=False)
             user.username = request.POST['email']
@@ -37,7 +36,7 @@ def add_customer(request):
         else:
             return JsonResponse({
                 "error": True,
-                "message": "Invalid data! Please verify all details."
+                "message": "Form validation error! Please verify all details."
             })
     else:
         return JsonResponse({
@@ -49,15 +48,19 @@ def add_customer(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
 def edit_customer(request, pk=None):
+    """Edit customer from admin panel
+    
+    GET request: fetch customer data
+    POST request: update customer data
+    """
     if request.method == "POST":
-        print("got post req..")
         first_name = request.POST.get("first_name")
         last_name = request.POST.get("last_name")
         email = request.POST.get("email")
         password = request.POST.get("password")
+        
         user = User.objects.filter(pk=pk).first()
         if user:
-            print("getting user..")
             user.first_name = first_name
             user.last_name = last_name
             user.email = email
@@ -73,6 +76,8 @@ def edit_customer(request, pk=None):
                 "error": True,
                 "message": "User not found!"
             })
+    
+    # if GET request, fetch customer data
     else:
         user = User.objects.filter(pk=pk).first()
         if user:
@@ -92,10 +97,10 @@ def edit_customer(request, pk=None):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
 def cutomer_blocking(request, pk):
+    """Customer blocking and unblocking from admin panel."""
     if request.method == "POST":
         try:
             user = get_object_or_404(User, pk=pk)
-            print(user.first_name)
             user.is_blocked = not user.is_blocked
             user.save()
             
@@ -124,20 +129,9 @@ def cutomer_blocking(request, pk):
     return JsonResponse({"error" : True, "message" : "Invalid request!"}, status=400)
 
 
-@login_required(login_url='login')
-@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
-def wishlist(request):
-    whishlist_items = Wishlist.objects.filter(user=request.user)
-
-    suggested_products = products = Product.objects.filter(is_deleted=False, is_listed=True, category__is_deleted=False).order_by('-relevance')[:4]
-    context = {
-        'wishlist_items': whishlist_items,
-        'suggested_products': suggested_products,
-    }
-    return render(request, 'web/wishlist.html', context=context)
-
-
 def toggle_wishlist(request, product_id):
+    """Add or remove product to/from Wishlist."""
+    # Handle not logged in users
     if not request.user.is_authenticated:
         return JsonResponse({'error': True, 'message': 'Please log in to manage your wishlist.'}, status=401)
 
@@ -155,46 +149,9 @@ def toggle_wishlist(request, product_id):
         return JsonResponse({'success': True, 'message': 'Added to wishlist', 'in_wishlist': True})
 
 
-@login_required(login_url='login')
-@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
-def cart(request):
-    context = {}
-    cart = Cart.objects.filter(user=request.user).first()
-    cart_items = CartItem.objects.filter(cart__user=request.user)
-    if request.method == 'POST':
-        quantity_above_10 = False
-        for item in cart_items:
-            new_quantity = int(request.POST.get(str(item.id), 1))  # Get updated quantity
-            item.quantity = min(new_quantity, 10)  # Ensure max 10
-            item.save(update_fields=["quantity"])
-            if new_quantity > 10:
-                quantity_above_10 = True
-        if quantity_above_10:
-            messages.error(request, "Maximum quantity of a product in single order is capped at 10.")
-    
-    # Handle quantity based on stock
-    for item in cart_items:
-        if item.quantity * item.variant.quantity > item.product.stock:
-            item.quantity = int(item.product.stock / item.variant.quantity)
-
-    products_in_carts = Product.objects.filter(cartitem__cart__user=request.user)
-    categories_in_carts = Category.objects.filter(product__cartitem__cart__user=request.user)
-    available_coupons = Coupon.objects.filter((
-        ((Q(products=None) & Q(categories=None)) & (Q(users=None) | Q(users=request.user))) | 
-        (Q(products__in=products_in_carts) & (Q(users=None) | Q(users=request.user))) | 
-        (Q(categories__in=categories_in_carts) & (Q(users=None) | Q(users=request.user)))
-    ) & (Q(start_date__lte=now()) & Q(end_date__gte=now())))
-
-    context.update({
-        'cart': cart,
-        'cart_items': cart_items,
-        'available_coupons': available_coupons,
-    })
-    return render(request, 'web/cart.html', context=context)
-
-
 def add_to_cart(request):
-    # Handling not logged in user - redirect to product page after login
+    """Add to cart from product details page."""
+    # Handling not logged in user - redirect to product details page after login
     if not request.user.is_authenticated:
         product = Product.objects.filter(
             id=request.POST.get('product_id'),
@@ -220,8 +177,8 @@ def add_to_cart(request):
         
         if product and variant:
             if variant.quantity * quantity <= product.stock:
-                # Get or create cart
-                user_cart, created = Cart.objects.get_or_create(user=request.user)
+                # Get existing cart or create cart if no existing found
+                user_cart, _ = Cart.objects.get_or_create(user=request.user)
 
                 # Get or create the product with the given variant
                 cart_item, created = CartItem.objects.get_or_create(
@@ -254,7 +211,8 @@ def add_to_cart(request):
 
 
 def add_to_cart_card(request, pk):
-    # Handling not logged in user - redirect to product page after login
+    """Add to cart from product card."""
+    # Handling not logged in user
     if not request.user.is_authenticated:
         return JsonResponse({
             'error': True,
@@ -269,7 +227,7 @@ def add_to_cart_card(request, pk):
         if product and variant:
             if variant.quantity <= product.stock:
                 # Get or create cart
-                user_cart, created = Cart.objects.get_or_create(user=request.user)
+                user_cart, _ = Cart.objects.get_or_create(user=request.user)
 
                 # Get or create the product with the given variant
                 cart_item, created = CartItem.objects.get_or_create(
@@ -314,6 +272,7 @@ def add_to_cart_card(request, pk):
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def remove_from_cart(request, pk):
+    """Remove product from cart."""
     if request.method == 'POST':
         order_item = CartItem.objects.filter(pk=pk)
         
@@ -333,10 +292,9 @@ def remove_from_cart(request, pk):
 
 
 def apply_coupon(request):
+    """Add coupon from cart. Validate coupon and apply to cart if valid."""
     if request.method == 'POST':
         coupon_code = request.POST.get('coupon-code','').upper()
-        # if not coupon_code:
-        #     return redirect('cart')
 
         coupon = Coupon.objects.filter(code=coupon_code).first()
         cart = Cart.objects.get(user=request.user)
@@ -370,11 +328,13 @@ def apply_coupon(request):
 
 
 def offer_subscibe(request):
+    """Newsletter subscription registration."""
     if not request.user.is_authenticated:
         return JsonResponse({
                     'error': True,
                     'message': 'Please login first.'
                 })
+    
     if request.method == 'POST':
         data = json.loads(request.body)
         email = data.get('email')

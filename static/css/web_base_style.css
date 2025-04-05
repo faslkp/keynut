@@ -249,13 +249,13 @@
     justify-content: center !important;
     align-items: center !important;
     text-decoration: none;
-    border: 1px solid #ccc; /* Optional: Adds a subtle border like the image */
+    border: 1px solid #ccc;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .wish-badge-icon {
     margin: 0;
-    font-size: 1.25rem; /* Adjusted to fit nicely within 2.5rem badge */
+    font-size: 1.25rem;
     line-height: 1;
     color: #000;
 }

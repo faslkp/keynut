@@ -1,12 +1,11 @@
 import base64
 import json
 
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.exceptions import ValidationError
-from django.conf import settings
 
 from decimal import Decimal
 
@@ -15,8 +14,9 @@ from .forms import ProductForm, VariantForm, CategoryForm
 
 
 @login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def add_product(request):
+    """Add product from Admin Panel."""
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)
 
@@ -50,7 +50,6 @@ def add_product(request):
                 "message": f"Product {product.name} added successfully."
             })
         else:
-            print(form.errors)
             return JsonResponse({
                 "error": True,
                 "message": "Form validation failed!",
@@ -64,8 +63,9 @@ def add_product(request):
 
 
 @login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def edit_product(request, pk):
+    """Edit product from Admin Panel."""
     if request.method == 'POST':
         try:
             product = Product.objects.filter(pk=pk).first()
@@ -94,10 +94,11 @@ def edit_product(request, pk):
                     updated_product.image = image_file
             except Exception as e:
                 return JsonResponse({"error": True, "message": f"Error processing image: {str(e)}"}, status=400)
+            
             updated_product.save()
+            
             # Handling variants safely
             selected_variants = request.POST.getlist('variants')
-
             try:
                 selected_variant_ids = list(map(int, request.POST.getlist('variants')))  # Convert to integers
 
@@ -148,12 +149,12 @@ def edit_product(request, pk):
 
 
 @login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def unlist_product(request, pk):
+    """Unlist product from Admin Panel."""
     if request.method == "POST":
         try:
             product = get_object_or_404(Product, pk=pk)
-            print(product.name)
             product.is_listed = not product.is_listed
             product.save()
 
@@ -168,8 +169,9 @@ def unlist_product(request, pk):
 
 
 @login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def add_stock(request, pk):
+    """Add stock of products from Admin Panel."""
     if request.method == 'POST':
         new_stock = request.POST.get('new-stock')
         product = Product.objects.filter(pk=pk).first()
@@ -192,8 +194,9 @@ def add_stock(request, pk):
 
 
 @login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def add_category(request):
+    """Add category from Admin Panel."""
     if request.method == 'POST':
         form = CategoryForm(request.POST)
 
@@ -220,8 +223,9 @@ def add_category(request):
 
 
 @login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def edit_category(request, pk):
+    """Edit category from Admin Panel."""
     if request.method == 'POST':
         category = Category.objects.filter(pk=pk).first()
         
@@ -250,9 +254,12 @@ def edit_category(request, pk):
 
 
 @login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def delete_category(request, pk):
-    '''Soft deleting category. It will be still displayed in admin panel, not in user side.'''
+    """Soft deleting category.
+    
+    Deleted category will still be displayed in admin panel, not in user side.
+    """
     if request.method == "POST":
         try:
             category = Category.objects.filter(pk=pk).first()
@@ -271,9 +278,12 @@ def delete_category(request, pk):
 
 
 @login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def remove_category(request, pk):
-    '''Hard deleting category. It will be removed from the database.'''
+    """Hard deleting category.
+    
+    Item will be removed from the database.
+    """
     if request.method == "POST":
         try:
             category = Category.objects.filter(pk=pk).first()
@@ -298,8 +308,9 @@ def remove_category(request, pk):
 
 
 @login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def add_product_variant(request):
+    """Add product variant from Admin Panel."""
     if request.method == 'POST':
         quantity = request.POST.get('quantity')
         if ProductVariant.objects.filter(quantity=quantity).exists():
@@ -330,8 +341,12 @@ def add_product_variant(request):
 
 
 @login_required(login_url='admin_login')
-@user_passes_test(lambda user : user.is_staff, login_url='admin_login',redirect_field_name=None)
+@user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def delete_product_variant(request, pk):
+    """Delete product variant from Admin Panel.
+    
+    Item will be deleted from database; not soft delete.
+    """
     if request.method == 'POST':
         variant = ProductVariant.objects.filter(pk=pk).first()
 

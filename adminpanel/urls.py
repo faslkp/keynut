@@ -7,9 +7,6 @@ from orders.views import update_order_status, process_return_request
 from promotions.views import add_offer, edit_offer, disable_offer, remove_offer, add_coupon, edit_coupon, disable_coupon, remove_coupon
 
 urlpatterns = [
-    path('login/', views.admin_login, name='admin_login'),
-    path('recover/', views.admin_recover_password, name='admin_recover_password'),
-    path('logout/', views.admin_logout, name='admin_logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('products/', views.products, name='admin_products'),
     path('products/add/', add_product, name='add_product'),
@@ -51,4 +48,7 @@ urlpatterns = [
     path('ledger-book/', views.ledger_book, name='admin_ledger_book'),
     path('settings/', views.settings, name='admin_settings'),
     path('unavailable/', views.unavailable, name='unavailable'),
+    path('login/', views.admin_login, name='admin_login'),
+    path('recover/', views.admin_recover_password, name='admin_recover_password'),
+    path('logout/', views.admin_logout, name='admin_logout'),
 ]

@@ -21,6 +21,7 @@ class Category(models.Model):
     is_deleted = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
+        """Generate and save unique slug when adding a category."""
         if not self.slug:
             slug = slugify(self.name)
             while Category.objects.filter(slug=slug).exists():
@@ -42,6 +43,7 @@ class ProductVariant(models.Model):
         return f"{self.quantity}"
     
     def get_display_quantity(self, unit):
+        """Get the smaller units for applicable units when below 1, instead of showing in decimal."""
         unit_conversion = {
             'kg': ('g', 1000),
             'm': ('cm', 100),
@@ -53,9 +55,7 @@ class ProductVariant(models.Model):
             converted_quantity = self.quantity * factor
             return f"{converted_quantity.quantize(Decimal('1')) if converted_quantity == converted_quantity.to_integral() else converted_quantity.normalize()} {smaller_unit}"
 
-
         return f"{self.quantity.quantize(Decimal('1')) if self.quantity == self.quantity.to_integral() else self.quantity.normalize()} {unit}"
-
 
 
 class Product(models.Model):
@@ -81,27 +81,31 @@ class Product(models.Model):
 
     @property
     def discount_price(self):
+        """Get discount price of the product after deducting discount from original price."""
         return self.price - (self.price * (self.discount/100))
     
     @property
     def is_in_stock(self):
+        """Check and return whether the product stock is available or not."""
         lowest_variant = self.variants.order_by('quantity').first()
         return True if lowest_variant and self.stock >= lowest_variant.quantity else False
     
     def is_in_wishlist(self, user):
+        """Check and return whether the product is added to the user's Wishlist or not."""
         if not user.is_authenticated:
             return False
         Wishlist = apps.get_model('customers', 'Wishlist')
         return Wishlist.objects.filter(user=user, product=self).exists()
     
     def update_rating(self):
-        """Recalculate and update the average rating."""
+        """Recalculate and update the average rating whenever new rating is added."""
         rating_data = self.ratings.aggregate(avg_rating=Avg('rating'), count=Count('rating'))
         self.average_rating = rating_data['avg_rating'] or 0
         self.rating_count = rating_data['count']
         self.save()
 
     def save(self, *args, **kwargs):
+        """Generate and save unique slug and thumbnail image when adding product."""
         if not self.slug:
             slug = slugify(self.name)
             while Product.objects.filter(slug=slug).exists():

@@ -21,6 +21,7 @@ class OfferService:
 
 
     def apply_offers(self):
+        """Apply best offer with maximum discount on all cart items."""
         # Validate inputs before applying offers
         try:
             self.validate_inputs()
@@ -62,6 +63,7 @@ class OfferService:
             
 
     def apply_coupons(self):
+        """Apply coupon discount on all cart items."""
         # Ensure coupon validation
         if self.coupon_code:
             try:
@@ -87,6 +89,10 @@ class OfferService:
 
 
     def calculate_final_price(self):
+        """Compare offer discount and coupon discount and apply best with maximum discount.
+        
+        Returns final price applied discount amount.
+        """
         # Ensure only the best discount is applied
         offer_discount = self.best_offer_discount
         coupon_discount = self.best_coupon_discount
@@ -101,6 +107,7 @@ class OfferService:
     
 
     def validate_inputs(self):
+        """Validate the input values."""
         # Validate product
         if not self.product or not isinstance(self.product, Product):
             raise ValueError("Invalid product")
@@ -121,6 +128,7 @@ class OfferService:
 
 
     def validate_coupon(self, cart_total=None):
+        """Validate the coupon with all possible cases."""
         if not self.coupon_code:
             return  # No coupon to validate
 

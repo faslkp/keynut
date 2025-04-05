@@ -29,6 +29,7 @@ class CustomerForm(forms.ModelForm):
         fields = ['first_name', 'last_name', 'email', 'password']
     
     def clean_email(self):
+        """Check if the email is already registered."""
         email = self.cleaned_data.get('email')
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError("A user with this email already exists.")

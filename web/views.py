@@ -23,17 +23,17 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from weasyprint import HTML
 
 from products.models import Product, Category, Rating
-from customers.models import Address, Wishlist, Wallet, WalletTransaction, Message
+from customers.models import Address, Wishlist, Cart, CartItem, Wallet, WalletTransaction, Message
 from customers.forms import AddressForm
 from orders.models import Order, OrderItem, Payment
-from promotions.models import Offer
+from promotions.models import Offer, Coupon
 from orders.views import cancel_old_pending_orders
 
 User = get_user_model()
 
 
 def index(request):
-    context = {}
+    """Home page rendering."""
     categories = Category.objects.filter(is_deleted=False)
     
     flash_sales = Product.objects.filter(is_listed=True, is_deleted=False, category__is_deleted=False).order_by('-relevance')[:4]
@@ -43,8 +43,8 @@ def index(request):
     new_arrivals = Product.objects.filter(is_listed=True, is_deleted=False, category__is_deleted=False).order_by('-created_at')[:4]
 
     offers = Offer.objects.filter(is_active=True, start_date__lte=timezone.now(), end_date__gte=timezone.now()).order_by('?')
-    print(offers)
-    context.update({
+    
+    context = {
         'categories': categories, 
         'flash_sales': flash_sales,
         'best_selling': best_selling,
@@ -52,13 +52,15 @@ def index(request):
         'top_banner_offer':offers[1] if offers and len(offers) >= 2 else None,
         'main_offer':offers[0] if offers else None,
         'second_offer': offers[2] if offers and len(offers) >= 3 else None
-    })
+    }
     return render(request, 'web/index.html', context=context)
 
 
 def products(request):
-    context = {}
-
+    """Products listing page rendering.
+    
+    Handle search, filter, sort queries.
+    """
     q = request.GET.get('q')
     sortby = request.GET.get('sort')
     selected_categories = request.GET.getlist('category')
@@ -127,14 +129,15 @@ def products(request):
     products = paginator.get_page(page_number)
 
     categories = Category.objects.filter(is_deleted=False)
-    context.update({
+    context = {
         'products': products,
         'categories': categories
-    })
+    }
     return render(request, 'web/products.html', context=context)
 
 
 def product_details(request, slug):
+    """Product details page rendering."""
     context = {}
     product = Product.objects.select_related('category').filter(slug=slug).first()
     if product and product.is_listed and not product.is_deleted and not product.category.is_deleted:
@@ -178,19 +181,26 @@ def product_details(request, slug):
 @login_required(login_url='login')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_profile(request):
+    """User profile page.
+    
+    POST request update user profile.
+    GET request render the profile page.
+    """
     if request.method == 'POST':
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
         email = request.POST.get('email')
         phone = request.POST.get('phone')
 
-        # Update name
         if first_name and last_name:
             request.user.first_name = first_name
             request.user.last_name = last_name
             request.user.save()
             messages.success(request, "Profile updated successfully.")
         elif email:
+            if User.objects.filter(email=email).exists():
+                messages.error(request, "Entered email is already registered with us. Please use another email or login with the entered email.")
+                return redirect('user_profile')
             request.user.email = email
             request.user.username = email
             request.user.is_verified = False
@@ -210,6 +220,7 @@ def user_profile(request):
 @login_required(login_url='login')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_change_password(request):
+    """User side password changing."""
     if request.method == 'POST':
         current_password = request.POST.get('current-password')
         password1 = request.POST.get('password1')
@@ -232,6 +243,7 @@ def user_change_password(request):
 @login_required(login_url='login')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_address(request):
+    """User Addresses listing page."""
     addresses = Address.objects.filter(user=request.user, is_deleted=False)
     form = AddressForm()
     context = {
@@ -244,6 +256,7 @@ def user_address(request):
 @login_required(login_url='login')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_add_address(request):
+    """User add new address."""
     if request.method == 'POST':
         form = AddressForm(request.POST)
         if form.is_valid():
@@ -273,6 +286,11 @@ def user_add_address(request):
 @login_required(login_url='login')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_edit_address(request, pk):
+    """User edit address.
+    
+    POST request update address.
+    GET request fetch address details.
+    """
     if request.method == 'POST':
         address = Address.objects.filter(pk=pk, user=request.user).first()
         form = AddressForm(request.POST, instance=address)
@@ -314,6 +332,7 @@ def user_edit_address(request, pk):
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_set_address_default(request, pk):
+    """User set default address."""
     selected_address = Address.objects.filter(pk=pk, user=request.user).first()
     if not selected_address:
         return redirect('404')
@@ -332,6 +351,7 @@ def user_set_address_default(request, pk):
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_delete_address(request, pk):
+    """User delete address."""
     if request.method == 'POST':
         address = Address.objects.filter(pk=pk, user=request.user).first()
         if address:
@@ -354,6 +374,7 @@ def user_delete_address(request, pk):
 @login_required(login_url='login')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_orders(request):
+    """User orders listing page."""
     # Cancel all pending orders before 3 days
     cancel_old_pending_orders()
 
@@ -405,6 +426,7 @@ def user_orders(request):
 @login_required(login_url='login')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_view_order(request, order_id):
+    """Order details page rendering."""
     order = Order.objects.prefetch_related('order_items').filter(order_id=order_id, user=request.user).first()
 
     payment = Payment.objects.filter(
@@ -433,6 +455,7 @@ def user_view_order(request, order_id):
 @login_required(login_url='login')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_order_invoice(request, order_id):
+    """Generate order invoice pdf dynamically."""
     order = Order.objects.filter(order_id=order_id, user=request.user).first()
 
     if not order:
@@ -457,6 +480,7 @@ def user_order_invoice(request, order_id):
 @login_required(login_url='login')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_ratings(request):
+    """User ratings page."""
     ratings = Rating.objects.select_related('product').filter(user=request.user)
 
     paginator = Paginator(ratings, 10)
@@ -472,6 +496,7 @@ def user_ratings(request):
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def add_rating(request):
+    """Add product rating by user."""
     if request.method == 'POST':
         data = json.loads(request.body)
         product_id = data.get('product_id')
@@ -511,6 +536,7 @@ def add_rating(request):
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def wallet(request):
+    """Wallet and wallet transactions page."""
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
     transactions = wallet.transactions.all().order_by('-created_at')
 
@@ -525,9 +551,62 @@ def wallet(request):
     return render(request, 'web/user_wallet.html', context=context)
 
 
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
+def wishlist(request):
+    """Wishlist rendering."""
+    whishlist_items = Wishlist.objects.filter(user=request.user)
+
+    suggested_products = products = Product.objects.filter(is_deleted=False, is_listed=True, category__is_deleted=False).order_by('-relevance')[:4]
+    context = {
+        'wishlist_items': whishlist_items,
+        'suggested_products': suggested_products,
+    }
+    return render(request, 'web/wishlist.html', context=context)
+
+
+@login_required(login_url='login')
+@user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
+def cart(request):
+    """Cart page rendering."""
+    cart = Cart.objects.filter(user=request.user).first()
+    cart_items = CartItem.objects.filter(cart__user=request.user)
+    if request.method == 'POST':
+        quantity_above_10 = False
+        for item in cart_items:
+            new_quantity = int(request.POST.get(str(item.id), 1))  # Get updated quantity
+            item.quantity = min(new_quantity, 10)  # Ensure max 10
+            item.save(update_fields=["quantity"])
+            if new_quantity > 10:
+                quantity_above_10 = True
+        if quantity_above_10:
+            messages.error(request, "Maximum quantity of a product in single order is capped at 10.")
+    
+    # Handle quantity based on stock
+    for item in cart_items:
+        if item.quantity * item.variant.quantity > item.product.stock:
+            item.quantity = int(item.product.stock / item.variant.quantity)
+
+    products_in_carts = Product.objects.filter(cartitem__cart__user=request.user)
+    categories_in_carts = Category.objects.filter(product__cartitem__cart__user=request.user)
+    available_coupons = Coupon.objects.filter((
+        ((Q(products=None) & Q(categories=None)) & (Q(users=None) | Q(users=request.user))) | 
+        (Q(products__in=products_in_carts) & (Q(users=None) | Q(users=request.user))) | 
+        (Q(categories__in=categories_in_carts) & (Q(users=None) | Q(users=request.user)))
+    ) & (Q(start_date__lte=timezone.now()) & Q(end_date__gte=timezone.now())))
+
+    context = {
+        'cart': cart,
+        'cart_items': cart_items,
+        'available_coupons': available_coupons,
+    }
+    return render(request, 'web/cart.html', context=context)
+
+
 @never_cache
 @user_passes_test(lambda user: not user.is_authenticated, login_url='/',redirect_field_name=None)
 def login(request):
+    """User login."""
     context = {}
 
     if request.method == 'POST':
@@ -643,12 +722,14 @@ def login(request):
 
 
 def logout(request):
+    """User logout."""
     authlogout(request)
     return redirect('index')
 
 
 @user_passes_test(lambda user: not user.is_authenticated, login_url='/',redirect_field_name=None)
 def recover(request):
+    """User recover password - Forgot password."""
     context = {
         'stage': "email"
     }
@@ -766,6 +847,7 @@ def recover(request):
 
 @user_passes_test(lambda user: not user.is_authenticated, login_url='/',redirect_field_name=None)
 def register(request):
+    """User registration."""
     referral_key = request.GET.get('ref', '')
     context = {
         'stage': "primary",
@@ -971,14 +1053,17 @@ class CustomGoogleLoginView(OAuth2LoginView):
 
 
 def four_not_four(request):
+    """404 error or access restricted error showing page."""
     return render(request, 'web/404.html')
 
 
 def about(request):
+    """About Us page."""
     return render(request, 'web/about.html')
 
 
 def contact(request):
+    """Conatact Us page with contact form."""
     if request.method == 'POST':
         name = request.POST.get('name')
         email = request.POST.get('email')

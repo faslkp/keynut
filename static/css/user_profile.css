@@ -34,7 +34,6 @@ a.mark-as-default {
     display: inline-block;
 }
 
-
 @media (max-width: 767.98px) {
     .sidebar {
         height: auto;

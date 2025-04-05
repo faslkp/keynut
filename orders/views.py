@@ -23,6 +23,11 @@ from . services import create_razorpay_order, verify_razorpay_signature
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def checkout(request):
+    """Create Order, Order Item, and Payment instances.
+    
+    For Cash on Delivery and Wallet orders, order is completly placed from here.
+    For RazorPay, after creating pending payment instance, redirected to RazorPay.
+    """
     context = {}
     if request.method == 'POST':
 
@@ -127,7 +132,7 @@ def checkout(request):
             messages.error(request, "Select a payment method before proceeding with checkout!")
             return redirect('checkout')
         
-        # Handling cash on delivery and wallet eligibility
+        # Checking cash on delivery and wallet payment eligibility
         # Getting cart total, shipping charge and cart level discount
         cart_total,_,cart_level_discount = cart.total_price()
         shipping_charge = cart.shipping_charge()
@@ -136,7 +141,6 @@ def checkout(request):
         if payment_method == 'cash-on-delivery' and (cart_total + shipping_charge) >= 1000:
             messages.error(request, "Orders with total amount above ₹1000 is not eligible for Cash on Delivery.")
             return redirect('checkout')
-
 
         # Checking wallet balance for wallet orders before proceeding with order
         if payment_method == 'wallet':
@@ -148,7 +152,7 @@ def checkout(request):
         # Starting the order creation
         with transaction.atomic(): # Ensures atomicity
             
-            # Create order address
+            # Create order address; first, checking if the same address is already existing
             order_address = OrderAddress.objects.filter(
                 user = request.user,
                 name = selected_address.name,
@@ -203,7 +207,7 @@ def checkout(request):
                     order=order,
                     product=product,
                     variant=variant_quantity,
-                    price=final_price / (int(variant_quantity) * quantity),
+                    price=final_price / (float(variant_quantity) * quantity),
                     quantity=quantity,
                     discount_amount=applied_discount
                 )
@@ -226,7 +230,7 @@ def checkout(request):
             cart.save(update_fields=["coupon"])
 
             # Creating payment data
-            order_total_amount = order.total_amount
+            order_total_amount = order.total_amount + order.shipping_charge
 
             payment = Payment.objects.create(
                 order=order,
@@ -242,9 +246,8 @@ def checkout(request):
             
             # Handle wallet payment order
             if payment_method == 'wallet':
-                if wallet.balance >= order_total_amount:
-                    wallet.balance -= order_total_amount
-                    wallet.save(update_fields=["balance"])
+                wallet.balance -= order_total_amount
+                wallet.save(update_fields=["balance"])
 
                 wallet_transaction = WalletTransaction.objects.create(
                     wallet=wallet,
@@ -275,7 +278,7 @@ def checkout(request):
                     payment.save()
 
                     context = {
-                        "callback_url": "http://" + "127.0.0.1:8000" + "/razorpay/callback/",
+                        "callback_url": request.scheme + "://" + request.get_host() + "/razorpay/callback/",
                         "razorpay_key": settings.RAZORPAY_API_KEY,
                         "order": order,
                         'provider_id': razorpay_order['id']
@@ -301,6 +304,7 @@ def checkout(request):
 
 @csrf_exempt
 def razorpay_callback(request):
+    """RazorPay callback funtion. Process success or failed payments."""
     if request.method == 'GET':
         return redirect('404')
     
@@ -342,6 +346,7 @@ def razorpay_callback(request):
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def checkout_retry(request):
+    """Retry payment fuction for payment failed orders."""
     if request.method == 'POST':
         order_id = request.POST.get('order_id')
         order = Order.objects.filter(order_id=order_id, user=request.user).first()
@@ -355,7 +360,7 @@ def checkout_retry(request):
                 payment_provider_order_id=razorpay_order['id']
             )
             context = {
-                "callback_url": "http://" + "127.0.0.1:8000" + "/razorpay/callback/",
+                "callback_url": request.scheme + "://" + request.get_host() + "/razorpay/callback/",
                 "razorpay_key": settings.RAZORPAY_API_KEY,
                 "order": order,
                 'provider_id': razorpay_order['id']
@@ -370,6 +375,7 @@ def checkout_retry(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def update_order_status(request):
+    """Update order status from Admin Panel."""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -394,7 +400,6 @@ def update_order_status(request):
                 
                 OrderItem.objects.bulk_update(order_items, ['status'])
 
-
                 return JsonResponse({
                     'success': True,
                     'message': "Order status updated successfully."
@@ -414,6 +419,7 @@ def update_order_status(request):
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_cancel_order(request):
+    """User side order cancellation function."""
     if request.method == 'POST':
         order_id = request.POST.get('order-id')
         cancellation_note = request.POST.get('cancellation-note')
@@ -429,16 +435,17 @@ def user_cancel_order(request):
 
             # Refunding amount to wallet
             payment = order.payments.filter(payment_status='success').first()
+            order_total_amount = order.total_amount + order.shipping_charge
             if payment:
                 wallet, _ = Wallet.objects.get_or_create(user=request.user)
-                wallet.balance += order.total_amount + order.shipping_charge
+                wallet.balance += order_total_amount
                 wallet.save(update_fields=["balance"])
 
                 WalletTransaction.objects.create(
                     wallet=wallet,
                     transaction_type='refund',
                     transaction_id=uuid.uuid4(),
-                    amount=order.total_amount + order.shipping_charge,
+                    amount=order_total_amount,
                     status='success',
                     order=order,
                     notes=f"Refund for order {order.order_id}"
@@ -465,6 +472,7 @@ def user_cancel_order(request):
 @login_required(login_url='404')
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_return_order(request):
+    """User side order return request handling."""
     if request.method == 'POST':
         order_item_id = request.POST.get('order-item-id')
         return_reason = request.POST.get('return-reason')
@@ -490,6 +498,7 @@ def user_return_order(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def process_return_request(request):
+    """Processing order return requests from Admin Panel."""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)

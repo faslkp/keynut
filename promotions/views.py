@@ -11,6 +11,7 @@ from orders.models import Order
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def add_offer(request):
+    """Add offer from Admin Panel."""
     if request.method == 'POST':
         form = OfferForm(request.POST, request.FILES)
         if form.is_valid():
@@ -38,6 +39,11 @@ def add_offer(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def edit_offer(request, pk):
+    """Edit offer from Admin Panel.
+    
+    POST request update the record.
+    GET request fetch the rocord.
+    """
     offer = Offer.objects.filter(pk=pk).first()
 
     if not offer:
@@ -86,6 +92,7 @@ def edit_offer(request, pk):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def disable_offer(request, pk):
+    """Disable or enable offer from Admin Panel."""
     if request.method == "POST":
         try:
             offer = Offer.objects.filter(pk=pk).first()
@@ -106,7 +113,10 @@ def disable_offer(request, pk):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def remove_offer(request, pk):
-    '''Hard deleting offer. It will be removed from the database.'''
+    """Delete offer from Admin Panel.
+    
+    Item will be removed from the database.
+    """
     if request.method == "POST":
         try:
             offer = Offer.objects.filter(pk=pk).first()
@@ -126,8 +136,8 @@ def remove_offer(request, pk):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def add_coupon(request):
+    """Add coupon from Admin Panel."""
     if request.method == 'POST':
-        
         # Check if coupon already exists
         coupon_code = request.POST.get('code')
         if Coupon.objects.filter(code=coupon_code).exists():
@@ -167,6 +177,11 @@ def add_coupon(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def edit_coupon(request, pk):
+    """Edit coupon from Admin Panel.
+    
+    POST request update the record.
+    GET request fetch the record.
+    """
     coupon = Coupon.objects.filter(pk=pk).first()
 
     if not coupon:
@@ -205,6 +220,7 @@ def edit_coupon(request, pk):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def disable_coupon(request, pk):
+    """Disable coupon from Admin Panel."""
     if request.method == "POST":
         try:
             coupon = Coupon.objects.filter(pk=pk).first()
@@ -225,7 +241,10 @@ def disable_coupon(request, pk):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def remove_coupon(request, pk):
-    '''Hard deleting coupon. It will be removed from the database.'''
+    """Delete coupon from Admin Panel. 
+    
+    Item will be removed from the database.
+    """
     if request.method == "POST":
         try:
             coupon = Coupon.objects.filter(pk=pk).first()

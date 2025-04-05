@@ -37,9 +37,12 @@ User = get_user_model()
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def dashboard(request):
+    """Generate sales data to display on Admin panel dashboard."""
+
     # Cancel all pending orders before 3 days
     cancel_old_pending_orders()
 
+    # Get all order details and top selling products and categories
     orders = Order.objects.prefetch_related('order_items').filter(
         ~Q(status='pending') & ~Q(status='refunded') & ~Q(status='cancelled')
     ).annotate(
@@ -66,6 +69,7 @@ def dashboard(request):
         .order_by('-total_sales')
     )
 
+    # Get recent orders
     recent_orders = Order.objects.prefetch_related('order_items', 'payments').filter(
         ~Q(status='pending') & ~Q(status='cancelled') & ~Q(status='refunded')
     ).annotate(
@@ -174,8 +178,7 @@ def dashboard(request):
         top_selling_categories = top_selling_categories.filter(order__order_date__range=(start_of_week, end_of_week))
         recent_orders = recent_orders.filter(order_date__date__range=(start_of_week, end_of_week))
 
-
-    # Perform aggregation
+    # Perform aggregation to get sales data
     reports = recent_orders.aggregate(
         total_sales=Coalesce(Sum('order_total_amount'), Value(0), output_field=DecimalField()),
         total_orders=Coalesce(Count('order_id', distinct=True), Value(0), output_field=IntegerField())
@@ -204,24 +207,28 @@ def dashboard(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def products(request):
-    context = {}
+    """Fetch all products data to display in Admin Panel Products page."""
+    products = Product.objects.select_related('category').filter(is_deleted=False).order_by("-created_at")
+    
+    # Handle sort, filter, category and search
     sortby = request.GET.get('sortby')
     filter = request.GET.get('filter')
     category = request.GET.get('category')
     q = request.GET.get('q')
-    products = Product.objects.select_related('category').filter(is_deleted=False).order_by("-created_at")
-    
-    # Handle sort, filter, category and search
+
     if sortby:
         if sortby.startswith('-'):
             field_name = sortby.lstrip('-')
             products = products.order_by(Lower(field_name).desc())
         else:
             products = products.order_by(sortby)
+    
     if filter:
         products = products.filter(is_listed = True) if filter=="listed" else products.filter(is_listed = False)
+    
     if category:
         products = products.filter(category__slug=category)
+    
     if q:
         products = products.filter(name__icontains=q)
     
@@ -233,15 +240,21 @@ def products(request):
     categories = Category.objects.all()
     form = ProductForm()
 
-    context.update({'products': products, 'categories': categories, 'form': form})
+    context = {
+        'products': products,
+        'categories': categories,
+        'form': form
+    }
     return render(request, 'admin/products.html', context=context)
 
 
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def product_variants(request):
+    """Fetch all products variants data to display in Admin Panel Product Variants page."""
     variants = ProductVariant.objects.all().order_by('quantity')
 
+    # Handle sort and search
     sortby = request.GET.get('sortby')
     if sortby:
         variants = variants.order_by(sortby)
@@ -250,6 +263,7 @@ def product_variants(request):
     if q:
         variants = variants.filter(quantity__iexact=q)
 
+    # Pagination
     paginator = Paginator(variants, 10)
     page_number = request.GET.get('page')
     variants = paginator.get_page(page_number)
@@ -266,21 +280,24 @@ def product_variants(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def categories(request):
-    context = {}
-    sortby = request.GET.get('sortby')
-    filter = request.GET.get('filter')
-    q = request.GET.get('q')
+    """Fetch all categories data to display in Admin Panel Categories page."""
     categories = Category.objects.all().order_by("-created_at")
     
     # Handle sort, filter, category and search
+    sortby = request.GET.get('sortby')
+    filter = request.GET.get('filter')
+    q = request.GET.get('q')
+
     if sortby:
         if sortby.startswith('-'):
             field_name = sortby.lstrip('-')
             categories = categories.order_by(Lower(field_name).desc())
         else:
             categories = categories.order_by(sortby)
+    
     if filter:
         categories = categories.filter(is_deleted = False) if filter=="active" else categories.filter(is_deleted = True)
+    
     if q:
         categories = categories.filter(name__icontains=q)
     
@@ -291,28 +308,35 @@ def categories(request):
 
     form = CategoryForm()
 
-    context.update({'categories': categories, 'form': form})
+    context = {
+        'categories': categories,
+        'form': form
+    }
     return render(request, 'admin/categories.html', context=context)
 
 
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def customers(request):
+    """Fetch all customers data to display in Admin Panel Customers page."""
     context = {}
-    sortby = request.GET.get('sortby')
-    filter = request.GET.get('filter')
-    q = request.GET.get('q')
     customers = User.objects.filter(is_staff=False).order_by("-date_joined")
     
     # Handle sort, filter and search
+    sortby = request.GET.get('sortby')
+    filter = request.GET.get('filter')
+    q = request.GET.get('q')
+
     if sortby:
         if sortby.startswith('-'):
             field_name = sortby.lstrip('-')
             customers = customers.order_by(Lower(field_name).desc())
         else:
             customers = customers.order_by(sortby)
+    
     if filter:
         customers = customers.filter(is_blocked = False) if filter=="active" else customers.filter(is_blocked = True)
+    
     if q:
         customers = customers.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(email__icontains=q))
     
@@ -322,13 +346,17 @@ def customers(request):
     customers = paginator.get_page(page_number)
 
     form = CustomerForm()
-    context.update({'customers': customers, 'form': form})
+    context = {
+        'customers': customers,
+        'form': form
+    }
     return render(request, 'admin/customers.html', context=context)
 
 
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def orders(request):
+    """Fetch all orders data to display in Admin Panel Orders page."""
     orders = Order.objects.prefetch_related('order_items', 'payments').annotate(
         order_total_amount=ExpressionWrapper(
             Sum(F('order_item__variant') * F('order_item__quantity') * F('order_item__price')),
@@ -375,12 +403,16 @@ def orders(request):
             orders = orders.order_by(Lower(field_name).desc())
         else:
             orders = orders.order_by(sortby)
+    
     if filter_order_status:
         orders = orders.filter(status=filter_order_status)
+    
     if filter_pay_status:
         orders = orders.filter(payment_status=filter_pay_status)
+    
     if filter_pay_method:
         orders = orders.filter(payment_method=filter_pay_method)
+    
     if q:
         orders = orders.filter(Q(order_id__icontains=q) | Q(user__first_name__icontains=q) | Q(user__last_name__icontains=q))
 
@@ -390,7 +422,6 @@ def orders(request):
     orders = paginator.get_page(page_number)
 
     status_choices = dict(Order.STATUS_CHOICES)
-
     payment_methods = dict(Payment.PAYMENT_METHODS)
 
     context = {
@@ -405,31 +436,29 @@ def orders(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def view_order_details(request, order_id):
+    """Fetch all details of an order for Admin Panel."""
     order = Order.objects.filter(order_id=order_id).first()
     order_items = OrderItem.objects.filter(order=order).values(
-        'product__name', 'product__price', 'product__unit', 'variant', 'quantity', 'status'
+        'product__name', 'price', 'product__unit', 'variant', 'quantity', 'status'
     )
     payments = Payment.objects.filter(order=order).values(
         'payment_date', 'amount', 'payment_status', 'payment_method', 'transaction_id'
     )
 
-
-    # Manually add total_amount to each item
-    for item in order_items:
-        item["total_amount"] = item["variant"] * item["quantity"] * item["product__price"]
-
+    # If order or order items not found, return error
     if not order or not order_items:
         return JsonResponse({
         'error': True,
         'message': 'Order details not found.'
     })
 
-    # getting order status choices
-    disabled_statuses = ["return_requested", "return_approved", "return_rejected", "refunded", "cancelled"]
-    if order.status in disabled_statuses:
-        disabled_statuses.remove(order.status)
-    # Exclude the disabled statuses from STATUS_CHOICES
-    status_choices = [choice for choice in Order.STATUS_CHOICES if choice[0] not in disabled_statuses]
+    # Manually add total_amount to each item
+    for item in order_items:
+        item["total_amount"] = item["variant"] * item["quantity"] * item["price"]
+
+    # Getting order status choices
+    statuses = order.get_next_statuses()
+    status_choices = [choice for choice in Order.STATUS_CHOICES if choice[0] in statuses or choice[0] == order.status]
 
     return JsonResponse({
         'success': True,
@@ -449,6 +478,7 @@ def view_order_details(request, order_id):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def return_requests(request):
+    """Fetch all return requests for Admin Panel Return Requests page."""
     return_requests = ReturnRequest.objects.select_related(
         'order_item').annotate(
             item_total_amount=ExpressionWrapper(
@@ -471,6 +501,7 @@ def return_requests(request):
             ),
         ).order_by('-created_at')
 
+    # Handle sort, filter and search
     sortby = request.GET.get('sortby')
     filter_status = request.GET.get('status')
     q = request.GET.get('q')
@@ -505,6 +536,11 @@ def return_requests(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def customer_messages(request):
+    """Fetch all messages from Contact Form to Admin Panel Messages page.
+
+    Using POST request to update status of any specific message.
+    """
+    # Handle message status updation if POST request
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -535,8 +571,10 @@ def customer_messages(request):
         except Exception as e:
             return JsonResponse({'error': True, "message": str(e)})
 
+    # Fetch all messages if GET request
     all_messages = Message.objects.all().order_by('-created_at')
 
+    # Handle sort, filter, and search
     sortby = request.GET.get('sortby')
     filter_status = request.GET.get('status')
     q = request.GET.get('q')
@@ -552,6 +590,7 @@ def customer_messages(request):
             Q(name__icontains=q) | Q(email__icontains=q) | Q(message__icontains=q) | 
             Q(user__first_name__icontains=q) | Q(user__last_name__icontains=q))
 
+    # Pagination
     paginator = Paginator(all_messages, 10)
     page_number = request.GET.get('page')
     all_messages = paginator.get_page(page_number)
@@ -567,11 +606,14 @@ def customer_messages(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def view_customer_message(request, pk):
+    """Fetch full details of a message."""
     message = Message.objects.filter(pk=pk).first()
 
+    # Update status to 'open' when message is opened.
     message.status = 'open'
     message.save()
 
+    # Handle invalid request
     if not message:
         return JsonResponse({
             'error': True,
@@ -593,8 +635,10 @@ def view_customer_message(request, pk):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def offers(request):
+    """Fetch all offers for Admin Panel Offers page."""
     offers = Offer.objects.all().order_by('-start_date')
 
+    # Handle sort, filter, and search
     sortby = request.GET.get('sortby')
     filter = request.GET.get('filter')
     q = request.GET.get('q')
@@ -606,6 +650,7 @@ def offers(request):
             offers = offers.order_by(Lower(field_name).desc())
         else:
             offers = offers.order_by(sortby)
+    
     if filter:
         match filter:
             case "active":
@@ -614,6 +659,7 @@ def offers(request):
                 offers = offers.filter(start_date__gt=datetime.datetime.now())
             case "expired":
                 offers = offers.filter(end_date__lt=datetime.datetime.now())
+    
     if q:
         offers = offers.filter(name__icontains=q)
     
@@ -634,19 +680,21 @@ def offers(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def coupons(request):
+    """Fetch all coupons for Admin Panel Coupons page."""
     coupons = Coupon.objects.all().order_by('-start_date')
 
+    # Handle sort, filter, and search
     sortby = request.GET.get('sortby')
     filter = request.GET.get('filter')
     q = request.GET.get('q')
     
-    # Handle sort, filter, category and search
     if sortby:
         if sortby.startswith('-'):
             field_name = sortby.lstrip('-')
             coupons = coupons.order_by(Lower(field_name).desc())
         else:
             coupons = coupons.order_by(sortby)
+    
     if filter:
         match filter:
             case "active":
@@ -665,6 +713,7 @@ def coupons(request):
                 coupons = coupons.filter(categories__isnull=False)
             case "user":
                 coupons = coupons.filter(users__isnull=False)
+    
     if q:
         coupons = coupons.filter(Q(code__icontains=q) | Q(description__icontains=q))
     
@@ -684,6 +733,7 @@ def coupons(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def wallet_transactions(request):
+    """Fetch all wallet transactions for Admin Panel Wallet Transactions page."""
     transactions = WalletTransaction.objects.all().order_by('-created_at')
 
     # Sort, filter, search
@@ -697,11 +747,14 @@ def wallet_transactions(request):
             transactions = transactions.order_by(Lower(field_name).desc())
         else:
             transactions = transactions.order_by(sortby)
+    
     if filter_status:
         transactions = transactions.filter(status=filter_status)
+    
     if q:
         transactions = transactions.filter(Q(wallet__user__first_name__icontains=q) | Q(wallet__user__last_name__icontains=q) | Q(order__order_id__icontains=q) | Q(transaction_id__icontains=q) | Q(amount__iexact=q))
 
+    # Pagination
     paginator = Paginator(transactions, 10)
     page_number = request.GET.get('page')
     transactions = paginator.get_page(page_number)
@@ -715,6 +768,7 @@ def wallet_transactions(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def ledger_book(request):
+    """Fetch all success payment transactions - credit and debit to compay - including cash transactions."""
     transactions = Payment.objects.filter(~Q(payment_method='wallet') & Q(payment_status='success')).order_by('-payment_date')
 
     # Sort, filter, search
@@ -728,12 +782,14 @@ def ledger_book(request):
             transactions = transactions.order_by(Lower(field_name).desc())
         else:
             transactions = transactions.order_by(sortby)
+    
     if filter_type:
         transactions = transactions.filter(payment_type=filter_type)
+    
     if q:
         transactions = transactions.filter(Q(user__first_name__icontains=q) | Q(user__last_name__icontains=q) | Q(order__order_id__icontains=q) | Q(transaction_id__icontains=q) | Q(amount__iexact=q))
         
-
+    # Pagination
     paginator = Paginator(transactions, 10)
     page_number = request.GET.get('page')
     transactions = paginator.get_page(page_number)
@@ -747,6 +803,10 @@ def ledger_book(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def reports(request):
+    """Fetch all sales data for generating sales reports.
+    
+    Reports are served in Admin Panel Reports page, CSV file, and PDF file.
+    """
     today = datetime.datetime.today().date()
     start_of_week = today - datetime.timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
     end_of_week = start_of_week + datetime.timedelta(days=6)
@@ -794,7 +854,7 @@ def reports(request):
     if not filter_value and not start_date and not end_date:
         order_items = order_items.filter(order__order_date__date__range=(start_of_week, end_of_week))
 
-    # Perform aggregation
+    # Perform aggregation to get sales data figures
     reports = order_items.aggregate(
         total_sales=Coalesce(Sum(F('variant') * F('quantity') * F('price')), Value(0), output_field=DecimalField()),
         total_orders=Coalesce(Count('order', distinct=True), Value(0), output_field=IntegerField()),
@@ -802,12 +862,12 @@ def reports(request):
     )
 
     average_order_value = reports["total_sales"] / reports["total_orders"] if reports["total_orders"] > 0 else 0
-
     reports['average_order_value'] = average_order_value
 
     # Handle download
     download = request.GET.get('download')
     if download:
+        # CSV file download
         if download == 'csv':
             response = HttpResponse(content_type='text/csv')
             response['Content-Disposition'] = 'attachment; filename="reports.csv"'
@@ -833,9 +893,9 @@ def reports(request):
                 ])
             return response
         
-        # PDF
+        # PDF file download
         elif download == 'pdf':
-            # Getting date range string
+            # Getting date range string to display in PDF
             if filter_value:
                 match filter_value:
                     case "today":
@@ -855,7 +915,7 @@ def reports(request):
             elif end_date:
                 filter_value = f"Until {end_date}"
 
-            # Setting context values
+            # Setting context values for PDF
             pdf_context = {
                 'reports': reports,
                 'order_items': order_items,
@@ -877,7 +937,7 @@ def reports(request):
                 return response
 
     # Pagination
-    paginator = Paginator(order_items, 10) #10 coupons per page
+    paginator = Paginator(order_items, 10)
     page_number = request.GET.get('page')
     order_items = paginator.get_page(page_number)
 
@@ -891,6 +951,10 @@ def reports(request):
 @login_required(login_url='admin_login')
 @user_passes_test(lambda user : user.is_staff, login_url='unavailable',redirect_field_name=None)
 def settings(request):
+    """Admin Panel settings.
+
+    POST request updates admin user password.
+    """
     if request.method == 'POST':
         current_password = request.POST.get('current-password')
         password1 = request.POST.get('password1')
@@ -912,11 +976,11 @@ def settings(request):
 
 @user_passes_test(lambda user: not user.is_authenticated, login_url='dashboard',redirect_field_name=None)
 def admin_login(request):
+    """Admin login - authenticate using username and password. Verify if user is staff."""
     context = {}
     if request.POST:
         email = request.POST['email']
         password = request.POST['password']
-        print(email, password)
         user = authenticate(username=email, password=password)
         if user and user.is_staff:
             authlogin(request, user)
@@ -929,6 +993,10 @@ def admin_login(request):
 
 @user_passes_test(lambda user: not user.is_authenticated, login_url='dashboard',redirect_field_name=None)
 def admin_recover_password(request):
+    """Admin user password recovery - Forgot password.
+
+    Verify user with OTP on email.
+    """
     context = {
         'stage' : 'email'
     }
@@ -1042,9 +1110,11 @@ def admin_recover_password(request):
 
 
 def admin_logout(request):
+    """Admin user logout."""
     authlogout(request)
     return redirect('admin_login')
 
 
 def unavailable(requset):
+    """404 page for unavailable page requests or access restricted page requests."""
     return render(requset, 'admin/unavailable_404.html')

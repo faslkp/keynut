@@ -172,7 +172,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const newRow = document.createElement("tr");
                     newRow.innerHTML = `
                         <td class="py-2 px-3">${item.product__name} - ${item.variant} ${item.product__unit}</td>
-                        <td class="py-2 px-3">₹${item.product__price}</td>
+                        <td class="py-2 px-3">₹${item.price}</td>
                         <td class="py-2 px-3">${item.quantity}</td>
                         <td class="py-2 px-3">₹${parseFloat(item.total_amount).toFixed(2)}</td>
                     `;

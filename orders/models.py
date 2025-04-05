@@ -59,27 +59,30 @@ class Order(models.Model):
         return f"Order ID: {self.order_id} - {self.status}"
     
     def save(self, *args, **kwargs):
+        """Generate and save Order ID while creating new order."""
         is_new = self._state.adding  # Checks if it's a new instance
         
         super().save(*args, **kwargs)  # Save the object normally
 
         if is_new and not self.order_id:  # Generate order_id only for new orders
-            order_id_part = f"{self.id:06d}"  # Ensures 6-digit order ID
+            order_id_part = f"{self.id:06d}"  # Ensures 6-digit order ID part by padding zeros
             random_part = f"{random.randint(100000, 999999)}"  # 6-digit random number
 
             self.order_id = f"ORD-{order_id_part}-{random_part}"
-            super().save(update_fields=['order_id'])  # Update only order_id
+            super().save(update_fields=['order_id'])
     
     @property
     def total_amount(self):
+        """Total order amount excluding shipping charge"""
         return sum(item.variant * item.quantity * item.price for item in self.order_items.all())
     
     @property
     def total_discount(self):
+        """Total discount on all items."""
         return sum(item.discount_amount for item in self.order_items.all())
     
     def get_next_statuses(self):
-        """Returns only the allowed next statuses dynamically"""
+        """Returns only the allowed next order statuses dynamically"""
         order_statuses = [choice for choice, value in self.STATUS_CHOICES]
         if self.status in order_statuses:
             current_index = order_statuses.index(self.status)
@@ -102,6 +105,7 @@ class OrderItem(models.Model):
     
     @property
     def total_amount(self):
+        """Total amount of an order item."""
         return self.variant * self.quantity * self.price
 
 
@@ -155,7 +159,7 @@ class ReturnRequest(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def get_next_statuses(self):
-        """Returns only the allowed next statuses dynamically"""
+        """Returns only the allowed next request statuses dynamically"""
         statuses = [choice for choice, value in self.RETURN_STATUS_CHOICES]
         if self.status in statuses:
             current_index = statuses.index(self.status)

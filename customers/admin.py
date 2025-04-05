@@ -13,9 +13,6 @@ class CustomUserAdmin(UserAdmin):
         ('Additional Info', {'fields': ('phone', 'referral_key', 'is_verified', 'is_blocked', 'is_deleted')}),
     )
 
-
-User = get_user_model()
-
 class AddressAdmin(admin.ModelAdmin):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "user":
@@ -33,6 +30,7 @@ class CartItemAdmin(admin.ModelAdmin):
         if db_field.name == "user":
             kwargs["queryset"] = User.objects.all()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
 admin.site.register(CartItem, CartItemAdmin)
 
 admin.site.register(Wallet)
