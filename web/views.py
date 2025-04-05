@@ -900,6 +900,8 @@ def register(request):
                     if user:
                         # Handling referral
                         if user.referral_key:
+                            referred_by = None
+                            
                             re_pattern = rf"^ref-(.*)-{re.escape(user.username)}$"  # Pattern to match referral key
                             match = re.match(re_pattern, user.referral_key)
                             if match:
