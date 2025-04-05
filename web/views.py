@@ -904,8 +904,8 @@ def register(request):
                             match = re.match(re_pattern, user.referral_key)
                             if match:
                                 referral_key = match.group(1)
+                                referred_by = User.objects.filter(referral_key=referral_key).first()
 
-                            referred_by = User.objects.filter(referral_key=referral_key).first()
                             if referred_by:
                                 referrer_wallet, _ = Wallet.objects.get_or_create(user=referred_by)
                                 referrer_wallet.balance += 100
@@ -936,7 +936,6 @@ def register(request):
                                 messages.error(request, "Invalid referral key!")
 
                         user.is_verified = True
-                        user.referral_key = uuid.uuid4() # Adding the refferal key
                         user.save()
 
                         user.backend = 'django.contrib.auth.backends.ModelBackend'
