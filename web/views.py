@@ -596,8 +596,9 @@ def wishlist(request):
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def cart(request):
     """Cart page rendering."""
-    cart = Cart.objects.filter(user=request.user).first()
-    cart_items = CartItem.objects.filter(cart__user=request.user)
+    context = {}
+    cart, _ = Cart.objects.get_or_create(user=request.user)
+    cart_items = CartItem.objects.filter(cart=cart)
     if request.method == 'POST':
         quantity_above_10 = False
         for item in cart_items:
@@ -610,33 +611,37 @@ def cart(request):
             messages.error(request, "Maximum quantity of a product in single order is capped at 10.")
     
     # Handle quantity based on stock
-    for item in cart_items:
-        if item.quantity * item.variant.quantity > item.product.stock:
-            item.quantity = int(item.product.stock / item.variant.quantity)
+    if cart_items:
+        for item in cart_items:
+            if item.quantity * item.variant.quantity > item.product.stock:
+                item.quantity = int(item.product.stock / item.variant.quantity)
 
-    products_in_carts = Product.objects.filter(cartitem__cart__user=request.user)
-    categories_in_carts = Category.objects.filter(product__cartitem__cart__user=request.user)
-    available_coupons = Coupon.objects.filter((
-        ((Q(products=None) & Q(categories=None)) & (Q(users=None) | Q(users=request.user))) | 
-        (Q(products__in=products_in_carts) & (Q(users=None) | Q(users=request.user))) | 
-        (Q(categories__in=categories_in_carts) & (Q(users=None) | Q(users=request.user)))
-    ) & (Q(start_date__lte=timezone.now()) & Q(end_date__gte=timezone.now())))
+        products_in_carts = Product.objects.filter(cartitem__cart=cart)
+        categories_in_carts = Category.objects.filter(product__cartitem__cart=cart)
+        available_coupons = Coupon.objects.filter((
+            ((Q(products=None) & Q(categories=None)) & (Q(users=None) | Q(users=request.user))) | 
+            (Q(products__in=products_in_carts) & (Q(users=None) | Q(users=request.user))) | 
+            (Q(categories__in=categories_in_carts) & (Q(users=None) | Q(users=request.user)))
+        ) & (Q(start_date__lte=timezone.now()) & Q(end_date__gte=timezone.now())))
     
-    total_amount, total_items_discount, cart_level_discount = cart.total_price()
-    shipping_charge = cart.shipping_charge()
-    total_discount = total_items_discount + cart_level_discount
-    subtotal = total_amount + total_discount
-    final_amount = total_amount + shipping_charge
+        total_amount, total_items_discount, cart_level_discount = cart.total_price()
+        shipping_charge = cart.shipping_charge()
+        total_discount = total_items_discount + cart_level_discount
+        subtotal = total_amount + total_discount
+        final_amount = total_amount + shipping_charge
 
-    context = {
+        context.update({
+            'available_coupons': available_coupons,
+            'subtotal': subtotal,
+            'shipping_charge': shipping_charge,
+            'total_discount': total_discount,
+            'final_amount': final_amount
+        })
+
+    context.update({
         'cart': cart,
-        'cart_items': cart_items,
-        'available_coupons': available_coupons,
-        'subtotal': subtotal,
-        'shipping_charge': shipping_charge,
-        'total_discount': total_discount,
-        'final_amount': final_amount
-    }
+        'cart_items': cart_items
+    })
     return render(request, 'web/cart.html', context=context)
 
 
