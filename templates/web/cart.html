@@ -165,7 +165,7 @@
                 <button type="submit" class="btn btn-danger w-auto text-nowrap">Apply Coupon</button>
             </form>
 
-            {% if cart.coupon and cart.coupon.min_purchase_value and cart.total_price|get_index:0 > cart.coupon.min_purchase_value %}
+            {% if cart.coupon and cart.total_price|get_index:0 > cart.coupon.min_purchase_value %}
             <div class="bg-warning-subtle p-3 rounded-3 mt-3">
                 <div class="d-flex justify-content-between align-items-end mb-1">
                     <p class="text-success mb-0">Coupon {{cart.coupon.code}} applied.</p>

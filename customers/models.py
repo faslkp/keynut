@@ -130,7 +130,7 @@ class CartItem(models.Model):
             
             # Calculate Final Price 
             final_price, disount = offer_service.calculate_final_price()
-            print('debug', final_price, disount)
+            
             return final_price, disount
         else:
             return 0, 0
