@@ -69,6 +69,7 @@ class Cart(models.Model):
         final_cart_value = max(0, total_cart_value - cart_level_discount)
         
         total_discount = total_items_level_discount + cart_level_discount
+        
         return final_cart_value, total_discount, cart_level_discount
     
     def calculate_cart_level_coupon_discount(self, total_price):

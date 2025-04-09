@@ -624,12 +624,11 @@ def cart(request):
             (Q(categories__in=categories_in_carts) & (Q(users=None) | Q(users=request.user)))
         ) & (Q(start_date__lte=timezone.now()) & Q(end_date__gte=timezone.now())))
     
-        total_amount, total_items_discount, cart_level_discount = cart.total_price()
+        total_amount, total_discount, _ = cart.total_price()
         shipping_charge = cart.shipping_charge()
-        total_discount = total_items_discount + cart_level_discount
         subtotal = total_amount + total_discount
         final_amount = total_amount + shipping_charge
-
+        
         context.update({
             'available_coupons': available_coupons,
             'subtotal': subtotal,

@@ -98,7 +98,6 @@ class OfferService:
         coupon_discount = self.best_coupon_discount
         # Determine the higher discount
         applied_discount = max(offer_discount, coupon_discount)
-        
         # Calculate final price
         final_price = (self.variant_quantity * self.quantity * self.original_price) - applied_discount
         
