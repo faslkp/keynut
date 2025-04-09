@@ -12,7 +12,7 @@ Order Details
         <div class="col-12 col-md-8 p-3">
             <p class="">Order ID: <span class="fw-bold">{{order.order_id}}</span></p>
             <p class="">Order Date: <span class="fw-bold">{{order.order_date}}</span></p>
-            <p class="">Order Total: <span class="fw-bold">₹{{order.total_amount|add:order.shipping_charge|floatformat:2}}</span></p>
+            <p class="">Order Total: <span class="fw-bold">₹{{final_amount|floatformat:2}}</span></p>
             {% if payment.payment_method %}
             <p class="">Payment Method: <span class="fw-bold">{{payment.get_payment_method_display}}</span></p>
             {% endif %}
@@ -139,22 +139,22 @@ Order Details
                 <p class="fw-bold">Order Summary</p>
                 <p class="d-flex justify-content-between m-0">
                     <span>Subtotal</span>
-                    <span>₹{{order.total_amount|add:order.total_discount|add:order.order_level_discount|floatformat:2}}</span>
+                    <span>₹{{subtotal|floatformat:2}}</span>
                 </p>
                 <hr class="my-2">
                 <p class="d-flex justify-content-between m-0">
                     <span>Shipping</span>
-                    <span>₹{{order.shipping_charge|floatformat:2}}</span>
+                    <span>₹{{shipping_charge|floatformat:2}}</span>
                 </p>
                 <hr class="my-2">
                 <p class="d-flex justify-content-between m-0">
                     <span>Discount/Promotion</span>
-                    <span>-₹{{order.total_discount|add:order.order_level_discount|floatformat:2}}</span>
+                    <span>-₹{{total_discount|floatformat:2}}</span>
                 </p>
                 <hr class="my-2">
                 <p class="d-flex justify-content-between m-0 fw-bold">
                     <span>Total</span>
-                    <span>₹{{order.total_amount|add:order.shipping_charge|floatformat:2}}</span>
+                    <span>₹{{final_amount|floatformat:2}}</span>
                 </p>
                 <hr class="my-2">
             </div>

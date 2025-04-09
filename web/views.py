@@ -445,9 +445,20 @@ def user_view_order(request, order_id):
     for item in order.order_items.all():
         item.user_rating = user_ratings.get(item.product.id, None)
 
+    total_amount = order.total_amount
+    total_items_discount = order.total_discount
+    total_discount = total_items_discount + order.order_level_discount
+    shipping_charge = order.shipping_charge
+    subtotal = total_amount + total_discount
+    final_amount = total_amount + shipping_charge
+
     context = {
         'order': order,
         'payment': payment,
+        'subtotal': subtotal,
+        'shipping_charge': shipping_charge,
+        'total_discount': total_discount,
+        'final_amount': final_amount
     }
     return render(request, 'web/user_order_details.html', context=context)
 
@@ -462,8 +473,24 @@ def user_order_invoice(request, order_id):
         return redirect('404')
     
     invoice_number = f"IN-{order.id:06d}-{order.order_date.strftime('%y%m%d')}"
+
+    total_amount = order.total_amount
+    total_items_discount = order.total_discount
+    total_discount = total_items_discount + order.order_level_discount
+    shipping_charge = order.shipping_charge
+    subtotal = total_amount + total_discount
+    final_amount = total_amount + shipping_charge
+
+    context = {
+        "order": order,
+        'invoice_number': invoice_number,
+        'subtotal': subtotal,
+        'shipping_charge': shipping_charge,
+        'total_discount': total_discount,
+        'final_amount': final_amount
+    }
     
-    html_string = render_to_string("web/order_invoice.html", {"order": order, 'invoice_number': invoice_number})
+    html_string = render_to_string("web/order_invoice.html", context=context)
 
     # Generate PDF
     html = HTML(string=html_string)
@@ -600,7 +627,6 @@ def cart(request):
     total_discount = total_items_discount + cart_level_discount
     subtotal = total_amount + total_discount
     final_amount = total_amount + shipping_charge
-
 
     context = {
         'cart': cart,
