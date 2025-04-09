@@ -594,11 +594,22 @@ def cart(request):
         (Q(products__in=products_in_carts) & (Q(users=None) | Q(users=request.user))) | 
         (Q(categories__in=categories_in_carts) & (Q(users=None) | Q(users=request.user)))
     ) & (Q(start_date__lte=timezone.now()) & Q(end_date__gte=timezone.now())))
+    
+    total_amount, total_items_discount, cart_level_discount = cart.total_price()
+    shipping_charge = cart.shipping_charge()
+    total_discount = total_items_discount + cart_level_discount
+    subtotal = total_amount + total_discount
+    final_amount = total_amount + shipping_charge
+
 
     context = {
         'cart': cart,
         'cart_items': cart_items,
         'available_coupons': available_coupons,
+        'subtotal': subtotal,
+        'shipping_charge': shipping_charge,
+        'total_discount': total_discount,
+        'final_amount': final_amount
     }
     return render(request, 'web/cart.html', context=context)
 

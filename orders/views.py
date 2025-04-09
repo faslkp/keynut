@@ -2,6 +2,8 @@ import json
 import uuid
 import datetime
 
+from decimal import Decimal
+
 from django.shortcuts import render, redirect
 from django.db import transaction
 from django.contrib import messages
@@ -207,7 +209,7 @@ def checkout(request):
                     order=order,
                     product=product,
                     variant=variant_quantity,
-                    price=final_price / (float(variant_quantity) * quantity),
+                    price=final_price / (variant_quantity * Decimal(quantity)),
                     quantity=quantity,
                     discount_amount=applied_discount
                 )
@@ -271,7 +273,7 @@ def checkout(request):
             # Handling online payments
             if payment_method == 'razorpay':
                 # Creating razor pay order
-                razorpay_order = create_razorpay_order(order.total_amount)
+                razorpay_order = create_razorpay_order(order_total_amount)
                 
                 if razorpay_order['id']:
                     payment.payment_provider_order_id = razorpay_order['id']
@@ -291,10 +293,20 @@ def checkout(request):
     # Handling GET request
     saved_addresses = Address.objects.filter(user=request.user)
     cart = Cart.objects.filter(user=request.user).first()
+
+    total_amount, total_items_discount, cart_level_discount = cart.total_price()
+    shipping_charge = cart.shipping_charge()
+    total_discount = total_items_discount + cart_level_discount
+    subtotal = total_amount + total_discount
+    final_amount = total_amount + shipping_charge
     
     context.update({
         'saved_addresses': saved_addresses,
         'cart': cart,
+        'subtotal': subtotal,
+        'shipping_charge': shipping_charge,
+        'total_discount': total_discount,
+        'final_amount': final_amount
     })
     if cart.cart_items.exists():
         return render(request, 'web/checkout.html', context=context)
