@@ -103,11 +103,11 @@ LOGOUT_REDIRECT_URL = '/'
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
-        'APP': {
-            'client_id': os.environ.get('GOOGLE_CLIENT_ID'),
-            'secret': os.environ.get('GOOGLE_SECRET'),
-            'key': ''  # Leave blank for Google
-        },
+        # 'APP': {
+        #     'client_id': os.environ.get('GOOGLE_CLIENT_ID'),
+        #     'secret': os.environ.get('GOOGLE_SECRET'),
+        #     'key': ''  # Leave blank for Google
+        # },
         'SCOPE': [
             'profile',
             'email',
