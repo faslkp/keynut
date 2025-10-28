@@ -16,7 +16,8 @@ def create_razorpay_order(amount, currency="INR", receipt=None):
     try:
         order = client.order.create(data)
         return order  # Returns Razorpay order details
-    except razorpay.errors.RazorpayError as e:
+    except Exception as e:
+        # Handle all Razorpay exceptions generically
         return {"error": str(e)}
     
 
@@ -35,5 +36,5 @@ def verify_razorpay_signature(response_data):
         try:
             client.utility.verify_payment_signature(response_data)
             return True  # Signature is valid
-        except razorpay.errors.SignatureVerificationError:
+        except Exception:
             return False  # Signature is invalid

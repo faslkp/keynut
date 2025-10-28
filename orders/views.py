@@ -275,7 +275,7 @@ def checkout(request):
                 # Creating razor pay order
                 razorpay_order = create_razorpay_order(order_total_amount)
                 
-                if razorpay_order['id']:
+                if 'error' not in razorpay_order and razorpay_order.get('id'):
                     payment.payment_provider_order_id = razorpay_order['id']
                     payment.save()
 
@@ -287,6 +287,9 @@ def checkout(request):
                     }
                     return render(request, 'web/razorpay_payment.html', context=context)
                 else:
+                    # Handle Razorpay error
+                    error_message = razorpay_order.get('error', 'Payment initialization failed')
+                    messages.error(request, f"Payment error: {error_message}")
                     return render(request, 'web/order_failed.html', {'order': order})
         
 
@@ -364,7 +367,7 @@ def checkout_retry(request):
         order = Order.objects.filter(order_id=order_id, user=request.user).first()
 
         razorpay_order = create_razorpay_order(order.total_amount)
-        if razorpay_order['id']:
+        if 'error' not in razorpay_order and razorpay_order.get('id'):
             Payment.objects.create(
                 order=order,
                 amount=order.total_amount,
@@ -379,6 +382,9 @@ def checkout_retry(request):
             }
             return render(request, 'web/razorpay_payment.html', context=context)
         else:
+            # Handle Razorpay error
+            error_message = razorpay_order.get('error', 'Payment initialization failed')
+            messages.error(request, f"Payment error: {error_message}")
             return render(request, 'web/order_failed.html', {'order': order})
 
     return redirect('404')
