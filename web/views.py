@@ -681,9 +681,9 @@ def login(request):
                     # Send OTP to email
                     try:
                         send_mail(
-                            subject="Your Keynut OTP Code",
-                            message=f"Your OTP is {otp}. It expires in 5 minutes.",
-                            from_email="teamkepe@gmail.com",  # Your email address
+                            subject="Your email veification OTP code",
+                            message=f"OTP for verifying your email on Keynut store is {otp}. It expires in 5 minutes. \n\nThank you for using Keynut store.",
+                            from_email="teamkepe@gmail.com",
                             recipient_list=[email],
                             fail_silently=False,
                         )
@@ -713,9 +713,9 @@ def login(request):
                 # Send OTP to email
                 try:
                     send_mail(
-                        subject="Your Keynut OTP Code",
-                        message=f"Your OTP is {otp}. It expires in 5 minutes.",
-                        from_email="teamkepe@gmail.com",  # Your email address
+                        subject="Your email veification OTP code",
+                        message=f"OTP for verifying your email on Keynut store is {otp}. It expires in 5 minutes. \n\nThank you for using Keynut store.",
+                        from_email="teamkepe@gmail.com",
                         recipient_list=[email],
                         fail_silently=False,
                     )
@@ -802,9 +802,9 @@ def recover(request):
                             print(otp)
                             try:
                                 send_mail(
-                                    subject="Your Keynut OTP Code",
-                                    message=f"Your OTP is {otp}. It expires in 5 minutes.",
-                                    from_email="teamkepe@gmail.com",  # Your email address
+                                    subject="OTP for password recovery on Keynut store",
+                                    message=f"Your OTP for password recovery on Keynut store is {otp}. It expires in 5 minutes. \n\nThank you for using Keynut store.",
+                                    from_email="teamkepe@gmail.com",
                                     recipient_list=[email],
                                     fail_silently=False,
                                 )
@@ -869,9 +869,9 @@ def recover(request):
                     print(otp)
                     try:
                         send_mail(
-                            subject="Your Keynut OTP Code",
-                            message=f"Your OTP is {otp}. It expires in 5 minutes.",
-                            from_email="teamkepe@gmail.com",  # Your email address
+                            subject="OTP for password recovery on Keynut store",
+                            message=f"Your OTP for password recovery on Keynut store is {otp}. It expires in 5 minutes. \n\nThank you for using Keynut store.",
+                            from_email="teamkepe@gmail.com",
                             recipient_list=[email],
                             fail_silently=False,
                         )
@@ -940,9 +940,9 @@ def register(request):
                     # Send OTP to email
                     try:
                         send_mail(
-                            subject="Your Keynut OTP Code",
-                            message=f"Your OTP is {otp}. It expires in 5 minutes.",
-                            from_email="teamkepe@gmail.com",  # Your email address
+                            subject="Your email veification OTP code",
+                            message=f"OTP for verifying your email on Keynut store is {otp}. It expires in 5 minutes. \n\nThank you for using Keynut store.",
+                            from_email="teamkepe@gmail.com",
                             recipient_list=[email],
                             fail_silently=False,
                         )
@@ -991,9 +991,9 @@ def register(request):
                         # Send OTP to email
                         try:
                             send_mail(
-                                subject="Your Keynut OTP Code",
-                                message=f"Your OTP is {otp}. It expires in 5 minutes.",
-                                from_email="teamkepe@gmail.com",  # Your email address
+                                subject="Your email veification OTP code",
+                                message=f"OTP for verifying your email on Keynut store is {otp}. It expires in 5 minutes. \n\nThank you for using Keynut store.",
+                                from_email="teamkepe@gmail.com",
                                 recipient_list=[email],
                                 fail_silently=False,
                             )
@@ -1089,7 +1089,6 @@ class CustomGoogleLoginView(OAuth2LoginView):
     client_class = OAuth2Client
 
     def get(self, request, *args, **kwargs):
-        # Immediately redirect to Google without rendering a confirmation page
         return self.get_login_redirect()
 
 
