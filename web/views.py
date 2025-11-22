@@ -9,7 +9,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login as authlogin, logout as authlogout, authenticate, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.db.models import F, Q, Exists, OuterRef, BooleanField, Case, When, Value
+from django.db.models import F, Q, Exists, OuterRef, BooleanField, Case, When, Value, ExpressionWrapper, DecimalField
 from django.core.mail import send_mail
 from django.views.decorators.cache import never_cache
 from django.core.paginator import Paginator
@@ -20,7 +20,12 @@ from django.utils import timezone
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.views import OAuth2LoginView
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
-from weasyprint import HTML
+
+try:
+    from weasyprint import HTML
+    WEASYPRINT_AVAILABLE = True
+except:
+    WEASYPRINT_AVAILABLE = False
 
 from products.models import Product, Category, Rating
 from customers.models import Address, Wishlist, Cart, CartItem, Wallet, WalletTransaction, Message
@@ -116,11 +121,17 @@ def products(request):
         'relevance': '-relevance',
         'name-a-z': 'name',
         'name-z-a': '-name',
-        'price-low-high': 'discount_price',
-        'price-high-low': '-discount_price',
+        'price-low-high': 'discount_price_value',
+        'price-high-low': '-discount_price_value',
     }
 
     if sortby in sort_options:
+        products = products.annotate(
+            discount_price_value=ExpressionWrapper(
+                F('price') - (F('price') * F('discount') / 100.0),
+                output_field=DecimalField(max_digits=10, decimal_places=2)
+            )
+        )
         products = products.order_by(sort_options[sortby])
 
     # Pagination
@@ -467,6 +478,11 @@ def user_view_order(request, order_id):
 @user_passes_test(lambda user : not user.is_blocked, login_url='404',redirect_field_name=None)
 def user_order_invoice(request, order_id):
     """Generate order invoice pdf dynamically."""
+
+    if not WEASYPRINT_AVAILABLE:
+        messages.error(request, "PDF generation is not available on this system.")
+        return redirect('user_view_order', order_id=order_id)
+
     order = Order.objects.filter(order_id=order_id, user=request.user).first()
 
     if not order:

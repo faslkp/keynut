@@ -21,7 +21,11 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.db.models.functions import TruncDate
 
-from weasyprint import HTML
+try:
+    from weasyprint import HTML
+    WEASYPRINT_AVAILABLE = True
+except:
+    WEASYPRINT_AVAILABLE = False
 
 from customers.forms import CustomerForm
 from customers.models import WalletTransaction, Message
@@ -895,6 +899,10 @@ def reports(request):
         
         # PDF file download
         elif download == 'pdf':
+            if not WEASYPRINT_AVAILABLE:
+                messages.error(request, "PDF generation is not available on this system.")
+                return redirect('reports')
+
             # Getting date range string to display in PDF
             if filter_value:
                 match filter_value:
@@ -1028,9 +1036,9 @@ def admin_recover_password(request):
                         print(otp)
                         try:
                             send_mail(
-                                subject="Your Keynut OTP Code",
-                                message=f"Your OTP is {otp}. It expires in 5 minutes.",
-                                from_email="teamkepe@gmail.com",  # Your Gmail address
+                                subject="OTP for password recovery on Keynut store",
+                                message=f"Your OTP for password recovery on Keynut store is {otp}. It expires in 5 minutes. \n\nThank you for using Keynut store.",
+                                from_email="teamkepe@gmail.com",
                                 recipient_list=[email],
                                 fail_silently=False,
                             )
@@ -1094,9 +1102,9 @@ def admin_recover_password(request):
                 print(otp)
                 try:
                     send_mail(
-                        subject="Your Keynut OTP Code",
-                        message=f"Your OTP is {otp}. It expires in 5 minutes.",
-                        from_email="teamkepe@gmail.com",  # Your Gmail address
+                        subject="OTP for password recovery on Keynut store",
+                        message=f"Your OTP for password recovery on Keynut store is {otp}. It expires in 5 minutes. \n\nThank you for using Keynut store.",
+                        from_email="teamkepe@gmail.com",
                         recipient_list=[email],
                         fail_silently=False,
                     )
