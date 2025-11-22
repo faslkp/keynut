@@ -502,8 +502,18 @@ function validateFormData(formData) {
 
     // Validate discount value
     const discountValue = parseFloat(formData.get("discount_value"));
-    if (isNaN(discountValue) || discountValue <= 0) {
-        errors.discount_value = ["Discount value must be a positive number"];
+    if (isNaN(discountValue)) {
+        errors.discount_value = ["Discount value must be a valid number"];
+    }
+
+    if (discountType == 'percentage') {
+        if (discountValue <= 0 || discountValue > 100) {
+            errors.discount_value = ["Discount value must be between 0 and 100."];
+        }
+    } else {
+        if (discountValue <= 0) {
+            errors.discount_value = ["Discount value must be greater than 0."];
+        }
     }
 
     // Validate max discount amount (optional)

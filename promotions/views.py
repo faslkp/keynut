@@ -146,6 +146,21 @@ def add_coupon(request):
                 'message': f"Coupon {coupon_code} already exists.",
             })
         
+        discount_value = request.POST.get('discount_value')
+        discount_type = request.POST.get('discount_type')
+        if discount_type == 'percentage':
+            if int(discount_value) <= 0 or int(discount_value) > 100:
+                return JsonResponse({
+                    'error': True,
+                    'message': "Discount value must be between 0 and 100.",
+                })
+        else:
+            if int(discount_value) <= 0:
+                return JsonResponse({
+                    'error': True,
+                    'message': "Discount value must be greater than 0.",
+                })
+        
         # Create a copy of POST data for the form
         post_data = request.POST.copy()
 
