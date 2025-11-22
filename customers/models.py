@@ -115,6 +115,9 @@ class CartItem(models.Model):
     quantity = models.IntegerField(default=1)  # Number of packets
     added_at = models.DateTimeField(auto_now_add=True)
 
+    def total_non_discounted_price(self):
+        return self.product.price * self.quantity * self.variant.quantity
+
     def total_price(self):
         """Calculate total amount of a cart item and its discount."""
         # Check if the total required quantity is within stock and then calculate total price

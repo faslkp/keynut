@@ -121,8 +121,8 @@
                             </a>
                             <span>{{item.product.name}} - {{item.variant.quantity}} {{item.product.unit}}</span>
                         </td>
-                        <td>₹<span id="price-{{item.id}}" data-price="{{item.total_price|get_index:0}}">
-                            {{item.total_price|get_index:0|floatformat:2}}
+                        <td>₹<span id="price-{{item.id}}" data-price="{{item.product.price}}">
+                            {{item.product.price|floatformat:2}}
                         </span></td>
                         <td>
                             {% if item.product.stock < item.variant.quantity %}
@@ -137,7 +137,7 @@
                             </div>
                             {% endif %}
                         </td>
-                        <td>₹<span id="total-{{item.id}}">{{item.total_price|get_index:0|floatformat:2}}</span></td>
+                        <td>₹<span id="total-{{item.id}}">{{item.total_non_discounted_price|floatformat:2}}</span></td>
                         <td>
                             <button class="remove-from-cart btn btn-link p-0" data-item-id="{{item.id}}">
                                 <i class="bi bi-trash"></i>
