@@ -197,7 +197,13 @@ def checkout(request):
                 quantity = item.quantity
 
                 # Apply Offers and Coupons
-                offer_service = OfferService(product, variant_quantity, quantity, user=request.user)
+                offer_service = OfferService(
+                    product, 
+                    variant_quantity, 
+                    quantity, 
+                    user=request.user,
+                    coupon_code=cart.coupon.code if cart.coupon else None
+                )
                 offer_service.apply_offers()
                 offer_service.apply_coupons()
 
@@ -232,7 +238,8 @@ def checkout(request):
             cart.save(update_fields=["coupon"])
 
             # Creating payment data
-            order_total_amount = order.total_amount + order.shipping_charge
+            order_total_amount = order.total_amount + order.shipping_charge - order.order_level_discount
+            order_total_amount = max(0, order_total_amount)
 
             payment = Payment.objects.create(
                 order=order,
