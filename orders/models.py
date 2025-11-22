@@ -74,7 +74,7 @@ class Order(models.Model):
     @property
     def total_amount(self):
         """Total order amount excluding shipping charge"""
-        return sum(item.variant * item.quantity * item.price for item in self.order_items.all())
+        return sum(item.variant * item.quantity * item.price for item in self.order_items.all()) - self.order_level_discount
     
     @property
     def total_discount(self):
