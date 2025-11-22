@@ -625,6 +625,7 @@ def cart(request):
                 quantity_above_10 = True
         if quantity_above_10:
             messages.error(request, "Maximum quantity of a product in single order is capped at 10.")
+        messages.success(request, "Cart updated successfully.")
     
     # Handle quantity based on stock
     if cart_items:

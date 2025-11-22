@@ -116,12 +116,14 @@
                     {% for item in cart_items %}
                     <tr>
                         <td>
-                            <a href="{% url 'product_details' item.product.slug %}">
+                            <a href="{% url 'product_details' item.product.slug %}" class="text-decoration-none">
                                 <img class="rounded me-3" src="{{item.product.thumbnail.url}}" alt="{{item.product.name}}">
                             </a>
                             <span>{{item.product.name}} - {{item.variant.quantity}} {{item.product.unit}}</span>
                         </td>
-                        <td>₹<span id="price-{{item.id}}">{{item.product.price|floatformat:2}}</span></td>
+                        <td>₹<span id="price-{{item.id}}" data-price="{{item.total_price|get_index:0}}">
+                            {{item.total_price|get_index:0|floatformat:2}}
+                        </span></td>
                         <td>
                             {% if item.product.stock < item.variant.quantity %}
                             <span class="text-danger">Out of stock<span>
@@ -241,6 +243,11 @@
                 if ((quantity < 10) && ((quantity + 1) * selectedVariant <= maxStock)) {
                     quantityInput.value = quantity + 1;
                 }
+
+                let itemId = quantityInput.name;
+                const price = parseFloat(document.getElementById(`price-${itemId}`).dataset.price);
+                const updatedQty = parseInt(quantityInput.value, 10);
+                document.getElementById(`total-${itemId}`).textContent = (price * updatedQty).toFixed(2);
             });
 
             minusButton.addEventListener("click", function () {
@@ -249,6 +256,11 @@
                 if (quantity > 1) {
                     quantityInput.value = quantity - 1;
                 }
+
+                let itemId = quantityInput.name;
+                const price = parseFloat(document.getElementById(`price-${itemId}`).dataset.price);
+                const updatedQty = parseInt(quantityInput.value, 10);
+                document.getElementById(`total-${itemId}`).textContent = (price * updatedQty).toFixed(2);
             });
         });
 

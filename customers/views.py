@@ -324,6 +324,7 @@ def apply_coupon(request):
         else:
             cart.coupon = None
             cart.save()
+            messages.error(request, "Invalid coupon code!")
     return redirect('cart')
 
 
